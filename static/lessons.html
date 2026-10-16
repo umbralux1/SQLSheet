@@ -29,6 +29,8 @@
 *{box-sizing:border-box}
 
 *{box-sizing:border-box}
+/* show <>, !=, >=, <= exactly as typed: no programming ligatures (≠ ≥ ≤) in a SQL course */
+body,code,pre,textarea,input{font-variant-ligatures:none;font-feature-settings:"liga" 0,"calt" 0}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.6;margin:0}
 .wrap{max-width:1200px;margin:0 auto;padding-block:16px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
@@ -78,7 +80,13 @@ section{display:grid;gap:12px}
 section h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0;font-weight:600}
 .theory{max-width:68ch}
 .theory p{margin:0 0 10px}
-.theory ul{margin:0;padding-left:20px;display:grid;gap:4px}
+.theory ul{margin:0 0 10px;padding-left:20px;display:grid;gap:4px}
+.theory h4{font-size:14px;margin:16px 0 6px}
+.theory table.ops{border-collapse:collapse;margin:0 0 10px;font-size:14px;background:var(--panel)}
+.theory table.ops th,.theory table.ops td{border:1px solid var(--line);padding:4px 12px;text-align:left}
+.theory table.ops th{background:var(--head);font-size:12px;color:var(--muted);font-weight:600}
+.teacher .tips{margin:0;padding-left:20px;display:grid;gap:4px;font-size:14px}
+.teacher .tips-label{font-size:12px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;color:var(--accent)}
 code{font-family:var(--f-mono);font-size:.88em;background:var(--head);padding:1px 5px;border-radius:3px}
 pre.code{font-family:var(--f-mono);font-size:13.5px;line-height:1.6;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:4px;padding:10px 14px;margin:0 0 12px;overflow-x:auto}
 
@@ -101,6 +109,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:12.5px;font-vari
 .tasks{list-style:none;margin:0;padding:0;background:var(--panel);border:1px solid var(--line);border-radius:6px}
 .tasks li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
 .tasks li:first-child{border-top:0}
+.tasks li.sect{display:block;padding:8px 14px;background:var(--head);font-size:12px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;color:var(--muted)}
 .tasks .st{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line-strong);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--muted);font-family:var(--f-mono)}
 .tasks li.done .st{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
 .tasks .txt{min-width:0}
@@ -175,13 +184,13 @@ const T={
    brand2:'Sheet', title:'SQL Sheet Lessons', navTrainer:'Trainer', navLessons:'Lessons', roadmap:'Course roadmap',
    lesson:n=>`Lesson ${n}`, soon:'Soon', theory:'Theory', tables:'Tables for this lesson', tasks:'Tasks',
    rows:n=>`${n} rows`, solved:(a,b)=>`${a} of ${b} tasks solved`, start:'Start lesson in the trainer', cont:'Continue in the trainer',
-   solve:'Solve →', again:'Solve again →', task:n=>`Task ${n}`, answers:'Answers', answer:'Answer', teacherOnly:'Answers are visible to the teacher only.', login:'Log in', logout:'Log out', user:'Username', pass:'Password', wrongLogin:'Wrong username or password.', teacherIn:'You are logged in as teacher. The answer is shown on each task page in the trainer.', loginFail:'Could not reach the server. Answers need the app running on a server.',
+   solve:'Solve →', again:'Solve again →', task:n=>`Task ${n}`, answers:'For the teacher', answer:'Answer', tips:'Teaching tips', teacherOnly:'Answers and teaching tips are visible to the teacher only.', login:'Log in', logout:'Log out', user:'Username', pass:'Password', wrongLogin:'Wrong username or password.', teacherIn:'You are logged in as teacher. The answer is shown on each task page in the trainer.', loginFail:'Could not reach the server. Answers need the app running on a server.',
    soonText:'This lesson is not ready yet. Lesson 1 is available now.', back:'Open lesson 1', number:'number', text:'text'},
  ru:{live:'Онлайн', connecting:'Подключение…', offline:'Нет связи, переподключаюсь…', room:'комната', you:'ты', yourName:'Твоё имя', copyLink:'Скопировать ссылку', copied:'Ссылка скопирована', alone:'Пока здесь только ты. Отправь ссылку, чтобы позвать кого-то.',
    brand2:'Табличка', title:'SQL Табличка — уроки', navTrainer:'Тренажёр', navLessons:'Уроки', roadmap:'План курса',
    lesson:n=>`Урок ${n}`, soon:'Скоро', theory:'Теория', tables:'Таблицы урока', tasks:'Задания',
    rows:n=>`${n} стр.`, solved:(a,b)=>`Решено ${a} из ${b}`, start:'Начать урок в тренажёре', cont:'Продолжить в тренажёре',
-   solve:'Решить →', again:'Решить ещё раз →', task:n=>`Задание ${n}`, answers:'Ответы', answer:'Ответ', teacherOnly:'Ответы видит только преподаватель.', login:'Войти', logout:'Выйти', user:'Логин', pass:'Пароль', wrongLogin:'Неверный логин или пароль.', teacherIn:'Ты вошёл как преподаватель. Ответ показывается на странице каждого задания в тренажёре.', loginFail:'Нет связи с сервером. Ответы доступны, только когда приложение запущено на сервере.',
+   solve:'Решить →', again:'Решить ещё раз →', task:n=>`Задание ${n}`, answers:'Для преподавателя', answer:'Ответ', tips:'Советы преподавателю', teacherOnly:'Ответы и советы видит только преподаватель.', login:'Войти', logout:'Выйти', user:'Логин', pass:'Пароль', wrongLogin:'Неверный логин или пароль.', teacherIn:'Ты вошёл как преподаватель. Ответ показывается на странице каждого задания в тренажёре.', loginFail:'Нет связи с сервером. Ответы доступны, только когда приложение запущено на сервере.',
    soonText:'Этот урок ещё готовится. Сейчас доступен урок 1.', back:'Открыть урок 1', number:'число', text:'текст'}
 };
 let lang='en'; try{const s=localStorage.getItem('sqlt-lang'); if(s==='ru'||s==='en') lang=s}catch(e){}
@@ -238,7 +247,7 @@ function renderLesson(){
     </div>
     <section><h3>${L.theory}</h3><div class="theory">${l.theory[lang]}</div></section>
     <section><h3>${L.tables}</h3><div class="tables">${tablesHtml}</div></section>
-    <section><h3>${L.tasks}</h3><ol class="tasks">${l.tasks.map((t,i)=>`
+    <section><h3>${L.tasks}</h3><ol class="tasks">${l.tasks.map((t,i)=>`${t.section?`<li class="sect">${esc(t.section[lang])}</li>`:''}
       <li class="${solved.has(i)?'done':''}"><span class="st">${solved.has(i)?'✓':i+1}</span>
         <div class="txt"><b>${L.task(i+1)}</b>${t.text[lang]}</div>
         <a class="go" href="./?lesson=${l.id}&task=${i+1}">${solved.has(i)?L.again:L.solve}</a></li>`).join('')}</ol>
@@ -265,8 +274,14 @@ async function renderTeacher(){
     });
     return;
   }
-  box.innerHTML=`<div class="top"><b>${L.answers}</b><span>${L.teacherIn} <button class="btn ghost small" id="logout">${L.logout}</button></span></div>`;
+  box.innerHTML=`<div class="top"><b>${L.answers}</b><span>${L.teacherIn} <button class="btn ghost small" id="logout">${L.logout}</button></span></div><div id="tips"></div>`;
   $('logout').onclick=async()=>{try{await fetch('api/logout',{method:'POST'})}catch(e){} teacher=false; renderTeacher()};
+  if(!l||!l.available) return;
+  try{
+    const r=await fetch('api/answers/'+l.id); if(!r.ok) return;
+    const tips=(await r.json()).tips;
+    if(tips&&tips[lang]&&$('tips')) $('tips').innerHTML=`<div class="tips-label">${L.tips}</div><ul class="tips">${tips[lang].map(t=>`<li>${t}</li>`).join('')}</ul>`;
+  }catch(e){}
 }
 function applyLang(){
   L=T[lang]; document.documentElement.lang=lang; document.title=L.title;

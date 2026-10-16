@@ -22,17 +22,20 @@ STATIC_DIR = BASE_DIR / "static"
 app = FastAPI(title="SQL Sheet")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+# Pages are revalidated on every visit, so a new deploy shows up right away.
+NO_CACHE = {"Cache-Control": "no-cache"}
+
 
 @app.get("/", include_in_schema=False)
 async def root():
     """Home page: the SQL trainer with an Excel-style result grid."""
-    return FileResponse(STATIC_DIR / "index.html")
+    return FileResponse(STATIC_DIR / "index.html", headers=NO_CACHE)
 
 
 @app.get("/lessons", include_in_schema=False)
 async def lessons():
     """Course page: lesson theory, tables and tasks."""
-    return FileResponse(STATIC_DIR / "lessons.html")
+    return FileResponse(STATIC_DIR / "lessons.html", headers=NO_CACHE)
 
 
 # ---------------------------------------------------------------------------
@@ -65,12 +68,12 @@ window.COURSE_PROGRESS = {
 
 
 def public_course() -> dict:
-    """The course without the answers."""
+    """The course without the answers and the teacher's tips."""
     lessons = []
     for lesson in COURSE["lessons"]:
-        item = {k: v for k, v in lesson.items() if k != "tasks"}
+        item = {k: v for k, v in lesson.items() if k not in ("tasks", "tips")}
         if "tasks" in lesson:
-            item["tasks"] = [{"text": t["text"]} for t in lesson["tasks"]]
+            item["tasks"] = [{k: v for k, v in t.items() if k != "answer"} for t in lesson["tasks"]]
         lessons.append(item)
     return {"lessons": lessons}
 
@@ -126,7 +129,8 @@ async def me(request: Request):
 async def answers(lesson_id: int, request: Request):
     if not is_teacher(request):
         raise HTTPException(status_code=403, detail="Teachers only")
-    return {"answers": [t["answer"] for t in find_lesson(lesson_id)["tasks"]]}
+    lesson = find_lesson(lesson_id)
+    return {"answers": [t["answer"] for t in lesson["tasks"]], "tips": lesson.get("tips")}
 
 
 def _normalize(value):

@@ -27,6 +27,8 @@
   --new:#1f3e2a; --chg:#3d3518; --null:#66736c; --err:#ff8a80; --err-bg:#3a1f1d; --kw:#7fb4ff; --wavy:#e0b341; --str:#f0a46b; color-scheme:dark}
 
 *{box-sizing:border-box}
+/* show <>, !=, >=, <= exactly as typed: no programming ligatures (≠ ≥ ≤) in a SQL course */
+body,code,pre,textarea,input{font-variant-ligatures:none;font-feature-settings:"liga" 0,"calt" 0}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
 .wrap{max-width:1400px;margin:0 auto;padding-block:16px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:12px}
 header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
@@ -162,6 +164,7 @@ header .lang{margin-left:0}
 .lessons-head a{font-size:12px;color:var(--accent);text-decoration:none;font-weight:600}
 .lessons-head a:hover{text-decoration:underline}
 .lessons button.solved b{color:var(--accent)}
+.lessons .sect{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:10px 8px 2px}
 .msg .good,.msg .bad{display:block;margin-top:6px;padding:5px 8px;border-radius:3px;font-family:var(--f-body)}
 .msg .good{background:var(--new);color:var(--fg)}
 .msg .win{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:8px;padding:14px 16px;border-radius:8px;
@@ -269,7 +272,7 @@ const T = {
   correct:'✓ Correct! Task solved.', nextTask:'Next task →', lessonDone:'✓ Correct! That was the last task of this lesson.',
   praise:['Nailed it!','Excellent!','Brilliant!','Perfect query!','Great job!','You’re a natural!','Spot on!'],
   solvedOf:(a,b)=>`Task solved · ${a} of ${b} done`, toUnsolved:'Next unsolved task →',
-  lessonComplete:'Lesson complete!', proud:n=>`You solved all ${n} tasks. Be proud of yourself!`,
+  nextLesson:'Next lesson →', lessonComplete:'Lesson complete!', proud:n=>`You solved all ${n} tasks. Be proud of yourself!`,
   wrongCols:(e,g)=>`✗ Not yet. Expected columns: ${e}. Your query returned: ${g}.`,
   wrongRows:(e,g)=>`✗ Not yet. Expected ${e} rows, your query returned ${g}.`,
   wrongVals:'✗ Not yet. The columns and row count match, but some values differ.',
@@ -301,7 +304,7 @@ const T = {
   correct:'✓ Верно! Задание решено.', nextTask:'Следующее задание →', lessonDone:'✓ Верно! Это было последнее задание урока.',
   praise:['Отлично!','В точку!','Великолепно!','Идеальный запрос!','Так держать!','Блестяще!','Супер!'],
   solvedOf:(a,b)=>`Задание решено · ${a} из ${b}`, toUnsolved:'К нерешённому заданию →',
-  lessonComplete:'Урок пройден!', proud:n=>`Ты решил все ${n} заданий. Можешь гордиться собой!`,
+  nextLesson:'Следующий урок →', lessonComplete:'Урок пройден!', proud:n=>`Ты решил все ${n} заданий. Можешь гордиться собой!`,
   wrongCols:(e,g)=>`✗ Пока нет. Нужны столбцы: ${e}. Твой запрос вернул: ${g}.`,
   wrongRows:(e,g)=>`✗ Пока нет. Нужно строк: ${e}, твой запрос вернул: ${g}.`,
   wrongVals:'✗ Пока нет. Столбцы и число строк совпадают, но некоторые значения отличаются.',
@@ -397,8 +400,9 @@ async function loadTeacherAnswers(){
 function lessonList(){
   if(!COURSE_LESSON) return LESSONS[lang];
   const n=COURSE_LESSON.tasks.length;
-  return COURSE_LESSON.tasks.map((t,k)=>({t:`${L.task} ${k+1}`, d:stripTags(t.text[lang]), q:'',
-    n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])} · ${L.task} ${k+1}/${n}</span>${t.text[lang]}`+
+  const sectionOf=k=>{for(let i=k;i>=0;i--) if(COURSE_LESSON.tasks[i].section) return COURSE_LESSON.tasks[i].section[lang]; return ''};
+  return COURSE_LESSON.tasks.map((t,k)=>({t:`${L.task} ${k+1}`, d:stripTags(t.text[lang]), q:'', section:t.section?t.section[lang]:'',
+    n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${L.task} ${k+1}/${n}</span>${t.text[lang]}`+
       (TEACHER_ANSWERS&&TEACHER_ANSWERS[k]?`<div class="answer"><span>${esc(L.answerLabel)}</span><code>${esc(TEACHER_ANSWERS[k])}</code></div>`:'')}));
 }
 function defaultLesson(){
@@ -435,7 +439,8 @@ function celebrate(k){
   const n=COURSE_LESSON.tasks.length, solved=new Set(COURSE_PROGRESS.get(COURSE_LESSON.id));
   const all=solved.size>=n, nextOpen=[...Array(n).keys()].find(i=>i>k&&!solved.has(i))??[...Array(n).keys()].find(i=>!solved.has(i));
   const dots=[...Array(n).keys()].map(i=>`<i class="${solved.has(i)?'on':''}${i===k?' now':''}"></i>`).join('');
-  const action=all?`<a class="btn primary" href="lessons">${esc(L.allLessons)}</a>`
+  const nextLesson=COURSE.lessons.find(x=>x.id>COURSE_LESSON.id&&x.available);
+  const action=all?(nextLesson?`<a class="btn primary" href="./?lesson=${nextLesson.id}&task=1">${esc(L.nextLesson)}</a>`:`<a class="btn primary" href="lessons">${esc(L.allLessons)}</a>`)
     :k<n-1?`<button class="btn primary" data-lesson-go="${k+1}">${esc(L.nextTask)}</button>`
     :`<button class="btn primary" data-lesson-go="${nextOpen}">${esc(L.toUnsolved)}</button>`;
   const title=all?L.lessonComplete:L.praise[Math.floor(Math.random()*L.praise.length)];
@@ -583,8 +588,19 @@ function run(given){
     renderTabs(); openTab(touched);
     showMsg('ok',L.changed(changed)+(a?L.added(a):'')+(c?L.updated(c):'')+(m.deleted?L.deleted(m.deleted):''),true);
   }else{
+    // a SELECT that matched no rows: sql.js returns nothing, so read the column names ourselves
+    let cols=[];
+    try{for(const st of db.iterateStatements(src)){cols=st.getColumnNames();st.free()}}catch(e){cols=[]}
+    if(cols.length){
+      const r={columns:cols,values:[]};
+      lastResult={cols,rows:[],types:guessTypes([],cols.length)};
+      renderTabs(); openTab('__result');
+      showMsg('ok',L.ok(0));
+      checkTask(r);
+    }else{
     renderTabs(); if(!tables().includes(tab)&&tab!=='__result') openTab('__result'); else openTab(tab);
     showMsg('ok',L.done);
+    }
   }
   if(noSemi) addSemiTip();
   addCaseTip(src);
@@ -727,7 +743,9 @@ function renderLessons(active){
   const el=$('lessons'); el.innerHTML='';
   const solved=COURSE_LESSON?new Set(COURSE_PROGRESS.get(COURSE_LESSON.id)):new Set();
   if(COURSE_LESSON){ $('lessons-label').textContent=L.tasksOf(COURSE_LESSON.id); const back=$('lessons-back'); back.hidden=false; back.textContent=L.allLessons; }
-  lessonList().forEach((l,i)=>{const b=document.createElement('button');
+  lessonList().forEach((l,i)=>{
+    if(l.section){const h=document.createElement('div');h.className='sect';h.textContent=l.section;el.appendChild(h)}
+    const b=document.createElement('button'); b.dataset.i=i;
     b.innerHTML=COURSE_LESSON?`<b>${solved.has(i)?'✓ ':''}${esc(l.t)}</b><span>${esc(l.d)}</span>`:`<b>${i+1}. ${l.t}</b><span>${l.d}</span>`;
     if(solved.has(i)) b.classList.add('solved');
     b.setAttribute('aria-current',i===active);
@@ -824,7 +842,7 @@ function start(){
     else if(t.closest('#tabs')) emit({kind:'tab',id:t.dataset.id});
     else if(t.classList.contains('tname')) emit({kind:'tab',id:t.childNodes[0].textContent.trim()});
     else if(t.dataset.lessonGo) emit({kind:'lesson',i:+t.dataset.lessonGo});
-    else emit({kind:'lesson',i:[...t.parentElement.children].indexOf(t)});
+    else emit({kind:'lesson',i:t.dataset.i!=null?+t.dataset.i:[...t.parentElement.children].indexOf(t)});
   },true);
   document.addEventListener('keydown',e=>{
     if(!live()||e.target!==ta) return;
