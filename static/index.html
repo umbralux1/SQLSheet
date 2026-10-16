@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SQL Табличка</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@600&display=swap">
+<style>
+/* Layout: Excel-like workbook — schema rail left, editor + formula bar + grid right, sheet tabs + status bar at the bottom */
+:root{
+  --bg:#f3f5f2; --panel:#ffffff; --fg:#1d2320; --muted:#68736d; --line:#d5dbd6; --line-strong:#b9c2bb;
+  --head:#eaeeea; --head-active:#cfe3d6; --accent:#1f7a4d; --accent-fg:#ffffff; --sel:rgba(31,122,77,.12);
+  --new:#d8f2df; --chg:#fbf0c6; --null:#9aa49e; --err:#b3261e; --err-bg:#fbe9e7; --kw:#1f5fa8; --str:#9a4a12;
+  --f-display:"Unbounded","IBM Plex Sans",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141917; --panel:#1b211e; --fg:#e3e9e5; --muted:#93a099; --line:#2c3531; --line-strong:#3c4842;
+  --head:#222a26; --head-active:#24432f; --accent:#4cc283; --accent-fg:#0d1a12; --sel:rgba(76,194,131,.16);
+  --new:#1f3e2a; --chg:#3d3518; --null:#66736c; --err:#ff8a80; --err-bg:#3a1f1d; --kw:#7fb4ff; --str:#f0a46b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141917; --panel:#1b211e; --fg:#e3e9e5; --muted:#93a099; --line:#2c3531; --line-strong:#3c4842;
+  --head:#222a26; --head-active:#24432f; --accent:#4cc283; --accent-fg:#0d1a12; --sel:rgba(76,194,131,.16);
+  --new:#1f3e2a; --chg:#3d3518; --null:#66736c; --err:#ff8a80; --err-bg:#3a1f1d; --kw:#7fb4ff; --str:#f0a46b; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.wrap{max-width:1400px;margin:0 auto;padding-block:16px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:12px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+h1{font-family:var(--f-display);font-size:20px;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--accent)}
+header p{margin:0;color:var(--muted)}
+.layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:12px;align-items:start}
+@media (max-width:820px){.layout{grid-template-columns:minmax(0,1fr)}}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:6px;min-width:0}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+
+/* sidebar */
+aside{display:grid;gap:12px}
+.side{padding:12px;display:grid;gap:8px}
+.tbl{border-top:1px solid var(--line);padding-top:8px}
+.tbl:first-of-type{border-top:0;padding-top:0}
+.tbl button.tname{all:unset;cursor:pointer;font-family:var(--f-mono);font-weight:600;font-size:13px;display:flex;justify-content:space-between;width:100%}
+.tbl button.tname small{color:var(--muted);font-weight:400}
+.cols{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.cols button{font-family:var(--f-mono);font-size:11.5px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:3px;padding:1px 6px;cursor:pointer}
+.cols button i{color:var(--muted);font-style:normal}
+.cols button:hover,.tbl button.tname:hover{color:var(--accent)}
+.lessons{display:grid;gap:4px}
+.lessons button{all:unset;cursor:pointer;padding:6px 8px;border-radius:4px;display:grid;gap:1px}
+.lessons button b{font-weight:600;font-size:13px}
+.lessons button span{font-size:12px;color:var(--muted)}
+.lessons button:hover,.lessons button[aria-current="true"]{background:var(--sel)}
+.lessons button:focus-visible,.tbl button.tname:focus-visible{outline:2px solid var(--accent)}
+
+/* editor */
+.main{display:grid;gap:0;overflow:hidden}
+.ribbon{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--head)}
+.btn{font:inherit;font-weight:600;font-size:13px;border:1px solid var(--line-strong);background:var(--panel);color:var(--fg);border-radius:4px;padding:5px 12px;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn:hover{filter:brightness(1.05)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{font-size:12px;color:var(--muted);margin-left:auto}
+.lesson-note{padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px;color:var(--fg);background:var(--panel)}
+.lesson-note:empty{display:none}
+.lesson-note code{font-family:var(--f-mono);font-size:12px;background:var(--head);padding:0 4px;border-radius:3px}
+.editor{position:relative;font-family:var(--f-mono);font-size:13.5px;line-height:1.6;border-bottom:1px solid var(--line)}
+.editor pre,.editor textarea{margin:0;padding:10px 12px 10px 46px;min-height:120px;white-space:pre-wrap;word-break:break-word;font:inherit;tab-size:2}
+.editor pre{pointer-events:none;color:var(--fg)}
+.editor textarea{position:absolute;inset:0;width:100%;height:100%;resize:none;border:0;background:transparent;color:transparent;caret-color:var(--fg);outline:none}
+.editor textarea::selection{background:var(--sel);color:transparent}
+.editor .gutter{position:absolute;left:0;top:0;bottom:0;width:34px;background:var(--head);border-right:1px solid var(--line);color:var(--muted);font-size:11px;text-align:right;padding:10px 6px 0 0;overflow:hidden;white-space:pre}
+.editor:focus-within{box-shadow:inset 0 0 0 2px var(--accent)}
+.kw{color:var(--kw);font-weight:600}.st{color:var(--str)}.nu{color:var(--accent)}.cm{color:var(--muted);font-style:italic}
+
+/* formula bar */
+.fbar{display:grid;grid-template-columns:72px 28px minmax(0,1fr);border-bottom:1px solid var(--line);font-family:var(--f-mono);font-size:12.5px}
+.fbar>div{padding:5px 8px;border-right:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fbar .fx{color:var(--muted);font-style:italic;text-align:center;font-family:Georgia,serif}
+.fbar .val{border-right:0}
+.msg{padding:8px 12px;font-size:13px;border-bottom:1px solid var(--line)}
+.msg.err{background:var(--err-bg);color:var(--err);font-family:var(--f-mono);font-size:12.5px}
+.msg.ok{color:var(--muted)}
+.msg .lg{display:inline-flex;gap:4px;align-items:center;margin-left:10px}
+.msg .sw{width:10px;height:10px;border:1px solid var(--line-strong);display:inline-block}
+
+/* grid */
+.gridwrap{overflow:auto;max-height:min(62vh,560px);min-height:200px;background:var(--panel);outline:none}
+table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);font-size:13px;font-variant-numeric:tabular-nums}
+.sheet th,.sheet td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:3px 8px;height:24px;white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis}
+.sheet thead th{position:sticky;top:0;z-index:2;background:var(--head);color:var(--muted);font-weight:500;font-size:12px;text-align:center;cursor:pointer;min-width:84px}
+.sheet th.corner{left:0;z-index:3;min-width:44px;width:44px;cursor:default}
+.sheet tbody th{position:sticky;left:0;z-index:1;background:var(--head);color:var(--muted);font-weight:500;font-size:12px;text-align:right;min-width:44px;cursor:pointer}
+.sheet tr.hdr td{font-weight:600;background:var(--panel)}
+.sheet tr.hdr td small{display:block;font-weight:400;font-size:10.5px;color:var(--muted);font-family:var(--f-mono);line-height:1}
+.sheet td.n{text-align:right}
+.sheet td.null{color:var(--null);font-style:italic}
+.sheet tr.new td{background:var(--new)}
+.sheet tr.chg td{background:var(--chg)}
+.sheet td.insel{background:var(--sel)}
+.sheet td.cur{box-shadow:inset 0 0 0 2px var(--accent)}
+.sheet th.on{background:var(--head-active);color:var(--fg)}
+.sheet td.empty,.sheet th.empty{background:transparent}
+
+/* tabs + status */
+.tabs{display:flex;gap:0;border-top:1px solid var(--line);background:var(--head);overflow-x:auto}
+.tabs button{font:inherit;font-size:12.5px;border:0;border-right:1px solid var(--line);background:transparent;color:var(--muted);padding:6px 14px;cursor:pointer;white-space:nowrap;font-family:var(--f-mono)}
+.tabs button[aria-selected="true"]{background:var(--panel);color:var(--accent);font-weight:600;box-shadow:inset 0 2px 0 var(--accent)}
+.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.status{display:flex;flex-wrap:wrap;gap:4px 18px;padding:5px 12px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.status b{color:var(--fg);font-weight:600}
+.status .agg{margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
+.boot{padding:40px;text-align:center;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>SQL <span>Табличка</span></h1>
+    <p>Пиши запрос — результат появится как лист Excel. База живёт в браузере, ломать можно смело.</p>
+  </header>
+
+  <div class="layout">
+    <aside>
+      <div class="box side">
+        <div class="label">Таблицы базы</div>
+        <div id="schema"></div>
+      </div>
+      <div class="box side">
+        <div class="label">Уроки</div>
+        <div class="lessons" id="lessons"></div>
+      </div>
+    </aside>
+
+    <section class="box main">
+      <div class="ribbon">
+        <button class="btn primary" id="run">▶ Выполнить</button>
+        <button class="btn" id="reset" title="Вернуть исходные данные">Сбросить базу</button>
+        <span class="hint">Ctrl/⌘ + Enter — выполнить</span>
+      </div>
+      <div class="lesson-note" id="note"></div>
+      <div class="editor">
+        <div class="gutter" id="gutter">1</div>
+        <pre id="hl" aria-hidden="true"></pre>
+        <textarea id="sql" spellcheck="false" aria-label="SQL-запрос"></textarea>
+      </div>
+      <div class="fbar">
+        <div id="namebox">A1</div><div class="fx">fx</div><div class="val" id="fval"></div>
+      </div>
+      <div id="msg" class="msg ok">Загрузка движка SQLite…</div>
+      <div class="gridwrap" id="gridwrap" tabindex="0"><div class="boot">Готовлю базу данных…</div></div>
+      <div class="tabs" id="tabs" role="tablist"></div>
+      <div class="status"><span id="st-rows"></span><span id="st-time"></span><span class="agg" id="st-agg"></span></div>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-asm.js"></script>
+<script>
+const SEED = `
+CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, city TEXT, joined DATE);
+CREATE TABLE products (id INTEGER PRIMARY KEY, title TEXT NOT NULL, category TEXT, price INTEGER);
+CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER REFERENCES customers(id), product_id INTEGER REFERENCES products(id), qty INTEGER, order_date DATE);
+INSERT INTO customers VALUES
+ (1,'Анна Смирнова','Москва','2024-02-11'),(2,'Игорь Петров','Казань','2024-03-05'),
+ (3,'Мария Иванова','Москва','2024-04-19'),(4,'Олег Кузнецов','Новосибирск','2024-06-01'),
+ (5,'Елена Соколова','Санкт-Петербург','2024-07-23'),(6,'Дмитрий Орлов','Казань','2024-09-14'),
+ (7,'Светлана Волкова',NULL,'2025-01-08'),(8,'Павел Морозов','Санкт-Петербург','2025-02-27');
+INSERT INTO products VALUES
+ (1,'Ноутбук','Электроника',74990),(2,'Мышь','Электроника',1290),(3,'Наушники','Электроника',5990),
+ (4,'Кофеварка','Кухня',8990),(5,'Чайник','Кухня',2490),(6,'Рюкзак','Аксессуары',3490),
+ (7,'Монитор','Электроника',18990),(8,'Термокружка','Кухня',1190);
+INSERT INTO orders VALUES
+ (1,1,1,1,'2025-03-01'),(2,1,2,2,'2025-03-01'),(3,2,4,1,'2025-03-04'),(4,3,3,1,'2025-03-07'),
+ (5,3,8,3,'2025-03-07'),(6,4,7,2,'2025-03-12'),(7,5,5,1,'2025-03-15'),(8,2,6,1,'2025-03-18'),
+ (9,6,2,1,'2025-03-20'),(10,5,1,1,'2025-03-22'),(11,1,3,1,'2025-03-25'),(12,8,4,1,'2025-03-28');`;
+
+const LESSONS = [
+ {t:'SELECT *', d:'Показать всё', q:`SELECT * FROM customers;`, n:'<code>SELECT *</code> берёт все столбцы таблицы. Каждая строка таблицы — это строка листа.'},
+ {t:'WHERE и ORDER BY', d:'Фильтр и сортировка', q:`SELECT title, price\nFROM products\nWHERE price > 5000\nORDER BY price DESC;`, n:'<code>WHERE</code> — как фильтр в Excel. <code>ORDER BY … DESC</code> — сортировка по убыванию.'},
+ {t:'NULL', d:'Пустые значения', q:`SELECT name, city\nFROM customers\nWHERE city IS NULL;`, n:'Пустая ячейка в SQL — это <code>NULL</code>. Сравнивать её через <code>=</code> нельзя, только <code>IS NULL</code>.'},
+ {t:'GROUP BY', d:'Как сводная таблица', q:`SELECT city, COUNT(*) AS клиентов\nFROM customers\nGROUP BY city\nORDER BY клиентов DESC;`, n:'<code>GROUP BY</code> сворачивает строки в группы — почти сводная таблица Excel.'},
+ {t:'JOIN', d:'Склеить таблицы', q:`SELECT c.name, p.title, o.qty,\n       p.price * o.qty AS сумма\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN products  p ON p.id = o.product_id\nORDER BY сумма DESC;`, n:'<code>JOIN</code> подтягивает данные из другой таблицы по ключу — как ВПР (VLOOKUP).'},
+ {t:'HAVING', d:'Фильтр по группам', q:`SELECT c.name, SUM(p.price * o.qty) AS потратил\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN products  p ON p.id = o.product_id\nGROUP BY c.name\nHAVING потратил > 10000;`, n:'<code>WHERE</code> фильтрует строки до группировки, <code>HAVING</code> — группы после неё.'},
+ {t:'LEFT JOIN', d:'Кто ничего не купил', q:`SELECT c.name, o.id AS заказ\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.id\nWHERE o.id IS NULL;`, n:'<code>LEFT JOIN</code> оставляет всех слева, даже без пары. Там, где пары нет, — <code>NULL</code>.'},
+ {t:'INSERT', d:'Добавить строку', q:`INSERT INTO products (title, category, price)\nVALUES ('Планшет', 'Электроника', 32990);`, n:'Новые строки подсвечиваются <b>зелёным</b> на листе таблицы.'},
+ {t:'UPDATE', d:'Изменить данные', q:`UPDATE products\nSET price = price * 0.9\nWHERE category = 'Кухня';`, n:'Изменённые строки подсвечиваются <b>жёлтым</b>. Без <code>WHERE</code> изменится вся таблица!'},
+ {t:'DELETE', d:'Удалить строки', q:`DELETE FROM orders\nWHERE order_date < '2025-03-05';`, n:'<code>DELETE</code> без <code>WHERE</code> удалит всё. Нажми «Сбросить базу», чтобы вернуть данные.'},
+];
+
+const $ = id => document.getElementById(id);
+const ta=$('sql'), hl=$('hl'), gut=$('gutter'), grid=$('gridwrap');
+let SQL, db, view={cols:[],types:[],rows:[],marks:{}}, cur={r:0,c:0}, anchor=null, tab='__result', lastResult=null;
+
+/* ---------- highlighting ---------- */
+const KW=/\b(SELECT|FROM|WHERE|AND|OR|NOT|IN|IS|NULL|AS|ON|JOIN|LEFT|RIGHT|INNER|OUTER|FULL|CROSS|GROUP|BY|ORDER|HAVING|LIMIT|OFFSET|DISTINCT|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|DROP|ALTER|ADD|PRIMARY|KEY|REFERENCES|INTEGER|TEXT|REAL|DATE|ASC|DESC|LIKE|BETWEEN|CASE|WHEN|THEN|ELSE|END|UNION|ALL|EXISTS|COUNT|SUM|AVG|MIN|MAX|ROUND|WITH|DEFAULT|UNIQUE|INDEX|VIEW|ROUND|UPPER|LOWER|LENGTH|COALESCE)\b/gi;
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+function highlight(){
+  const src=ta.value;
+  let out='', re=/(--[^\n]*)|('(?:[^']|'')*'?)|(\b\d+(?:\.\d+)?\b)|([^'\-\d]+|[\s\S])/g, m;
+  while((m=re.exec(src))){
+    if(m[1]) out+=`<span class="cm">${esc(m[1])}</span>`;
+    else if(m[2]) out+=`<span class="st">${esc(m[2])}</span>`;
+    else if(m[3]) out+=`<span class="nu">${m[3]}</span>`;
+    else out+=esc(m[4]).replace(KW,w=>`<span class="kw">${w}</span>`);
+  }
+  hl.innerHTML=out+'\n';
+  gut.textContent=src.split('\n').map((_,i)=>i+1).join('\n');
+  try{localStorage.setItem('sqlt-draft',src)}catch(e){}
+}
+ta.addEventListener('input',highlight);
+ta.addEventListener('scroll',()=>{hl.scrollTop=ta.scrollTop;gut.scrollTop=ta.scrollTop});
+ta.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();run()}
+  else if(e.key==='Tab'){e.preventDefault();const s=ta.selectionStart;ta.setRangeText('  ',s,ta.selectionEnd,'end');highlight()}
+});
+
+/* ---------- helpers ---------- */
+function colLetter(i){let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s}
+function tables(){const r=db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY rowid");return r.length?r[0].values.map(v=>v[0]):[]}
+function tableInfo(t){const r=db.exec(`PRAGMA table_info("${t}")`);return r.length?r[0].values.map(v=>({name:v[1],type:v[2]||'',pk:v[5]})):[]}
+function snapshot(t){const m=new Map();try{const r=db.exec(`SELECT rowid,* FROM "${t}"`);if(r.length)r[0].values.forEach(v=>m.set(v[0],JSON.stringify(v.slice(1))))}catch(e){}return m}
+function fmtNum(v){return Number.isInteger(v)?v.toLocaleString('ru-RU'):v.toLocaleString('ru-RU',{maximumFractionDigits:4})}
+
+/* ---------- run ---------- */
+const marksByTable={};
+function run(){
+  const src=ta.value.trim(); if(!src) return;
+  const dml=[...src.matchAll(/\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+"?(\w+)"?/gi)].map(m=>m[1]);
+  const snaps={}; dml.forEach(t=>{if(tables().includes(t)) snaps[t]=snapshot(t)});
+  const t0=performance.now();
+  let res;
+  try{ res=db.exec(src); }
+  catch(e){ showMsg('err','Ошибка: '+e.message+hintFor(e.message)); $('st-time').textContent=''; return; }
+  const ms=(performance.now()-t0).toFixed(1), changed=db.getRowsModified();
+  $('st-time').innerHTML=`Время: <b>${ms} мс</b>`;
+  // diff for DML
+  let touched=null;
+  for(const t of Object.keys(snaps)){
+    const before=snaps[t], after=snapshot(t), mk={};
+    let del=0; before.forEach((_,k)=>{if(!after.has(k))del++});
+    after.forEach((v,k)=>{if(!before.has(k))mk[k]='new';else if(before.get(k)!==v)mk[k]='chg'});
+    marksByTable[t]={marks:mk,deleted:del}; touched=t;
+  }
+  renderSchema();
+  if(res.length){
+    const r=res[res.length-1];
+    lastResult={cols:r.columns,rows:r.values,types:guessTypes(r.values,r.columns.length)};
+    renderTabs(); openTab('__result');
+    showMsg('ok',`Запрос выполнен. Строк в результате: ${r.values.length}.`);
+  }else if(touched){
+    const m=marksByTable[touched], n=Object.values(m.marks), a=n.filter(x=>x==='new').length, c=n.filter(x=>x==='chg').length;
+    renderTabs(); openTab(touched);
+    showMsg('ok',`Изменено строк: ${changed}.`+(a?` Добавлено: ${a}.`:'')+(c?` Обновлено: ${c}.`:'')+(m.deleted?` Удалено: ${m.deleted}.`:''),true);
+  }else{
+    renderTabs(); if(!tables().includes(tab)&&tab!=='__result') openTab('__result'); else openTab(tab);
+    showMsg('ok','Команда выполнена.');
+  }
+}
+function hintFor(m){
+  if(/no such table/.test(m)) return ' — проверь имя таблицы в списке слева.';
+  if(/no such column/.test(m)) return ' — такого столбца нет. Нажми на имя столбца слева, чтобы вставить его.';
+  if(/syntax error/.test(m)) return ' — проверь запятые, кавычки и порядок слов (SELECT → FROM → WHERE → GROUP BY → ORDER BY).';
+  return '';
+}
+function showMsg(kind,text,legend){
+  const el=$('msg'); el.className='msg '+kind; el.textContent=text;
+  if(legend) el.insertAdjacentHTML('beforeend','<span class="lg"><i class="sw" style="background:var(--new)"></i>новые</span><span class="lg"><i class="sw" style="background:var(--chg)"></i>изменённые</span>');
+}
+function guessTypes(rows,n){const t=[];for(let c=0;c<n;c++){t[c]=rows.length&&rows.every(r=>r[c]===null||typeof r[c]==='number')&&rows.some(r=>r[c]!==null)?'число':'текст'}return t}
+
+/* ---------- tabs & views ---------- */
+function renderTabs(){
+  const el=$('tabs'); el.innerHTML='';
+  const mk=(id,label)=>{const b=document.createElement('button');b.role='tab';b.textContent=label;b.dataset.id=id;b.setAttribute('aria-selected',id===tab);b.onclick=()=>openTab(id);el.appendChild(b)};
+  mk('__result','Результат');
+  tables().forEach(t=>mk(t,t));
+}
+function openTab(id){
+  tab=id;
+  [...$('tabs').children].forEach(b=>b.setAttribute('aria-selected',b.dataset.id===id));
+  if(id==='__result'){
+    view=lastResult?{...lastResult,marks:{},rowids:null}:{cols:[],rows:[],types:[],marks:{}};
+  }else{
+    const info=tableInfo(id), r=db.exec(`SELECT rowid,* FROM "${id}"`);
+    const vals=r.length?r[0].values:[];
+    view={cols:info.map(c=>c.name),types:info.map(c=>c.type.toLowerCase()),rows:vals.map(v=>v.slice(1)),rowids:vals.map(v=>v[0]),marks:(marksByTable[id]||{}).marks||{}};
+  }
+  cur={r:0,c:0}; anchor=null; renderGrid();
+}
+
+/* ---------- grid ---------- */
+const MIN_COLS=8, MIN_ROWS=18, MAX_ROWS=1000;
+function renderGrid(){
+  const nc=Math.max(view.cols.length,MIN_COLS), shown=view.rows.slice(0,MAX_ROWS), nr=Math.max(shown.length+1,MIN_ROWS);
+  let h='<table class="sheet"><thead><tr><th class="corner"></th>';
+  for(let c=0;c<nc;c++) h+=`<th data-col="${c}">${colLetter(c)}</th>`;
+  h+='</tr></thead><tbody>';
+  for(let r=0;r<nr;r++){
+    let cls='';
+    if(r===0&&view.cols.length) cls='hdr';
+    else if(r>0&&view.rowids){const m=view.marks[view.rowids[r-1]];if(m)cls=m}
+    h+=`<tr class="${cls}"><th data-row="${r}">${r+1}</th>`;
+    for(let c=0;c<nc;c++){
+      if(r===0){
+        if(c<view.cols.length) h+=`<td data-r="0" data-c="${c}" title="${esc(view.cols[c])}">${esc(view.cols[c])}<small>${esc(view.types[c]||'')}</small></td>`;
+        else h+=`<td class="empty" data-r="0" data-c="${c}"></td>`;
+        continue;
+      }
+      const row=shown[r-1];
+      if(!row||c>=view.cols.length){h+=`<td class="empty" data-r="${r}" data-c="${c}"></td>`;continue}
+      const v=row[c];
+      if(v===null) h+=`<td class="null" data-r="${r}" data-c="${c}">NULL</td>`;
+      else if(typeof v==='number') h+=`<td class="n" data-r="${r}" data-c="${c}">${fmtNum(v)}</td>`;
+      else if(v instanceof Uint8Array) h+=`<td data-r="${r}" data-c="${c}">[BLOB ${v.length} б]</td>`;
+      else h+=`<td data-r="${r}" data-c="${c}" title="${esc(String(v))}">${esc(String(v))}</td>`;
+    }
+    h+='</tr>';
+  }
+  h+='</tbody></table>';
+  grid.innerHTML=h;
+  const total=view.rows.length;
+  $('st-rows').innerHTML=view.cols.length?`Строк: <b>${total}</b>${total>MAX_ROWS?` (показано ${MAX_ROWS})`:''} · Столбцов: <b>${view.cols.length}</b>`:'Результат пуст — выполни запрос с SELECT';
+  paintSel();
+}
+function cellVal(r,c){if(r===0)return view.cols[c];const row=view.rows[r-1];return row?row[c]:undefined}
+function paintSel(){
+  grid.querySelectorAll('.insel,.cur').forEach(e=>e.classList.remove('insel','cur'));
+  grid.querySelectorAll('th.on').forEach(e=>e.classList.remove('on'));
+  const a=anchor||cur, r1=Math.min(a.r,cur.r), r2=Math.max(a.r,cur.r), c1=Math.min(a.c,cur.c), c2=Math.max(a.c,cur.c);
+  const nums=[];
+  for(let r=r1;r<=r2;r++)for(let c=c1;c<=c2;c++){
+    const td=grid.querySelector(`td[data-r="${r}"][data-c="${c}"]`); if(!td) continue;
+    td.classList.add(r===cur.r&&c===cur.c?'cur':'insel');
+    const v=cellVal(r,c); if(r>0&&typeof v==='number') nums.push(v);
+  }
+  for(let c=c1;c<=c2;c++){const th=grid.querySelector(`th[data-col="${c}"]`);th&&th.classList.add('on')}
+  for(let r=r1;r<=r2;r++){const th=grid.querySelector(`th[data-row="${r}"]`);th&&th.classList.add('on')}
+  const ref=colLetter(cur.c)+(cur.r+1);
+  $('namebox').textContent=(anchor&&(anchor.r!==cur.r||anchor.c!==cur.c))?`${colLetter(c1)}${r1+1}:${colLetter(c2)}${r2+1}`:ref;
+  const v=cellVal(cur.r,cur.c);
+  $('fval').textContent=v===null?'NULL':v===undefined?'':String(v);
+  const cnt=(r2-r1+1)*(c2-c1+1);
+  $('st-agg').innerHTML=nums.length>1||cnt>1&&nums.length?`Среднее: <b>${fmtNum(+(nums.reduce((a,b)=>a+b,0)/nums.length).toFixed(2))}</b><span>Количество: <b>${nums.length}</b></span><span>Сумма: <b>${fmtNum(nums.reduce((a,b)=>a+b,0))}</b></span>`:'';
+  const td=grid.querySelector(`td[data-r="${cur.r}"][data-c="${cur.c}"]`);
+  if(td){const g=grid.getBoundingClientRect(),b=td.getBoundingClientRect();
+    if(b.bottom>g.bottom)grid.scrollTop+=b.bottom-g.bottom; if(b.top<g.top+26)grid.scrollTop-=g.top+26-b.top;
+    if(b.right>g.right)grid.scrollLeft+=b.right-g.right; if(b.left<g.left+44)grid.scrollLeft-=g.left+44-b.left;}
+}
+let dragging=false;
+grid.addEventListener('mousedown',e=>{
+  const td=e.target.closest('td'), thc=e.target.closest('thead th[data-col]'), thr=e.target.closest('tbody th[data-row]');
+  const maxR=Math.max(view.rows.length,0);
+  if(td){const p={r:+td.dataset.r,c:+td.dataset.c};if(e.shiftKey){anchor=anchor||cur;cur=p}else{cur=p;anchor=null;dragging=true}}
+  else if(thc){const c=+thc.dataset.col;anchor={r:0,c};cur={r:maxR,c}}
+  else if(thr){const r=+thr.dataset.row;anchor={r,c:0};cur={r,c:Math.max(view.cols.length-1,0)}}
+  else return;
+  grid.focus(); paintSel(); e.preventDefault();
+});
+grid.addEventListener('mouseover',e=>{if(!dragging)return;const td=e.target.closest('td');if(!td)return;anchor=anchor||{...cur};cur={r:+td.dataset.r,c:+td.dataset.c};paintSel()});
+window.addEventListener('mouseup',()=>dragging=false);
+grid.addEventListener('keydown',e=>{
+  const d={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1],Enter:[1,0],Tab:[0,1]}[e.key];
+  if(!d)return; e.preventDefault();
+  const maxR=Math.max(view.rows.length,MIN_ROWS-1), maxC=Math.max(view.cols.length,MIN_COLS)-1;
+  if(e.shiftKey&&e.key.startsWith('Arrow')){anchor=anchor||{...cur}}else anchor=null;
+  cur={r:Math.min(maxR,Math.max(0,cur.r+d[0])),c:Math.min(maxC,Math.max(0,cur.c+d[1]))};
+  paintSel();
+});
+grid.addEventListener('copy',e=>{
+  const a=anchor||cur,r1=Math.min(a.r,cur.r),r2=Math.max(a.r,cur.r),c1=Math.min(a.c,cur.c),c2=Math.max(a.c,cur.c);
+  const lines=[];for(let r=r1;r<=r2;r++){const l=[];for(let c=c1;c<=c2;c++){const v=cellVal(r,c);l.push(v==null?'':String(v))}lines.push(l.join('\t'))}
+  e.clipboardData.setData('text/plain',lines.join('\n'));e.preventDefault();
+});
+
+/* ---------- sidebar ---------- */
+function insert(text){const s=ta.selectionStart;ta.setRangeText(text,s,ta.selectionEnd,'end');ta.focus();highlight()}
+function renderSchema(){
+  const el=$('schema'); el.innerHTML='';
+  tables().forEach(t=>{
+    const cnt=db.exec(`SELECT COUNT(*) FROM "${t}"`)[0].values[0][0];
+    const d=document.createElement('div'); d.className='tbl';
+    d.innerHTML=`<button class="tname" title="Открыть лист">${esc(t)} <small>${cnt} стр.</small></button><div class="cols"></div>`;
+    d.querySelector('.tname').onclick=()=>openTab(t);
+    tableInfo(t).forEach(c=>{const b=document.createElement('button');b.innerHTML=`${esc(c.name)}${c.pk?' 🔑':''} <i>${esc((c.type||'').toLowerCase())}</i>`;b.title='Вставить в запрос';b.onclick=()=>insert(c.name);d.querySelector('.cols').appendChild(b)});
+    el.appendChild(d);
+  });
+}
+function renderLessons(active){
+  const el=$('lessons'); el.innerHTML='';
+  LESSONS.forEach((l,i)=>{const b=document.createElement('button');b.innerHTML=`<b>${i+1}. ${l.t}</b><span>${l.d}</span>`;b.setAttribute('aria-current',i===active);
+    b.onclick=()=>{ta.value=l.q;highlight();$('note').innerHTML=l.n;renderLessons(i);run()};el.appendChild(b)});
+}
+
+/* ---------- boot ---------- */
+function resetDb(){db&&db.close();db=new SQL.Database();db.run(SEED);for(const k in marksByTable)delete marksByTable[k];lastResult=null}
+$('run').onclick=run;
+$('reset').onclick=()=>{resetDb();renderSchema();renderTabs();openTab('__result');run();showMsg('ok','База сброшена к исходным данным.')};
+(async()=>{
+  try{
+    if(typeof initSqlJs!=='function') throw new Error('движок не загрузился');
+    SQL=await initSqlJs();
+    resetDb();
+    let draft=null;try{draft=localStorage.getItem('sqlt-draft')}catch(e){}
+    ta.value=draft||LESSONS[4].q;
+    if(!draft)$('note').innerHTML=LESSONS[4].n;
+    highlight(); renderSchema(); renderLessons(draft?-1:4); renderTabs(); run();
+  }catch(e){showMsg('err','Не удалось запустить SQLite: '+e.message+'. Обнови страницу.');grid.innerHTML='<div class="boot">Движок базы данных недоступен.</div>'}
+})();
+</script>
+
+</html>
