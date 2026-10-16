@@ -197,6 +197,15 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:n
 .lesson-note .answer[open] .when-open{display:inline}
 .lesson-note .answer summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .lesson-note .answer code{display:block;margin-top:6px;padding:6px 10px;background:var(--sel);border-left:3px solid var(--accent);border-radius:3px;font-family:var(--f-mono);font-size:13px;white-space:pre-wrap;word-break:break-word}
+.lesson-note details.intro{margin-top:8px}
+.lesson-note details.intro summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--fg);border:1px solid var(--line-strong);border-radius:4px;padding:3px 10px;background:var(--panel);user-select:none}
+.lesson-note details.intro summary::-webkit-details-marker{display:none}
+.lesson-note details.intro summary::before{content:'▸';font-size:11px;color:var(--muted)}
+.lesson-note details.intro[open] summary::before{content:'▾'}
+.lesson-note details.intro summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.lesson-note .intro-body{margin-top:6px;padding:8px 12px;background:var(--bg);border:1px solid var(--line);border-radius:4px;max-width:80ch;font-size:13.5px}
+.lesson-note .intro-body p{margin:0 0 6px}
+.lesson-note .intro-body pre.code{margin:0;font-family:var(--f-mono);font-size:13px;line-height:1.5;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:3px;padding:6px 10px;white-space:pre-wrap;overflow-x:auto}
 .lesson-note .crumb{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:2px}
 .gridwrap{position:relative}
 .rsel{position:absolute;z-index:0;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 10%,transparent);pointer-events:none;box-sizing:border-box}
@@ -273,7 +282,7 @@ const T = {
   caseTip:'Style: SQL keywords are usually written in UPPERCASE:', caseFix:'Make uppercase',
   semiErr:'Missing ; at the end of the query. In strict mode every statement must end with a semicolon.', semiTip:'Tip: end every SQL statement with ;',
   live:'Live', connecting:'Connecting…', offline:'Offline, reconnecting…', room:'room', you:'you', yourName:'Your name', copyLink:'Copy invite link', copied:'Link copied', alone:'Only you here. Share the link to invite someone.',
-  answerLabel:'Show answer · only you see it', answerHide:'Hide answer',
+  sectionTheory:s=>`Theory and example · ${s}`, answerLabel:'Show answer · only you see it', answerHide:'Hide answer',
   navTrainer:'Trainer', navLessons:'Lessons', task:'Task', lessonN:n=>`Lesson ${n}`, tasksOf:n=>`Lesson ${n} · tasks`, allLessons:'← All lessons',
   correct:'✓ Correct! Task solved.', nextTask:'Next task →', lessonDone:'✓ Correct! That was the last task of this lesson.',
   praise:['Nailed it!','Excellent!','Brilliant!','Perfect query!','Great job!','You’re a natural!','Spot on!'],
@@ -305,7 +314,7 @@ const T = {
   caseTip:'Стиль: ключевые слова SQL принято писать ЗАГЛАВНЫМИ:', caseFix:'Исправить регистр',
   semiErr:'Нет ; в конце запроса. В строгом режиме каждая команда должна заканчиваться точкой с запятой.', semiTip:'Совет: заканчивай каждую SQL-команду точкой с запятой ;',
   live:'Онлайн', connecting:'Подключение…', offline:'Нет связи, переподключаюсь…', room:'комната', you:'ты', yourName:'Твоё имя', copyLink:'Скопировать ссылку', copied:'Ссылка скопирована', alone:'Пока здесь только ты. Отправь ссылку, чтобы позвать кого-то.',
-  answerLabel:'Показать ответ · видишь только ты', answerHide:'Скрыть ответ',
+  sectionTheory:s=>`Теория и пример · ${s}`, answerLabel:'Показать ответ · видишь только ты', answerHide:'Скрыть ответ',
   navTrainer:'Тренажёр', navLessons:'Уроки', task:'Задание', lessonN:n=>`Урок ${n}`, tasksOf:n=>`Урок ${n} · задания`, allLessons:'← Все уроки',
   correct:'✓ Верно! Задание решено.', nextTask:'Следующее задание →', lessonDone:'✓ Верно! Это было последнее задание урока.',
   praise:['Отлично!','В точку!','Великолепно!','Идеальный запрос!','Так держать!','Блестяще!','Супер!'],
@@ -407,8 +416,12 @@ function lessonList(){
   if(!COURSE_LESSON) return LESSONS[lang];
   const n=COURSE_LESSON.tasks.length;
   const sectionOf=k=>{for(let i=k;i>=0;i--) if(COURSE_LESSON.tasks[i].section) return COURSE_LESSON.tasks[i].section[lang]; return ''};
+  const sectionStart=k=>{for(let i=k;i>=0;i--) if(COURSE_LESSON.tasks[i].section) return i; return -1};
+  // section theory + worked example: open on the first task of a section, folded on the others
+  const introOf=k=>{const i=sectionStart(k), t=i>=0?COURSE_LESSON.tasks[i]:null; if(!t||!t.intro) return '';
+    return `<details class="intro"${i===k?' open':''}><summary>${esc(L.sectionTheory(t.section[lang]))}</summary><div class="intro-body">${t.intro[lang]}<pre class="code">${esc(t.example||'')}</pre></div></details>`};
   return COURSE_LESSON.tasks.map((t,k)=>({t:`${L.task} ${k+1}`, d:stripTags(t.text[lang]), q:'', section:t.section?t.section[lang]:'',
-    n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${L.task} ${k+1}/${n}</span>${t.text[lang]}`+
+    n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${L.task} ${k+1}/${n}</span>${t.text[lang]}`+introOf(k)+
       (TEACHER_ANSWERS&&TEACHER_ANSWERS[k]?`<details class="answer"><summary><span class="when-closed">${esc(L.answerLabel)}</span><span class="when-open">${esc(L.answerHide)}</span></summary><code>${esc(TEACHER_ANSWERS[k])}</code></details>`:'')}));
 }
 function defaultLesson(){

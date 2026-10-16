@@ -109,6 +109,14 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:12.5px;font-vari
 .tasks{list-style:none;margin:0;padding:0;background:var(--panel);border:1px solid var(--line);border-radius:6px}
 .tasks li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
 .tasks li:first-child{border-top:0}
+.tasks li.intro{display:grid;gap:8px;padding:12px 14px 14px;background:var(--bg);grid-template-columns:minmax(0,1fr)}
+.tasks li.intro .theory p{margin:0 0 6px}
+.tasks li.intro pre.code{margin:0;background:var(--panel)}
+.ex-result{display:grid;gap:4px}
+.ex-result small{font-size:12px;color:var(--muted);font-weight:600}
+.ex-result .sheetwrap{background:var(--panel);border:1px solid var(--line);border-radius:4px;width:fit-content;max-width:100%}
+.ex-result table.sheet{width:auto}
+.sheet td.null{color:var(--muted);font-style:italic}
 .tasks li.sect{display:block;padding:8px 14px;background:var(--head);font-size:12px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;color:var(--muted)}
 .tasks .st{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line-strong);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--muted);font-family:var(--f-mono)}
 .tasks li.done .st{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
@@ -183,13 +191,13 @@ const T={
  en:{live:'Live', connecting:'Connecting…', offline:'Offline, reconnecting…', room:'room', you:'you', yourName:'Your name', copyLink:'Copy invite link', copied:'Link copied', alone:'Only you here. Share the link to invite someone.',
    brand2:'Sheet', title:'SQL Sheet Lessons', navTrainer:'Trainer', navLessons:'Lessons', roadmap:'Course roadmap',
    lesson:n=>`Lesson ${n}`, soon:'Soon', theory:'Theory', tables:'Tables for this lesson', tasks:'Tasks',
-   rows:n=>`${n} rows`, solved:(a,b)=>`${a} of ${b} tasks solved`, start:'Start lesson in the trainer', cont:'Continue in the trainer',
+   rows:n=>`${n} rows`, result:n=>`Result: ${n} ${n===1?'row':'rows'}`, solved:(a,b)=>`${a} of ${b} tasks solved`, start:'Start lesson in the trainer', cont:'Continue in the trainer',
    solve:'Solve →', again:'Solve again →', task:n=>`Task ${n}`, answers:'For the teacher', answer:'Answer', tips:'Teaching tips', teacherOnly:'Answers and teaching tips are visible to the teacher only.', login:'Log in', logout:'Log out', user:'Username', pass:'Password', wrongLogin:'Wrong username or password.', teacherIn:'You are logged in as teacher. The answer is shown on each task page in the trainer.', loginFail:'Could not reach the server. Answers need the app running on a server.',
    soonText:'This lesson is not ready yet. Lesson 1 is available now.', back:'Open lesson 1', number:'number', text:'text'},
  ru:{live:'Онлайн', connecting:'Подключение…', offline:'Нет связи, переподключаюсь…', room:'комната', you:'ты', yourName:'Твоё имя', copyLink:'Скопировать ссылку', copied:'Ссылка скопирована', alone:'Пока здесь только ты. Отправь ссылку, чтобы позвать кого-то.',
    brand2:'Табличка', title:'SQL Табличка — уроки', navTrainer:'Тренажёр', navLessons:'Уроки', roadmap:'План курса',
    lesson:n=>`Урок ${n}`, soon:'Скоро', theory:'Теория', tables:'Таблицы урока', tasks:'Задания',
-   rows:n=>`${n} стр.`, solved:(a,b)=>`Решено ${a} из ${b}`, start:'Начать урок в тренажёре', cont:'Продолжить в тренажёре',
+   rows:n=>`${n} стр.`, result:n=>`Результат: строк — ${n}`, solved:(a,b)=>`Решено ${a} из ${b}`, start:'Начать урок в тренажёре', cont:'Продолжить в тренажёре',
    solve:'Решить →', again:'Решить ещё раз →', task:n=>`Задание ${n}`, answers:'Для преподавателя', answer:'Ответ', tips:'Советы преподавателю', teacherOnly:'Ответы и советы видит только преподаватель.', login:'Войти', logout:'Выйти', user:'Логин', pass:'Пароль', wrongLogin:'Неверный логин или пароль.', teacherIn:'Ты вошёл как преподаватель. Ответ показывается на странице каждого задания в тренажёре.', loginFail:'Нет связи с сервером. Ответы доступны, только когда приложение запущено на сервере.',
    soonText:'Этот урок ещё готовится. Сейчас доступен урок 1.', back:'Открыть урок 1', number:'число', text:'текст'}
 };
@@ -212,6 +220,13 @@ function renderRoadmap(){
   }).join('');
 }
 
+function miniSheet(r){   // a query result as a small Excel-like sheet
+  const cols=r.columns, rows=r.values;
+  let h='<table class="sheet"><thead><tr><th></th>'+cols.map((_,i)=>`<th>${colLetter(i)}</th>`).join('')+'</tr></thead><tbody>';
+  h+='<tr class="hdr"><th>1</th>'+cols.map(c=>`<td>${esc(c)}</td>`).join('')+'</tr>';
+  rows.forEach((row,k)=>{h+=`<tr><th>${k+2}</th>`+row.map(v=>typeof v==='number'?`<td class="n">${v.toLocaleString(lang==='ru'?'ru-RU':'en-US',{useGrouping:false,maximumFractionDigits:2})}</td>`:v==null?'<td class="null">NULL</td>':`<td>${esc(v)}</td>`).join('')+'</tr>'});
+  return h+'</tbody></table>';
+}
 function sheet(db,table){
   const r=db.exec(`SELECT * FROM "${table}"`)[0]; if(!r) return '';
   const info=db.exec(`PRAGMA table_info("${table}")`)[0].values;
@@ -230,11 +245,15 @@ function renderLesson(){
   }
   const solved=new Set(COURSE_PROGRESS.get(l.id)), total=l.tasks.length;
   const firstOpen=l.tasks.findIndex((_,i)=>!solved.has(i)), next=firstOpen<0?1:firstOpen+1;
-  let tablesHtml='';
+  let tablesHtml=''; const exampleHtml={};
   if(SQL){
     const db=new SQL.Database(); db.run(l.seed);
     tablesHtml=l.tables.map(t=>{const n=db.exec(`SELECT COUNT(*) FROM "${t}"`)[0].values[0][0];
       return `<div class="tcard"><header><b>${esc(t)}</b><small>${L.rows(n)}</small></header><div class="sheetwrap">${sheet(db,t)}</div></div>`}).join('');
+    l.tasks.forEach((t,i)=>{ if(!t.example) return;
+      try{ const st=db.prepare(t.example), cols=st.getColumnNames(), rows=[]; while(st.step()) rows.push(st.get()); st.free();
+        exampleHtml[i]=`<div class="ex-result"><small>${L.result(rows.length)}</small><div class="sheetwrap">${miniSheet({columns:cols,values:rows})}</div></div>`;
+      }catch(e){} });
     db.close();
   }
   el.innerHTML=`
@@ -247,7 +266,7 @@ function renderLesson(){
     </div>
     <section><h3>${L.theory}</h3><div class="theory">${l.theory[lang]}</div></section>
     <section><h3>${L.tables}</h3><div class="tables">${tablesHtml}</div></section>
-    <section><h3>${L.tasks}</h3><ol class="tasks">${l.tasks.map((t,i)=>`${t.section?`<li class="sect">${esc(t.section[lang])}</li>`:''}
+    <section><h3>${L.tasks}</h3><ol class="tasks">${l.tasks.map((t,i)=>`${t.section?`<li class="sect">${esc(t.section[lang])}</li>`:''}${t.intro?`<li class="intro"><div class="theory">${t.intro[lang]}</div><pre class="code">${esc(t.example||'')}</pre>${exampleHtml[i]||''}</li>`:''}
       <li class="${solved.has(i)?'done':''}"><span class="st">${solved.has(i)?'✓':i+1}</span>
         <div class="txt"><b>${L.task(i+1)}</b>${t.text[lang]}</div>
         <a class="go" href="./?lesson=${l.id}&task=${i+1}">${solved.has(i)?L.again:L.solve}</a></li>`).join('')}</ol>

@@ -123,7 +123,7 @@ INSERT INTO books VALUES
             "id": 2,
             "available": True,
             "title": {"en": "WHERE & Filtering", "ru": "WHERE и фильтрация"},
-            "topics": {"en": "Comparison operators, AND/OR/NOT, BETWEEN, IN, LIKE, NULL", "ru": "Операторы сравнения, AND/OR/NOT, BETWEEN, IN, LIKE, NULL"},
+            "topics": {"en": "Comparison operators, AND/OR/NOT, BETWEEN, IN, LIKE, NULL, DISTINCT", "ru": "Операторы сравнения, AND/OR/NOT, BETWEEN, IN, LIKE, NULL, DISTINCT"},
             "theory": {
                 "en": '''<p>The <code>WHERE</code> clause filters rows <b>before</b> they are returned. In Excel terms it is the filter on a column.</p>
 <pre class="code">SELECT column1, column2
@@ -152,6 +152,10 @@ WHERE condition;</pre>
   <li><code>LIKE</code> — pattern matching: <code>%</code> is any number of characters, <code>_</code> is exactly one character</li>
   <li><code>IS NULL</code> / <code>IS NOT NULL</code> — check for NULL (never use <code>= NULL</code>)</li>
 </ul>
+<h4>Removing duplicates</h4>
+<ul>
+  <li><code>SELECT DISTINCT column</code> — returns each value only once</li>
+</ul>
 ''',
                 "ru": '''<p><code>WHERE</code> отбирает строки <b>до</b> того, как они попадут в результат. Если сравнивать с Excel, это фильтр по столбцу.</p>
 <pre class="code">SELECT column1, column2
@@ -179,6 +183,10 @@ WHERE condition;</pre>
   <li><code>IN (v1, v2, ...)</code> — совпадение с любым значением из списка</li>
   <li><code>LIKE</code> — поиск по шаблону: <code>%</code> — любое число символов, <code>_</code> — ровно один символ</li>
   <li><code>IS NULL</code> / <code>IS NOT NULL</code> — проверка на NULL (никогда не пиши <code>= NULL</code>)</li>
+</ul>
+<h4>Удаление повторов</h4>
+<ul>
+  <li><code>SELECT DISTINCT column</code> — возвращает каждое значение один раз</li>
 </ul>
 ''',
             },
@@ -240,6 +248,13 @@ INSERT INTO products VALUES
             "tasks": [
                 # Section A
                 {"section": {"en": "A · Comparison operators", "ru": "A · Операторы сравнения"},
+                 "intro": {
+                     "en": '''<p><code>WHERE</code> keeps only the rows where the condition is true. A condition compares a column with a value using <code>=</code>, <code>&lt;&gt;</code>, <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code>. Text goes in single quotes (<code>'Berlin'</code>), numbers go without quotes (<code>60000</code>).</p>
+<p><b>Example:</b> employees who work in Berlin.</p>''',
+                     "ru": '''<p><code>WHERE</code> оставляет только строки, для которых условие верно. Условие сравнивает столбец со значением: <code>=</code>, <code>&lt;&gt;</code>, <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code>. Текст пишется в одинарных кавычках (<code>'Berlin'</code>), числа без кавычек (<code>60000</code>).</p>
+<p><b>Пример:</b> сотрудники, которые работают в Берлине.</p>''',
+                 },
+                 "example": "SELECT first_name, city\nFROM employees\nWHERE city = 'Berlin';",
                  "text": {"en": "Get all employees whose <code>salary</code> is greater than 60000.", "ru": "Выведи всех сотрудников, у которых <code>salary</code> больше 60000."},
                  "answer": "SELECT * FROM employees WHERE salary > 60000;"},
                 {"text": {"en": "Get all employees who work in the <code>'IT'</code> department.", "ru": "Выведи всех сотрудников отдела <code>'IT'</code>."},
@@ -258,6 +273,13 @@ INSERT INTO products VALUES
                  "answer": "SELECT * FROM employees WHERE hire_year < 2017;"},
                 # Section B
                 {"section": {"en": "B · AND / OR / NOT", "ru": "B · AND / OR / NOT"},
+                 "intro": {
+                     "en": '''<p><code>AND</code> needs both conditions to be true, <code>OR</code> needs at least one, <code>NOT</code> turns a condition around. <code>AND</code> is applied before <code>OR</code>, so when you mix them, put the <code>OR</code> part in parentheses.</p>
+<p><b>Example:</b> HR employees hired after 2018.</p>''',
+                     "ru": '''<p><code>AND</code> требует, чтобы были верны оба условия, <code>OR</code> — хотя бы одно, <code>NOT</code> переворачивает условие. <code>AND</code> выполняется раньше <code>OR</code>, поэтому если они встречаются вместе, бери часть с <code>OR</code> в скобки.</p>
+<p><b>Пример:</b> сотрудники HR, нанятые после 2018 года.</p>''',
+                 },
+                 "example": "SELECT first_name, department, hire_year\nFROM employees\nWHERE department = 'HR' AND hire_year > 2018;",
                  "text": {"en": "Get all IT employees with salary greater than 65000.", "ru": "Выведи всех сотрудников IT с зарплатой больше 65000."},
                  "answer": "SELECT * FROM employees WHERE department = 'IT' AND salary > 65000;"},
                 {"text": {"en": "Get all employees from <code>'London'</code> OR <code>'Paris'</code>.", "ru": "Выведи всех сотрудников из <code>'London'</code> ИЛИ <code>'Paris'</code>."},
@@ -272,6 +294,13 @@ INSERT INTO products VALUES
                  "answer": "SELECT * FROM products WHERE NOT category = 'Stationery' AND price > 100;"},
                 # Section C
                 {"section": {"en": "C · BETWEEN", "ru": "C · BETWEEN"},
+                 "intro": {
+                     "en": '''<p><code>x BETWEEN a AND b</code> is a short way to write <code>x &gt;= a AND x &lt;= b</code>. Both ends are <b>included</b>.</p>
+<p><b>Example:</b> employees with a bonus from 3000 to 6000.</p>''',
+                     "ru": '''<p><code>x BETWEEN a AND b</code> — короткая запись для <code>x &gt;= a AND x &lt;= b</code>. Обе границы <b>включаются</b>.</p>
+<p><b>Пример:</b> сотрудники с бонусом от 3000 до 6000.</p>''',
+                 },
+                 "example": "SELECT first_name, bonus\nFROM employees\nWHERE bonus BETWEEN 3000 AND 6000;",
                  "text": {"en": "Get all employees with salary between 45000 and 65000 (inclusive).", "ru": "Выведи всех сотрудников с зарплатой от 45000 до 65000 включительно."},
                  "answer": "SELECT * FROM employees WHERE salary BETWEEN 45000 AND 65000;"},
                 {"text": {"en": "Get all products with price between 20 and 200.", "ru": "Выведи все товары с ценой от 20 до 200."},
@@ -282,6 +311,13 @@ INSERT INTO products VALUES
                  "answer": "SELECT * FROM products WHERE stock BETWEEN 50 AND 200;"},
                 # Section D
                 {"section": {"en": "D · IN", "ru": "D · IN"},
+                 "intro": {
+                     "en": '''<p><code>x IN (a, b, c)</code> is true when <code>x</code> equals any value in the list. It replaces a chain of <code>OR</code>s: <code>x = a OR x = b OR x = c</code>.</p>
+<p><b>Example:</b> employees hired in 2014, 2015 or 2022.</p>''',
+                     "ru": '''<p><code>x IN (a, b, c)</code> верно, если <code>x</code> равен любому значению из списка. Это замена цепочки <code>OR</code>: <code>x = a OR x = b OR x = c</code>.</p>
+<p><b>Пример:</b> сотрудники, нанятые в 2014, 2015 или 2022 году.</p>''',
+                 },
+                 "example": "SELECT first_name, hire_year\nFROM employees\nWHERE hire_year IN (2014, 2015, 2022);",
                  "text": {"en": "Get all employees who work in <code>'IT'</code> or <code>'Sales'</code> (use <code>IN</code>).", "ru": "Выведи всех сотрудников отделов <code>'IT'</code> и <code>'Sales'</code> (используй <code>IN</code>)."},
                  "answer": "SELECT * FROM employees WHERE department IN ('IT', 'Sales');"},
                 {"text": {"en": "Get all products from suppliers <code>'TechCorp'</code> or <code>'PaperWorld'</code>.", "ru": "Выведи все товары поставщиков <code>'TechCorp'</code> и <code>'PaperWorld'</code>."},
@@ -292,6 +328,13 @@ INSERT INTO products VALUES
                  "answer": "SELECT * FROM products WHERE category IN ('Electronics', 'Furniture');"},
                 # Section E
                 {"section": {"en": "E · LIKE", "ru": "E · LIKE"},
+                 "intro": {
+                     "en": '''<p><code>LIKE</code> compares text with a pattern. <code>%</code> means any number of characters (even none), <code>_</code> means exactly one character. <code>'A%'</code> starts with A, <code>'%a'</code> ends with a, <code>'%a%'</code> contains a.</p>
+<p><b>Example:</b> employees whose last name ends with "r".</p>''',
+                     "ru": '''<p><code>LIKE</code> сравнивает текст с шаблоном. <code>%</code> — любое количество символов (даже ноль), <code>_</code> — ровно один символ. <code>'A%'</code> начинается на A, <code>'%a'</code> заканчивается на a, <code>'%a%'</code> содержит a.</p>
+<p><b>Пример:</b> сотрудники, чья фамилия заканчивается на «r».</p>''',
+                 },
+                 "example": "SELECT first_name, last_name\nFROM employees\nWHERE last_name LIKE '%r';",
                  "text": {"en": "Get all employees whose first name starts with <code>'A'</code>.", "ru": "Выведи всех сотрудников, чьё имя начинается на <code>'A'</code>."},
                  "answer": "SELECT * FROM employees WHERE first_name LIKE 'A%';"},
                 {"text": {"en": "Get all products whose name ends with <code>'e'</code>.", "ru": "Выведи все товары, название которых заканчивается на <code>'e'</code>."},
@@ -306,6 +349,13 @@ INSERT INTO products VALUES
                  "answer": "SELECT * FROM products WHERE product_name LIKE 'B%';"},
                 # Section F
                 {"section": {"en": "F · NULL", "ru": "F · NULL"},
+                 "intro": {
+                     "en": '''<p><code>NULL</code> means "no value", like an empty cell. Any comparison with <code>NULL</code>, even <code>= NULL</code>, is never true, so <code>WHERE bonus = NULL</code> returns nothing. Use <code>IS NULL</code> and <code>IS NOT NULL</code>.</p>
+<p><b>Example:</b> employees in Paris who have no bonus.</p>''',
+                     "ru": '''<p><code>NULL</code> значит «значения нет», как пустая клетка. Любое сравнение с <code>NULL</code>, даже <code>= NULL</code>, никогда не верно, поэтому <code>WHERE bonus = NULL</code> ничего не вернёт. Используй <code>IS NULL</code> и <code>IS NOT NULL</code>.</p>
+<p><b>Пример:</b> сотрудники из Парижа без бонуса.</p>''',
+                 },
+                 "example": "SELECT first_name, city, bonus\nFROM employees\nWHERE city = 'Paris' AND bonus IS NULL;",
                  "text": {"en": "Get all employees who have a bonus (<code>bonus IS NOT NULL</code>).", "ru": "Выведи всех сотрудников, у которых есть бонус (<code>bonus IS NOT NULL</code>)."},
                  "answer": "SELECT * FROM employees WHERE bonus IS NOT NULL;"},
                 {"text": {"en": "Get all employees who do NOT have a bonus.", "ru": "Выведи всех сотрудников, у которых НЕТ бонуса."},
@@ -313,7 +363,35 @@ INSERT INTO products VALUES
                 {"text": {"en": "Get all employees who have a bonus greater than 4000.", "ru": "Выведи всех сотрудников с бонусом больше 4000."},
                  "answer": "SELECT * FROM employees WHERE bonus > 4000;"},
                 # Section G
-                {"section": {"en": "G · Mixed", "ru": "G · Всё вместе"},
+                {"section": {"en": "G · DISTINCT", "ru": "G · DISTINCT"},
+                 "intro": {
+                     "en": '''<p><code>SELECT DISTINCT</code> removes duplicate rows from the result, like "Remove duplicates" in Excel. With several columns, a row is a duplicate only if <b>all</b> its selected values repeat. <code>DISTINCT</code> goes right after <code>SELECT</code> and works together with <code>WHERE</code>.</p>
+<p><b>Example:</b> the years in which people were hired. There are 10 employees but only 9 different years, because 2018 appears twice.</p>''',
+                     "ru": '''<p><code>SELECT DISTINCT</code> убирает из результата повторяющиеся строки, как «Удалить дубликаты» в Excel. Если столбцов несколько, строка считается повтором, только когда повторяются <b>все</b> выбранные значения. <code>DISTINCT</code> пишется сразу после <code>SELECT</code> и работает вместе с <code>WHERE</code>.</p>
+<p><b>Пример:</b> годы, в которые нанимали сотрудников. Сотрудников 10, а разных лет 9: 2018 встречается дважды.</p>''',
+                 },
+                 "example": "SELECT DISTINCT hire_year\nFROM employees;",
+                 "text": {"en": "List every department once, without duplicates.", "ru": "Выведи список отделов, каждый по одному разу."},
+                 "answer": "SELECT DISTINCT department FROM employees;"},
+                {"text": {"en": "List every city where employees work, without repeats.", "ru": "Выведи все города, где работают сотрудники, без повторов."},
+                 "answer": "SELECT DISTINCT city FROM employees;"},
+                {"text": {"en": "List all suppliers of products, each one once.", "ru": "Выведи всех поставщиков товаров, каждого по одному разу."},
+                 "answer": "SELECT DISTINCT supplier FROM products;"},
+                {"text": {"en": "List every unique combination of <code>department</code> and <code>city</code>.", "ru": "Выведи все уникальные сочетания <code>department</code> и <code>city</code>."},
+                 "answer": "SELECT DISTINCT department, city FROM employees;"},
+                {"text": {"en": "List the cities that have at least one employee with salary above 50000, without repeats.", "ru": "Выведи без повторов города, где есть сотрудники с зарплатой выше 50000."},
+                 "answer": "SELECT DISTINCT city FROM employees WHERE salary > 50000;"},
+                {"text": {"en": "List the product categories that have products cheaper than 100, each category once.", "ru": "Выведи категории, в которых есть товары дешевле 100, каждую по одному разу."},
+                 "answer": "SELECT DISTINCT category FROM products WHERE price < 100;"},
+                # Section H
+                {"section": {"en": "H · Mixed", "ru": "H · Всё вместе"},
+                 "intro": {
+                     "en": '''<p>Real questions combine everything above. Build the condition step by step: write one part, run it, check the rows, then add the next part with <code>AND</code> or <code>OR</code>.</p>
+<p><b>Example:</b> IT employees in London or Madrid who have a bonus.</p>''',
+                     "ru": '''<p>Настоящие задачи сочетают всё сразу. Собирай условие по шагам: напиши одну часть, запусти, проверь строки, потом добавь следующую через <code>AND</code> или <code>OR</code>.</p>
+<p><b>Пример:</b> сотрудники IT из Лондона или Мадрида, у которых есть бонус.</p>''',
+                 },
+                 "example": "SELECT first_name, city, bonus\nFROM employees\nWHERE department = 'IT'\n  AND city IN ('London', 'Madrid')\n  AND bonus IS NOT NULL;",
                  "text": {"en": "Get all IT or Sales employees from <code>'London'</code> with salary &gt; 55000.", "ru": "Выведи всех сотрудников IT или Sales из <code>'London'</code> с зарплатой &gt; 55000."},
                  "answer": "SELECT * FROM employees\nWHERE department IN ('IT', 'Sales')\n  AND city = 'London'\n  AND salary > 55000;"},
                 {"text": {"en": "Get all products in <code>'Electronics'</code> with price <code>BETWEEN</code> 50 <code>AND</code> 400 and stock &gt; 20.", "ru": "Выведи все товары <code>'Electronics'</code> с ценой <code>BETWEEN</code> 50 <code>AND</code> 400 и <code>stock</code> &gt; 20."},
