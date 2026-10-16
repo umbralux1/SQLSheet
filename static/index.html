@@ -188,9 +188,15 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:n
 @media (prefers-reduced-motion:reduce){.msg .win,.msg .win .medal,.msg .win .dots i.now{animation:none}}
 .msg .bad{background:var(--err-bg);color:var(--err)}
 .msg .good code,.msg .bad code{font-family:var(--f-mono);font-weight:600}
-.lesson-note .answer{margin-top:8px;padding:6px 10px;background:var(--sel);border-left:3px solid var(--accent);border-radius:3px}
-.lesson-note .answer span{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;color:var(--accent)}
-.lesson-note .answer code{display:block;background:none;padding:0;font-family:var(--f-mono);font-size:13px;white-space:pre-wrap;word-break:break-word}
+.lesson-note .answer{margin-top:8px;border-radius:3px}
+.lesson-note .answer summary{display:inline-flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font-size:12px;font-weight:600;color:var(--accent);border:1px dashed var(--accent);border-radius:4px;padding:3px 10px;user-select:none}
+.lesson-note .answer summary::-webkit-details-marker{display:none}
+.lesson-note .answer summary::before{content:'▸';font-size:11px}
+.lesson-note .answer[open] summary::before{content:'▾'}
+.lesson-note .answer .when-open,.lesson-note .answer[open] .when-closed{display:none}
+.lesson-note .answer[open] .when-open{display:inline}
+.lesson-note .answer summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.lesson-note .answer code{display:block;margin-top:6px;padding:6px 10px;background:var(--sel);border-left:3px solid var(--accent);border-radius:3px;font-family:var(--f-mono);font-size:13px;white-space:pre-wrap;word-break:break-word}
 .lesson-note .crumb{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:2px}
 .gridwrap{position:relative}
 .rsel{position:absolute;z-index:0;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 10%,transparent);pointer-events:none;box-sizing:border-box}
@@ -267,7 +273,7 @@ const T = {
   caseTip:'Style: SQL keywords are usually written in UPPERCASE:', caseFix:'Make uppercase',
   semiErr:'Missing ; at the end of the query. In strict mode every statement must end with a semicolon.', semiTip:'Tip: end every SQL statement with ;',
   live:'Live', connecting:'Connecting…', offline:'Offline, reconnecting…', room:'room', you:'you', yourName:'Your name', copyLink:'Copy invite link', copied:'Link copied', alone:'Only you here. Share the link to invite someone.',
-  answerLabel:'Answer (only you see this)',
+  answerLabel:'Show answer · only you see it', answerHide:'Hide answer',
   navTrainer:'Trainer', navLessons:'Lessons', task:'Task', lessonN:n=>`Lesson ${n}`, tasksOf:n=>`Lesson ${n} · tasks`, allLessons:'← All lessons',
   correct:'✓ Correct! Task solved.', nextTask:'Next task →', lessonDone:'✓ Correct! That was the last task of this lesson.',
   praise:['Nailed it!','Excellent!','Brilliant!','Perfect query!','Great job!','You’re a natural!','Spot on!'],
@@ -299,7 +305,7 @@ const T = {
   caseTip:'Стиль: ключевые слова SQL принято писать ЗАГЛАВНЫМИ:', caseFix:'Исправить регистр',
   semiErr:'Нет ; в конце запроса. В строгом режиме каждая команда должна заканчиваться точкой с запятой.', semiTip:'Совет: заканчивай каждую SQL-команду точкой с запятой ;',
   live:'Онлайн', connecting:'Подключение…', offline:'Нет связи, переподключаюсь…', room:'комната', you:'ты', yourName:'Твоё имя', copyLink:'Скопировать ссылку', copied:'Ссылка скопирована', alone:'Пока здесь только ты. Отправь ссылку, чтобы позвать кого-то.',
-  answerLabel:'Ответ (видишь только ты)',
+  answerLabel:'Показать ответ · видишь только ты', answerHide:'Скрыть ответ',
   navTrainer:'Тренажёр', navLessons:'Уроки', task:'Задание', lessonN:n=>`Урок ${n}`, tasksOf:n=>`Урок ${n} · задания`, allLessons:'← Все уроки',
   correct:'✓ Верно! Задание решено.', nextTask:'Следующее задание →', lessonDone:'✓ Верно! Это было последнее задание урока.',
   praise:['Отлично!','В точку!','Великолепно!','Идеальный запрос!','Так держать!','Блестяще!','Супер!'],
@@ -403,7 +409,7 @@ function lessonList(){
   const sectionOf=k=>{for(let i=k;i>=0;i--) if(COURSE_LESSON.tasks[i].section) return COURSE_LESSON.tasks[i].section[lang]; return ''};
   return COURSE_LESSON.tasks.map((t,k)=>({t:`${L.task} ${k+1}`, d:stripTags(t.text[lang]), q:'', section:t.section?t.section[lang]:'',
     n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${L.task} ${k+1}/${n}</span>${t.text[lang]}`+
-      (TEACHER_ANSWERS&&TEACHER_ANSWERS[k]?`<div class="answer"><span>${esc(L.answerLabel)}</span><code>${esc(TEACHER_ANSWERS[k])}</code></div>`:'')}));
+      (TEACHER_ANSWERS&&TEACHER_ANSWERS[k]?`<details class="answer"><summary><span class="when-closed">${esc(L.answerLabel)}</span><span class="when-open">${esc(L.answerHide)}</span></summary><code>${esc(TEACHER_ANSWERS[k])}</code></details>`:'')}));
 }
 function defaultLesson(){
   if(!COURSE_LESSON) return 4;
