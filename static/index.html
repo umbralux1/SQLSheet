@@ -132,6 +132,32 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
 .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .msg .warn{display:block;margin-top:6px;padding:4px 8px;background:var(--chg);color:var(--fg);border-radius:3px;font-family:var(--f-body)}
 .msg .warn code,.msg.err code{font-family:var(--f-mono);font-weight:600}
+/* collaboration */
+.collab{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:6px 10px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.collab .dot{width:8px;height:8px;border-radius:50%;background:var(--null);flex:none}
+.collab .dot.live{background:var(--accent)}
+.collab .dot.offline{background:var(--err)}
+.collab .peers{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.collab .peer{display:inline-flex;align-items:center;gap:5px;color:var(--fg);font-weight:600}
+.collab .peer i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.collab .peer small{color:var(--muted);font-weight:400}
+.collab .alone{font-style:italic}
+.collab .me{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
+.collab input{font:inherit;font-size:12px;border:1px solid var(--line-strong);background:var(--panel);color:var(--fg);border-radius:3px;padding:2px 6px;width:130px}
+.collab input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.collab .btn{padding:3px 10px;font-size:12px}
+.editor pre.carets{position:absolute;inset:0;color:transparent;overflow:visible}
+.rc{position:relative;display:inline-block;width:0;height:1.3em;vertical-align:text-bottom;border-left:2px solid var(--c);margin-left:-1px;margin-right:-1px}
+.rl{position:absolute;bottom:100%;left:-2px;background:var(--c);color:#fff;font:600 10px/1.4 var(--f-body);padding:0 5px;border-radius:3px 3px 3px 0;white-space:nowrap;z-index:3}
+.rl.idle{opacity:.55}
+.rs{border-radius:2px}
+.gridwrap{position:relative}
+.rsel{position:absolute;z-index:0;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 10%,transparent);pointer-events:none;box-sizing:border-box}
+.rsel span{position:absolute;top:-2px;left:-2px;transform:translateY(-100%);background:var(--c);color:#fff;font:600 10px/1.4 var(--f-body);padding:0 5px;border-radius:3px 3px 0 0;white-space:nowrap}
+.rptr{position:absolute;z-index:50;pointer-events:none;transition:left .08s linear,top .08s linear}
+.rptr svg{display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+.rptr span{position:absolute;left:14px;top:16px;background:var(--c);color:#fff;font:600 11px/1.5 var(--f-body);padding:0 6px;border-radius:4px;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.rptr{transition:none}}
 </style>
 
 <div class="wrap">
@@ -162,10 +188,17 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
         <span class="semi"><span data-i18n="semiLabel"></span><span class="seg" role="group"><button id="semi-strict" data-semi="strict" data-i18n="semiStrict"></button><button id="semi-hint" data-semi="hint" data-i18n="semiHint"></button></span></span>
         <span class="hint" data-i18n="hint"></span>
       </div>
+      <div class="collab" id="collab" hidden>
+        <span class="dot" id="collab-dot"></span><span id="collab-status"></span>
+        <span class="peers" id="collab-peers"></span>
+        <label class="me"><span data-i18n="yourName"></span><input id="collab-name" maxlength="24" autocomplete="off"></label>
+        <button class="btn" id="collab-copy" data-i18n="copyLink"></button>
+      </div>
       <div class="lesson-note" id="note"></div>
       <div class="editor">
         <div class="gutter" id="gutter">1</div>
         <pre id="hl" aria-hidden="true"></pre>
+        <pre id="carets" class="carets" aria-hidden="true"></pre>
         <textarea id="sql" spellcheck="false"></textarea>
       </div>
       <div class="fbar">
@@ -190,6 +223,7 @@ const T = {
   semiLabel:'Semicolon:', semiStrict:'Strict', semiHint:'Hint', semiStrictTitle:'Queries without ; at the end are not run', semiHintTitle:'Queries run, with a reminder to add ;',
   caseTip:'Style: SQL keywords are usually written in UPPERCASE:', caseFix:'Make uppercase',
   semiErr:'Missing ; at the end of the query. In strict mode every statement must end with a semicolon.', semiTip:'Tip: end every SQL statement with ;',
+  live:'Live', connecting:'Connecting…', offline:'Offline, reconnecting…', room:'room', you:'you', yourName:'Your name', copyLink:'Copy invite link', copied:'Link copied', alone:'Only you here. Share the link to invite someone.',
   hint:'Ctrl/⌘ + Enter to run', editor:'SQL query', result:'Result', openSheet:'Open sheet', insertCol:'Insert into query',
   rowsShort:'rows', loading:'Loading SQLite…', preparing:'Preparing the database…',
   ok:n=>`Query ran. Rows in result: ${n}.`, done:'Command ran.', ready:'Press ▶ Run (or Ctrl/⌘ + Enter) to see the result.',
@@ -212,6 +246,7 @@ const T = {
   semiLabel:'Точка с запятой:', semiStrict:'Строго', semiHint:'Подсказка', semiStrictTitle:'Запросы без ; в конце не выполняются', semiHintTitle:'Запросы выполняются, но с напоминанием поставить ;',
   caseTip:'Стиль: ключевые слова SQL принято писать ЗАГЛАВНЫМИ:', caseFix:'Исправить регистр',
   semiErr:'Нет ; в конце запроса. В строгом режиме каждая команда должна заканчиваться точкой с запятой.', semiTip:'Совет: заканчивай каждую SQL-команду точкой с запятой ;',
+  live:'Онлайн', connecting:'Подключение…', offline:'Нет связи, переподключаюсь…', room:'комната', you:'ты', yourName:'Твоё имя', copyLink:'Скопировать ссылку', copied:'Ссылка скопирована', alone:'Пока здесь только ты. Отправь ссылку, чтобы позвать кого-то.',
   hint:'Ctrl/⌘ + Enter — выполнить', editor:'SQL-запрос', result:'Результат', openSheet:'Открыть лист', insertCol:'Вставить в запрос',
   rowsShort:'стр.', loading:'Загрузка движка SQLite…', preparing:'Готовлю базу данных…',
   ok:n=>`Запрос выполнен. Строк в результате: ${n}.`, done:'Команда выполнена.', ready:'Нажми ▶ Выполнить (или Ctrl/⌘ + Enter), чтобы увидеть результат.',
@@ -375,8 +410,8 @@ function fmtNum(v){return Number.isInteger(v)?v.toLocaleString(L.locale):v.toLoc
 
 /* ---------- run ---------- */
 const marksByTable={};
-function run(){
-  const src=ta.value.trim(); if(!src) return;
+function run(given){
+  const src=(typeof given==='string'?given:ta.value).trim(); if(!src) return;
   const noSemi=missingSemi(src);
   if(noSemi&&semiMode==='strict'){showMsg('err',L.semiErr);$('st-time').textContent='';return}
   const dml=[...src.matchAll(/\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+"?(\w+)"?/gi)].map(m=>m[1]);
@@ -581,5 +616,269 @@ grid.innerHTML=`<div class="boot">${L.preparing}</div>`;
   }catch(e){showMsg('err',L.bootFail(e.message));grid.innerHTML=`<div class="boot">${L.engineDown}</div>`}
 })();
 </script>
+<script type="module">
+/* ================= real-time collaboration ================= */
+import * as Y from 'https://esm.sh/yjs@13.6.20';
+
+const COLORS=['#e5484d','#0b84f3','#d6409f','#e8590c','#8e4ec6','#0f9d8a','#a16207','#3e63dd'];
+const bar=document.getElementById('collab');
+const overlay=document.getElementById('carets');
+
+if(/^https?:$/.test(location.protocol)) start();
+
+function start(){
+  /* ---------- room & identity ---------- */
+  const params=new URLSearchParams(location.search);
+  let room=params.get('room');
+  if(!room){room=Math.random().toString(36).slice(2,8);params.set('room',room);history.replaceState(null,'',location.pathname+'?'+params+location.hash)}
+
+  const doc=new Y.Doc(), ytext=doc.getText('sql'), cid=String(doc.clientID);
+  let myName=''; try{myName=sessionStorage.getItem('sqlt-name')||''}catch(e){}   // per tab, so two tabs are two different people
+  if(!myName) myName=(lang==='ru'?'Гость ':'Guest ')+Math.floor(10+Math.random()*90);
+  const me={name:myName,color:COLORS[doc.clientID%COLORS.length]};
+  const peers=new Map();
+  let ws=null, state='connecting', synced=false, applyingRemote=false, epoch=null, lastSeq=0;
+  const live=()=>synced&&ws&&ws.readyState===1;
+
+  bar.hidden=false;
+  const nameInput=document.getElementById('collab-name');
+  nameInput.value=me.name;
+  nameInput.addEventListener('input',()=>{me.name=nameInput.value.trim()||me.name;try{sessionStorage.setItem('sqlt-name',me.name)}catch(e){};renderPresence();sendPresence()});
+  document.getElementById('collab-copy').onclick=copyLink;
+
+  /* ---------- hooks into the page ---------- */
+  const orig={applyLang:window.applyLang, highlight:window.highlight, paintSel:window.paintSel};
+  window.applyLang=function(){orig.applyLang();renderPresence()};
+  window.highlight=function(){ if(synced&&!applyingRemote) pushLocal(); orig.highlight(); renderCarets(); sendPresence(); };
+  window.paintSel=function(){ orig.paintSel(); drawRemoteSels(); sendPresence(); };
+  ta.addEventListener('input',()=>{ if(synced&&!applyingRemote) pushLocal(); renderCarets(); sendPresence(); });
+  ['keyup','mouseup','focus','blur','select'].forEach(ev=>ta.addEventListener(ev,sendPresence));
+  document.addEventListener('selectionchange',()=>{ if(document.activeElement===ta) sendPresence(); });
+
+  /* ---------- shared actions: send to the server, apply when it echoes back ---------- */
+  function emit(action){ ws.send(JSON.stringify({type:'event',cid,...action})) }
+  document.addEventListener('click',e=>{
+    if(!live()) return;
+    const t=e.target.closest('#run,#reset,.lang button,.seg button,#tabs button,.tname,#lessons button');
+    if(!t) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if(t.id==='run') emit({kind:'run',src:ta.value});
+    else if(t.id==='reset') emit({kind:'reset'});
+    else if(t.dataset.lang) emit({kind:'lang',lang:t.dataset.lang});
+    else if(t.dataset.semi) emit({kind:'semi',mode:t.dataset.semi});
+    else if(t.closest('#tabs')) emit({kind:'tab',id:t.dataset.id});
+    else if(t.classList.contains('tname')) emit({kind:'tab',id:t.childNodes[0].textContent.trim()});
+    else emit({kind:'lesson',i:[...t.parentElement.children].indexOf(t)});
+  },true);
+  document.addEventListener('keydown',e=>{
+    if(!live()||e.target!==ta) return;
+    if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();e.stopImmediatePropagation();emit({kind:'run',src:ta.value})}
+  },true);
+
+  function applyAction(a,mine){
+    switch(a.kind){
+      case 'init':
+        if(mine) return;
+        if(a.semi&&a.semi!==semiMode) setSemi(a.semi);
+        if(a.lang&&a.lang!==lang){ adoptLang(a.lang); renderLessons(-1); $('note').innerHTML=''; clearResult(); }
+        return;
+      case 'run': run(a.src); return;
+      case 'reset': resetDb(); renderSchema(); clearResult(); showMsg('ok',L.resetDone+' '+L.ready); return;
+      case 'semi': setSemi(a.mode); return;
+      case 'tab': openTab(a.id); return;
+      case 'lang':
+        if(a.lang===lang) return;
+        if(mine){ setLang(a.lang); return; }        // the author also swaps the editor text
+        adoptLang(a.lang); $('note').innerHTML=LESSONS[lang][4].n; renderLessons(4); renderSchema(); clearResult();
+        return;
+      case 'lesson':
+        if(mine){ loadLesson(a.i); return; }        // the author also puts the query in the editor
+        $('note').innerHTML=LESSONS[lang][a.i].n; renderLessons(a.i); renderSchema(); clearResult();
+        return;
+    }
+  }
+  function adoptLang(next){ lang=next; try{localStorage.setItem('sqlt-lang',lang)}catch(e){}; applyLang(); resetDb(); }
+
+  /* ---------- editor text (Yjs) ---------- */
+  function pushLocal(){
+    const nv=ta.value, ov=ytext.toString(); if(nv===ov) return;
+    let s=0; while(s<nv.length&&s<ov.length&&nv[s]===ov[s]) s++;
+    let e=0; while(e<nv.length-s&&e<ov.length-s&&nv[nv.length-1-e]===ov[ov.length-1-e]) e++;
+    doc.transact(()=>{
+      if(ov.length-s-e>0) ytext.delete(s,ov.length-s-e);
+      if(nv.length-s-e>0) ytext.insert(s,nv.slice(s,nv.length-e));
+    },'local');
+  }
+  doc.on('update',(update,origin)=>{ if(origin!=='remote'&&ws&&ws.readyState===1) ws.send(update) });
+  ytext.observe((ev,tr)=>{
+    if(tr.origin!=='remote') return;
+    const map=i=>{let old=0,shift=0;for(const d of ev.delta){
+      if(d.retain!=null) old+=d.retain;
+      else if(d.insert!=null){const n=typeof d.insert==='string'?d.insert.length:1; if(old<i) shift+=n}
+      else if(d.delete!=null){if(old<i) shift-=Math.min(d.delete,i-old); old+=d.delete}
+    } return i+shift};
+    const a=map(ta.selectionStart), b=map(ta.selectionEnd), dir=ta.selectionDirection;
+    applyingRemote=true;
+    ta.value=ytext.toString();
+    if(document.activeElement===ta) ta.setSelectionRange(a,b,dir);
+    orig.highlight();
+    applyingRemote=false;
+    renderCarets();
+  });
+
+  /* ---------- presence: editor cursor + selected cells ---------- */
+  const rel=i=>Y.relativePositionToJSON(Y.createRelativePositionFromTypeIndex(ytext,i));
+  const abs=j=>{try{const p=Y.createAbsolutePositionFromRelativePosition(Y.createRelativePositionFromJSON(j),doc);return p?p.index:null}catch(e){return null}};
+  let presenceQueued=false;
+  function sendPresence(){
+    if(presenceQueued) return; presenceQueued=true;
+    setTimeout(()=>{
+      presenceQueued=false;
+      if(!live()) return;
+      const back=ta.selectionDirection==='backward';
+      const anchorI=back?ta.selectionEnd:ta.selectionStart, headI=back?ta.selectionStart:ta.selectionEnd;
+      ws.send(JSON.stringify({type:'presence',cid,name:me.name,color:me.color,
+        focused:document.activeElement===ta,anchor:rel(anchorI),head:rel(headI),
+        sel:{tab,a:anchor?{...anchor}:{...cur},c:{...cur}}}));
+    },30);
+  }
+  function renderCarets(){
+    const text=ta.value, marks=[];
+    peers.forEach(p=>{
+      if(!p.anchor||!p.head) return;
+      let a=abs(p.anchor), h=abs(p.head); if(a==null||h==null) return;
+      a=Math.min(a,text.length); h=Math.min(h,text.length);
+      marks.push({s:Math.min(a,h),e:Math.max(a,h),h,p});
+    });
+    if(!marks.length){overlay.innerHTML='';return}
+    const pts=[...new Set([0,text.length,...marks.flatMap(m=>[m.s,m.e,m.h])])].sort((x,y)=>x-y);
+    let html='';
+    for(let k=0;k<pts.length;k++){
+      const x=pts[k];
+      marks.filter(m=>m.h===x).forEach(m=>{html+=`<span class="rc" style="--c:${m.p.color}"><span class="rl${m.p.focused?'':' idle'}">${esc(m.p.name)}</span></span>`});
+      if(k===pts.length-1) break;
+      const y=pts[k+1], seg=esc(text.slice(x,y)), cover=marks.filter(m=>m.s<=x&&y<=m.e&&m.s<m.e).pop();
+      html+=cover?`<span class="rs" style="background:${cover.p.color}33">${seg}</span>`:seg;
+    }
+    overlay.innerHTML=html+'\n';
+  }
+  function drawRemoteSels(){
+    grid.querySelectorAll('.rsel').forEach(n=>n.remove());
+    const table=grid.querySelector('table.sheet'); if(!table) return;
+    peers.forEach(p=>{
+      const s=p.sel; if(!s||s.tab!==tab) return;
+      const r1=Math.min(s.a.r,s.c.r), r2=Math.max(s.a.r,s.c.r), c1=Math.min(s.a.c,s.c.c), c2=Math.max(s.a.c,s.c.c);
+      const tl=grid.querySelector(`td[data-r="${r1}"][data-c="${c1}"]`), br=grid.querySelector(`td[data-r="${r2}"][data-c="${c2}"]`);
+      if(!tl||!br) return;
+      const box=document.createElement('div'); box.className='rsel'; box.style.setProperty('--c',p.color);
+      box.style.left=(table.offsetLeft+tl.offsetLeft)+'px'; box.style.top=(table.offsetTop+tl.offsetTop)+'px';
+      box.style.width=(br.offsetLeft+br.offsetWidth-tl.offsetLeft)+'px'; box.style.height=(br.offsetTop+br.offsetHeight-tl.offsetTop)+'px';
+      box.innerHTML=`<span>${esc(p.name)}</span>`;
+      grid.appendChild(box);
+    });
+  }
+
+  /* ---------- mouse pointers, anchored to page elements ---------- */
+  const pointers=new Map();
+  function locate(el){
+    const path=[]; let n=el;
+    while(n&&n!==document.body&&!n.id){const par=n.parentElement;if(!par)break;path.unshift([...par.children].indexOf(n));n=par}
+    return {id:n&&n.id?n.id:null,path};
+  }
+  function resolve(id,path){
+    let n=id?document.getElementById(id):document.body; if(!n) return null;
+    for(const i of path){const c=n.children[i]; if(!c) break; n=c}
+    return n;
+  }
+  let lastMove=0, moveTimer=null, pending=null;
+  document.addEventListener('pointermove',e=>{
+    if(!live()) return;
+    const el=document.elementFromPoint(e.clientX,e.clientY); if(!el||el.closest('.rptr')) return;
+    const r=el.getBoundingClientRect(), loc=locate(el);
+    pending={type:'pointer',cid,name:me.name,color:me.color,id:loc.id,path:loc.path,
+      fx:r.width?(e.clientX-r.left)/r.width:0, fy:r.height?(e.clientY-r.top)/r.height:0};
+    const now=Date.now(), flush=()=>{lastMove=Date.now();moveTimer=null;if(pending&&live())ws.send(JSON.stringify(pending));pending=null};
+    if(now-lastMove>40) flush(); else if(!moveTimer) moveTimer=setTimeout(flush,40-(now-lastMove));
+  });
+  document.addEventListener('pointerleave',()=>{ if(live()) ws.send(JSON.stringify({type:'pointer',cid,hidden:true})) });
+  function showPointer(m){
+    let el=pointers.get(m.cid);
+    if(m.hidden){ if(el) el.hidden=true; return; }
+    const target=resolve(m.id,m.path||[]); if(!target) return;
+    const r=target.getBoundingClientRect();
+    if(!el){
+      el=document.createElement('div'); el.className='rptr';
+      el.innerHTML='<svg width="16" height="20" viewBox="0 0 16 20" aria-hidden="true"><path d="M1 1 L1 16 L5 12 L8 19 L11 17.5 L8 11 L14 11 Z" fill="var(--c)" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg><span></span>';
+      document.body.appendChild(el); pointers.set(m.cid,el);
+    }
+    el.hidden=false; el.style.setProperty('--c',m.color); el.querySelector('span').textContent=m.name;
+    el.style.left=(r.left+window.scrollX+m.fx*r.width)+'px'; el.style.top=(r.top+window.scrollY+m.fy*r.height)+'px';
+  }
+  function dropPointer(id){const el=pointers.get(id); if(el){el.remove();pointers.delete(id)}}
+
+  /* ---------- presence bar ---------- */
+  function renderPresence(){
+    const dot=document.getElementById('collab-dot'), st=document.getElementById('collab-status'), list=document.getElementById('collab-peers');
+    dot.className='dot '+state;
+    st.textContent=(state==='live'?L.live:state==='offline'?L.offline:L.connecting)+' · '+L.room+' '+room;
+    let html=`<span class="peer" style="--c:${me.color}"><i></i>${esc(me.name)} <small>(${L.you})</small></span>`;
+    peers.forEach(p=>{html+=`<span class="peer" style="--c:${p.color}"><i></i>${esc(p.name)}</span>`});
+    if(!peers.size&&state==='live') html+=`<span class="alone">${esc(L.alone)}</span>`;
+    list.innerHTML=html;
+  }
+  async function copyLink(){
+    const btn=document.getElementById('collab-copy'), url=location.href;
+    let ok=false;
+    try{await navigator.clipboard.writeText(url);ok=true}catch(e){
+      const t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();
+      try{ok=document.execCommand('copy')}catch(e2){} t.remove();
+    }
+    btn.textContent=ok?L.copied:url;
+    setTimeout(()=>{btn.textContent=L.copyLink},2000);
+  }
+
+  /* ---------- connection ---------- */
+  function connect(){
+    state=epoch?'offline':'connecting'; synced=false; renderPresence();
+    ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws/${encodeURIComponent(room)}?cid=${cid}`);
+    ws.binaryType='arraybuffer';
+    ws.onmessage=ev=>{
+      if(typeof ev.data!=='string'){Y.applyUpdate(doc,new Uint8Array(ev.data),'remote');return}
+      const msg=JSON.parse(ev.data);
+      if(msg.type==='synced'){
+        // editor text
+        if(ytext.length===0&&ta.value){synced=true;pushLocal()}
+        else if(ytext.toString()!==ta.value){applyingRemote=true;ta.value=ytext.toString();orig.highlight();applyingRemote=false}
+        // shared actions
+        if(msg.epoch!==epoch){                      // new room or first connect: rebuild from the log
+          epoch=msg.epoch; lastSeq=0;
+          if(msg.log.length){ resetDb(); renderSchema(); clearResult(); }
+        }
+        msg.log.filter(a=>a.seq>lastSeq).forEach(a=>{lastSeq=a.seq; applyAction(a,false)});
+        synced=true; state='live';
+        if(!msg.log.length) emit({kind:'init',lang,semi:semiMode});   // first one here sets the room's language and mode
+        ws.send(Y.encodeStateAsUpdate(doc));
+        renderPresence(); renderCarets(); sendPresence();
+      }else if(msg.type==='event'){
+        if(msg.seq<=lastSeq) return; lastSeq=msg.seq;
+        applyAction(msg,msg.cid===cid);
+      }else if(msg.type==='presence'&&msg.cid!==cid){
+        const known=peers.has(msg.cid); peers.set(msg.cid,msg);
+        if(!known) renderPresence(); else if(peers.get(msg.cid).name!==msg.name) renderPresence();
+        renderPresence(); renderCarets(); drawRemoteSels();
+      }else if(msg.type==='pointer'&&msg.cid!==cid){
+        showPointer(msg);
+      }else if(msg.type==='leave'){
+        peers.delete(msg.cid); dropPointer(msg.cid); renderPresence(); renderCarets(); drawRemoteSels();
+      }
+    };
+    ws.onclose=()=>{peers.clear();pointers.forEach((_,k)=>dropPointer(k));state='offline';synced=false;renderPresence();renderCarets();drawRemoteSels();setTimeout(connect,2000)};
+  }
+
+  /* wait until the SQL engine has booted so my starting text is in place */
+  (function waitBoot(){ if(typeof db!=='undefined'&&db) connect(); else setTimeout(waitBoot,100) })();
+}
+</script>
+
 
 </html>
