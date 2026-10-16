@@ -1,9 +1,19 @@
+import hashlib
+import hmac
 import json
+import os
+import re
+import secrets
+import sqlite3
 import uuid
+from functools import lru_cache
 from pathlib import Path
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
+
+from course import COURSE
 from fastapi.staticfiles import StaticFiles
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -17,6 +27,153 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 async def root():
     """Home page: the SQL trainer with an Excel-style result grid."""
     return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/lessons", include_in_schema=False)
+async def lessons():
+    """Course page: lesson theory, tables and tasks."""
+    return FileResponse(STATIC_DIR / "lessons.html")
+
+
+# ---------------------------------------------------------------------------
+# Course data and the teacher account
+#
+# The browser gets the course from /course.js WITHOUT the answers. Students'
+# results are checked on the server (/api/check); only the logged-in teacher
+# can read the answers (/api/answers/<lesson id>).
+#
+# Teacher login: user "teacher", password from the TEACHER_PASSWORD environment
+# variable (default "sql2026" - change it on Render).
+# ---------------------------------------------------------------------------
+
+TEACHER_USER = "teacher"
+TEACHER_PASSWORD = os.environ.get("TEACHER_PASSWORD", "sql2026")
+SECRET_KEY = os.environ.get("SECRET_KEY") or secrets.token_hex(32)  # a random key logs everyone out on restart
+SESSION_COOKIE = "sqlt_teacher"
+
+PROGRESS_JS = """
+/* Progress is kept per browser. */
+window.COURSE_PROGRESS = {
+  key: id => 'sqlt-solved-L' + id,
+  get(id) { try { return JSON.parse(localStorage.getItem(this.key(id)) || '[]') } catch (e) { return [] } },
+  add(id, taskIndex) {
+    const s = new Set(this.get(id)); s.add(taskIndex);
+    try { localStorage.setItem(this.key(id), JSON.stringify([...s])) } catch (e) {}
+  }
+};
+"""
+
+
+def public_course() -> dict:
+    """The course without the answers."""
+    lessons = []
+    for lesson in COURSE["lessons"]:
+        item = {k: v for k, v in lesson.items() if k != "tasks"}
+        if "tasks" in lesson:
+            item["tasks"] = [{"text": t["text"]} for t in lesson["tasks"]]
+        lessons.append(item)
+    return {"lessons": lessons}
+
+
+def find_lesson(lesson_id: int) -> dict:
+    for lesson in COURSE["lessons"]:
+        if lesson["id"] == lesson_id and lesson.get("available"):
+            return lesson
+    raise HTTPException(status_code=404, detail="Lesson not found")
+
+
+def session_token() -> str:
+    return hmac.new(SECRET_KEY.encode(), b"teacher", hashlib.sha256).hexdigest()
+
+
+def is_teacher(request: Request) -> bool:
+    return hmac.compare_digest(request.cookies.get(SESSION_COOKIE, "").encode(), session_token().encode())
+
+
+@app.get("/course.js", include_in_schema=False)
+async def course_js():
+    body = "window.COURSE = " + json.dumps(public_course(), ensure_ascii=False) + ";\n" + PROGRESS_JS
+    return Response(body, media_type="application/javascript", headers={"Cache-Control": "no-cache"})
+
+
+class LoginData(BaseModel):
+    username: str
+    password: str
+
+
+@app.post("/api/login")
+async def login(data: LoginData, response: Response):
+    user_ok = hmac.compare_digest(data.username.strip().lower().encode(), TEACHER_USER.encode())
+    password_ok = hmac.compare_digest(data.password.encode(), TEACHER_PASSWORD.encode())
+    if not (user_ok and password_ok):
+        raise HTTPException(status_code=401, detail="Wrong username or password")
+    response.set_cookie(SESSION_COOKIE, session_token(), max_age=60 * 60 * 24 * 30, httponly=True, samesite="lax")
+    return {"teacher": True}
+
+
+@app.post("/api/logout")
+async def logout(response: Response):
+    response.delete_cookie(SESSION_COOKIE)
+    return {"teacher": False}
+
+
+@app.get("/api/me")
+async def me(request: Request):
+    return {"teacher": is_teacher(request)}
+
+
+@app.get("/api/answers/{lesson_id}")
+async def answers(lesson_id: int, request: Request):
+    if not is_teacher(request):
+        raise HTTPException(status_code=403, detail="Teachers only")
+    return {"answers": [t["answer"] for t in find_lesson(lesson_id)["tasks"]]}
+
+
+def _normalize(value):
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    return value
+
+
+@lru_cache(maxsize=256)
+def expected_result(lesson_id: int, task: int) -> tuple[list[str], list[list]]:
+    lesson = find_lesson(lesson_id)
+    con = sqlite3.connect(":memory:")
+    try:
+        con.executescript(lesson["seed"])
+        cur = con.execute(lesson["tasks"][task]["answer"])
+        columns = [d[0] for d in cur.description or []]
+        rows = [[_normalize(v) for v in row] for row in cur.fetchall()]
+    finally:
+        con.close()
+    return columns, rows
+
+
+class CheckData(BaseModel):
+    lesson: int
+    task: int
+    columns: list[str]
+    rows: list[list]
+
+
+@app.post("/api/check")
+async def check(data: CheckData):
+    lesson = find_lesson(data.lesson)
+    if not 0 <= data.task < len(lesson["tasks"]):
+        raise HTTPException(status_code=404, detail="Task not found")
+    columns, rows = expected_result(data.lesson, data.task)
+    if [c.lower() for c in columns] != [c.lower() for c in data.columns]:
+        return {"ok": False, "reason": "columns", "expected": columns}
+    if len(rows) != len(data.rows):
+        return {"ok": False, "reason": "rows", "expected": len(rows)}
+    got = [json.dumps([_normalize(v) for v in row]) for row in data.rows]
+    want = [json.dumps(row) for row in rows]
+    if not re.search(r"\border\s+by\b", lesson["tasks"][data.task]["answer"], re.I):
+        got.sort()
+        want.sort()
+    if got != want:
+        return {"ok": False, "reason": "values"}
+    return {"ok": True}
 
 
 @app.get("/healthz", include_in_schema=False)
@@ -39,6 +196,8 @@ async def say_hello(name: str):
 #   * {"type": "presence"} - a user's name, colour, editor cursor and selected
 #     cells: the latest one per user is stored and forwarded;
 #   * {"type": "pointer"} - mouse position: forwarded only;
+#   * {"type": "page"} - shared navigation between pages (go to a URL, scroll,
+#     pick a lesson): forwarded only, so a newcomer is never redirected;
 #   * {"type": "event"} - a shared action (run a query, reset the database,
 #     switch sheet, lesson, language, semicolon mode). The server numbers it,
 #     appends it to the room log and sends it to EVERYONE, sender included,
@@ -107,7 +266,8 @@ async def collaborate(ws: WebSocket, room_id: str, cid: str = ""):
             if kind == "presence":
                 room.clients[ws]["presence"] = text
                 await broadcast(room, text, exclude=ws)
-            elif kind == "pointer":
+            elif kind in ("pointer", "page"):
+                # mouse moves and page navigation (go to a page, scroll, ...): forwarded, never stored
                 await broadcast(room, text, exclude=ws)
             elif kind == "event":
                 room.seq += 1

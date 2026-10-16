@@ -10,3 +10,10 @@ services:
     autoDeploy: true
     # Collaboration rooms are kept in memory, so keep exactly one instance.
     numInstances: 1
+    envVars:
+      # Teacher password for /lessons. Render asks for the value when the Blueprint is created.
+      - key: TEACHER_PASSWORD
+        sync: false
+      # Signs the teacher's login cookie; a fixed value keeps teachers logged in across restarts.
+      - key: SECRET_KEY
+        generateValue: true

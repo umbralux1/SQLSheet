@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SQL Sheet Lessons</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@600&display=swap">
+<style>
+/* Layout: course roadmap rail on the left, the open lesson as a readable column on the right */
+:root{
+  --bg:#f3f5f2; --panel:#ffffff; --fg:#1d2320; --muted:#68736d; --line:#d5dbd6; --line-strong:#b9c2bb;
+  --head:#eaeeea; --head-active:#cfe3d6; --accent:#1f7a4d; --accent-fg:#ffffff; --sel:rgba(31,122,77,.12);
+  --new:#d8f2df; --chg:#fbf0c6; --null:#9aa49e; --err:#b3261e; --err-bg:#fbe9e7; --kw:#1f5fa8; --wavy:#c48a00; --str:#9a4a12;
+  --f-display:"Unbounded","IBM Plex Sans",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141917; --panel:#1b211e; --fg:#e3e9e5; --muted:#93a099; --line:#2c3531; --line-strong:#3c4842;
+  --head:#222a26; --head-active:#24432f; --accent:#4cc283; --accent-fg:#0d1a12; --sel:rgba(76,194,131,.16);
+  --new:#1f3e2a; --chg:#3d3518; --null:#66736c; --err:#ff8a80; --err-bg:#3a1f1d; --kw:#7fb4ff; --wavy:#e0b341; --str:#f0a46b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141917; --panel:#1b211e; --fg:#e3e9e5; --muted:#93a099; --line:#2c3531; --line-strong:#3c4842;
+  --head:#222a26; --head-active:#24432f; --accent:#4cc283; --accent-fg:#0d1a12; --sel:rgba(76,194,131,.16);
+  --new:#1f3e2a; --chg:#3d3518; --null:#66736c; --err:#ff8a80; --err-bg:#3a1f1d; --kw:#7fb4ff; --wavy:#e0b341; --str:#f0a46b; color-scheme:dark}
+
+*{box-sizing:border-box}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.6;margin:0}
+.wrap{max-width:1200px;margin:0 auto;padding-block:16px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+h1.brand{font-family:var(--f-display);font-size:20px;margin:0;letter-spacing:-.01em}
+h1.brand span{color:var(--accent)}
+.nav{display:inline-flex;gap:2px;margin-left:auto}
+.nav a{font-size:13px;font-weight:600;color:var(--muted);text-decoration:none;padding:4px 10px;border-radius:4px}
+.nav a:hover{color:var(--fg);background:var(--head)}
+.nav a[aria-current="page"]{color:var(--accent);background:var(--sel)}
+.lang{display:inline-flex;border:1px solid var(--line-strong);border-radius:4px;overflow:hidden}
+.lang button{font:inherit;font-size:12px;font-weight:600;border:0;background:var(--panel);color:var(--muted);padding:4px 10px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:860px){.layout{grid-template-columns:minmax(0,1fr)}}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+
+/* roadmap */
+.roadmap{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px;display:grid;gap:8px;position:sticky;top:12px}
+@media (max-width:860px){.roadmap{position:static}}
+.roadmap ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.roadmap li a,.roadmap li div{display:grid;grid-template-columns:28px minmax(0,1fr);gap:0 6px;padding:7px 8px;border-radius:4px;text-decoration:none;color:var(--fg)}
+.roadmap .num{font-family:var(--f-mono);font-size:12px;color:var(--muted);padding-top:2px;font-variant-numeric:tabular-nums}
+.roadmap b{font-size:13.5px;font-weight:600;line-height:1.35}
+.roadmap small{grid-column:2;font-size:12px;color:var(--muted);line-height:1.35}
+.roadmap li a:hover{background:var(--head)}
+.roadmap li a[aria-current="true"]{background:var(--sel)}
+.roadmap li a[aria-current="true"] .num{color:var(--accent);font-weight:600}
+.roadmap li.soon div{opacity:.6}
+.roadmap .soon-tag{font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:var(--muted);border:1px solid var(--line-strong);border-radius:3px;padding:0 4px;margin-left:6px;vertical-align:1px}
+.roadmap .done-tag{font-size:11px;color:var(--accent);font-weight:600;margin-left:4px}
+
+/* lesson */
+article{min-width:0;display:grid;gap:28px}
+.lesson-head{display:grid;gap:6px}
+.lesson-head h2{font-family:var(--f-display);font-size:clamp(22px,3vw,30px);line-height:1.2;margin:0;letter-spacing:-.015em;text-wrap:balance}
+.lesson-head p{margin:0;color:var(--muted)}
+.progress{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px}
+.bar{width:200px;max-width:100%;height:8px;background:var(--head);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:0}
+.progress span{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.btn{display:inline-flex;align-items:center;font:inherit;font-weight:600;font-size:14px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);border-radius:4px;padding:7px 14px;cursor:pointer;text-decoration:none}
+.btn.ghost{background:var(--panel);color:var(--fg);border-color:var(--line-strong)}
+section{display:grid;gap:12px}
+section h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0;font-weight:600}
+.theory{max-width:68ch}
+.theory p{margin:0 0 10px}
+.theory ul{margin:0;padding-left:20px;display:grid;gap:4px}
+code{font-family:var(--f-mono);font-size:.88em;background:var(--head);padding:1px 5px;border-radius:3px}
+pre.code{font-family:var(--f-mono);font-size:13.5px;line-height:1.6;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:4px;padding:10px 14px;margin:0 0 12px;overflow-x:auto}
+
+/* tables */
+.tables{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.tcard{background:var(--panel);border:1px solid var(--line);border-radius:6px;overflow:hidden;min-width:0}
+.tcard header{padding:8px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.tcard header b{font-family:var(--f-mono);font-size:14px}
+.tcard header small{color:var(--muted);font-size:12px}
+.sheetwrap{overflow-x:auto}
+table.sheet{border-collapse:separate;border-spacing:0;font-size:12.5px;font-variant-numeric:tabular-nums;width:100%}
+.sheet th,.sheet td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:3px 8px;white-space:nowrap;line-height:1.4}
+.sheet thead th{background:var(--head);color:var(--muted);font-weight:500;font-size:11px;text-align:center}
+.sheet tbody th{background:var(--head);color:var(--muted);font-weight:500;font-size:11px;text-align:right;width:32px}
+.sheet tr.hdr td{font-weight:600}
+.sheet tr.hdr td small{display:block;font-weight:400;font-size:10px;color:var(--muted);font-family:var(--f-mono);line-height:1.2}
+.sheet td.n{text-align:right}
+
+/* tasks */
+.tasks{list-style:none;margin:0;padding:0;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.tasks li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
+.tasks li:first-child{border-top:0}
+.tasks .st{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line-strong);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--muted);font-family:var(--f-mono)}
+.tasks li.done .st{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.tasks .txt{min-width:0}
+.tasks .txt b{display:block;font-size:12px;color:var(--muted);font-weight:600}
+.tasks a.go{font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;white-space:nowrap}
+.tasks a.go:hover{text-decoration:underline}
+/* collaboration */
+.collab{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 12px;background:var(--panel);border:1px solid var(--line);border-radius:6px;font-size:12.5px;color:var(--muted)}
+.collab .dot{width:8px;height:8px;border-radius:50%;background:var(--null);flex:none}
+.collab .dot.live{background:var(--accent)}
+.collab .dot.offline{background:var(--err)}
+.collab .peers{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.collab .peer{display:inline-flex;align-items:center;gap:5px;color:var(--fg);font-weight:600}
+.collab .peer i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.collab .peer small{color:var(--muted);font-weight:400}
+.collab .alone{font-style:italic}
+.collab .me{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
+.collab input{font:inherit;font-size:12.5px;border:1px solid var(--line-strong);background:var(--bg);color:var(--fg);border-radius:4px;padding:3px 7px;width:130px}
+.collab input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.rptr{position:absolute;z-index:50;pointer-events:none;transition:left .08s linear,top .08s linear}
+.rptr svg{display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+.rptr span{position:absolute;left:14px;top:16px;background:var(--c);color:#fff;font:600 11px/1.5 var(--f-body);padding:0 6px;border-radius:4px;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.rptr{transition:none}}
+/* teacher */
+.teacher{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:10px}
+.teacher .top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.teacher .top b{font-size:14px}
+.teacher .top span{font-size:13px;color:var(--muted)}
+.teacher form{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.teacher label{display:grid;gap:2px;font-size:12px;color:var(--muted);font-weight:600}
+.teacher input{font:inherit;font-size:14px;border:1px solid var(--line-strong);background:var(--bg);color:var(--fg);border-radius:4px;padding:6px 8px;width:180px;max-width:100%}
+.teacher input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.teacher .err{color:var(--err);font-size:13px;min-height:1em;width:100%}
+.tasks pre.ans{margin:6px 0 0;font-family:var(--f-mono);font-size:13px;line-height:1.5;background:var(--sel);border-left:3px solid var(--accent);border-radius:3px;padding:5px 10px;white-space:pre-wrap;word-break:break-word}
+.tasks pre.ans span{display:block;font-family:var(--f-body);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;color:var(--accent)}
+.btn.small{font-size:13px;padding:5px 12px}
+details.answers{background:var(--panel);border:1px solid var(--line);border-radius:6px}
+details.answers summary{cursor:pointer;padding:10px 14px;font-weight:600}
+details.answers pre.code{margin:0 14px 14px;border-left-color:var(--line-strong)}
+.soon-box{background:var(--panel);border:1px dashed var(--line-strong);border-radius:6px;padding:24px;color:var(--muted)}
+@media (max-width:520px){.tasks li{grid-template-columns:24px minmax(0,1fr)}.tasks a.go{grid-column:2}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1 class="brand">SQL <span data-i18n="brand2"></span></h1>
+    <nav class="nav"><a href="./" data-i18n="navTrainer"></a><a href="lessons" aria-current="page" data-i18n="navLessons"></a></nav>
+    <div class="lang" role="group" aria-label="Language"><button data-lang="en">EN</button><button data-lang="ru">RU</button></div>
+  </header>
+
+  <div class="collab" id="collab" hidden>
+    <span class="dot" id="collab-dot"></span><span id="collab-status"></span>
+    <span class="peers" id="collab-peers"></span>
+    <label class="me"><span data-i18n="yourName"></span><input id="collab-name" maxlength="24" autocomplete="off"></label>
+    <button class="btn ghost small" id="collab-copy" data-i18n="copyLink"></button>
+  </div>
+
+  <div class="layout">
+    <aside class="roadmap">
+      <div class="label" data-i18n="roadmap"></div>
+      <ol id="roadmap"></ol>
+    </aside>
+    <article id="lesson"></article>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-asm.js"></script>
+<script src="course.js"></script>
+<script>
+const T={
+ en:{live:'Live', connecting:'Connecting…', offline:'Offline, reconnecting…', room:'room', you:'you', yourName:'Your name', copyLink:'Copy invite link', copied:'Link copied', alone:'Only you here. Share the link to invite someone.',
+   brand2:'Sheet', title:'SQL Sheet Lessons', navTrainer:'Trainer', navLessons:'Lessons', roadmap:'Course roadmap',
+   lesson:n=>`Lesson ${n}`, soon:'Soon', theory:'Theory', tables:'Tables for this lesson', tasks:'Tasks',
+   rows:n=>`${n} rows`, solved:(a,b)=>`${a} of ${b} tasks solved`, start:'Start lesson in the trainer', cont:'Continue in the trainer',
+   solve:'Solve →', again:'Solve again →', task:n=>`Task ${n}`, answers:'Answers', answer:'Answer', teacherOnly:'Answers are visible to the teacher only.', login:'Log in', logout:'Log out', user:'Username', pass:'Password', wrongLogin:'Wrong username or password.', teacherIn:'You are logged in as teacher. The answer is shown on each task page in the trainer.', loginFail:'Could not reach the server. Answers need the app running on a server.',
+   soonText:'This lesson is not ready yet. Lesson 1 is available now.', back:'Open lesson 1', number:'number', text:'text'},
+ ru:{live:'Онлайн', connecting:'Подключение…', offline:'Нет связи, переподключаюсь…', room:'комната', you:'ты', yourName:'Твоё имя', copyLink:'Скопировать ссылку', copied:'Ссылка скопирована', alone:'Пока здесь только ты. Отправь ссылку, чтобы позвать кого-то.',
+   brand2:'Табличка', title:'SQL Табличка — уроки', navTrainer:'Тренажёр', navLessons:'Уроки', roadmap:'План курса',
+   lesson:n=>`Урок ${n}`, soon:'Скоро', theory:'Теория', tables:'Таблицы урока', tasks:'Задания',
+   rows:n=>`${n} стр.`, solved:(a,b)=>`Решено ${a} из ${b}`, start:'Начать урок в тренажёре', cont:'Продолжить в тренажёре',
+   solve:'Решить →', again:'Решить ещё раз →', task:n=>`Задание ${n}`, answers:'Ответы', answer:'Ответ', teacherOnly:'Ответы видит только преподаватель.', login:'Войти', logout:'Выйти', user:'Логин', pass:'Пароль', wrongLogin:'Неверный логин или пароль.', teacherIn:'Ты вошёл как преподаватель. Ответ показывается на странице каждого задания в тренажёре.', loginFail:'Нет связи с сервером. Ответы доступны, только когда приложение запущено на сервере.',
+   soonText:'Этот урок ещё готовится. Сейчас доступен урок 1.', back:'Открыть урок 1', number:'число', text:'текст'}
+};
+let lang='en'; try{const s=localStorage.getItem('sqlt-lang'); if(s==='ru'||s==='en') lang=s}catch(e){}
+let L=T[lang], SQL=null;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const colLetter=i=>{let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s};
+
+function currentId(){ const m=(location.hash||'').match(/^#lesson-(\d+)$/); return m?+m[1]:1 }
+
+function renderRoadmap(){
+  const id=currentId();
+  $('roadmap').innerHTML=COURSE.lessons.map(l=>{
+    const done=l.available?COURSE_PROGRESS.get(l.id).length:0, total=l.available?l.tasks.length:0;
+    const inner=`<span class="num">${String(l.id).padStart(2,'0')}</span><b>${esc(l.title[lang])}${l.available?'':`<span class="soon-tag">${L.soon}</span>`}${l.available&&done===total?'<span class="done-tag">✓</span>':''}</b><small>${esc(l.topics[lang])}</small>`;
+    return l.available
+      ? `<li><a href="#lesson-${l.id}" aria-current="${l.id===id}">${inner}</a></li>`
+      : `<li class="soon"><div>${inner}</div></li>`;
+  }).join('');
+}
+
+function sheet(db,table){
+  const r=db.exec(`SELECT * FROM "${table}"`)[0]; if(!r) return '';
+  const info=db.exec(`PRAGMA table_info("${table}")`)[0].values;
+  let h='<table class="sheet"><thead><tr><th></th>'+r.columns.map((_,i)=>`<th>${colLetter(i)}</th>`).join('')+'</tr></thead><tbody>';
+  h+='<tr class="hdr"><th>1</th>'+r.columns.map((c,i)=>`<td>${esc(c)}<small>${esc((info[i][2]||'').toLowerCase())}</small></td>`).join('')+'</tr>';
+  r.values.forEach((row,k)=>{h+=`<tr><th>${k+2}</th>`+row.map(v=>typeof v==='number'?`<td class="n">${v.toLocaleString(lang==='ru'?'ru-RU':'en-US',{useGrouping:false,maximumFractionDigits:2})}</td>`:`<td>${esc(v==null?'NULL':v)}</td>`).join('')+'</tr>'});
+  return h+'</tbody></table>';
+}
+
+function renderLesson(){
+  const id=currentId(), l=COURSE.lessons.find(x=>x.id===id)||COURSE.lessons[0], el=$('lesson');
+  if(!l.available){
+    el.innerHTML=`<div class="lesson-head"><span class="label">${L.lesson(l.id)}</span><h2>${esc(l.title[lang])}</h2><p>${esc(l.topics[lang])}</p></div>
+      <div class="soon-box"><p style="margin:0 0 12px">${L.soonText}</p><a class="btn ghost" href="#lesson-1">${L.back}</a></div>`;
+    return;
+  }
+  const solved=new Set(COURSE_PROGRESS.get(l.id)), total=l.tasks.length;
+  const firstOpen=l.tasks.findIndex((_,i)=>!solved.has(i)), next=firstOpen<0?1:firstOpen+1;
+  let tablesHtml='';
+  if(SQL){
+    const db=new SQL.Database(); db.run(l.seed);
+    tablesHtml=l.tables.map(t=>{const n=db.exec(`SELECT COUNT(*) FROM "${t}"`)[0].values[0][0];
+      return `<div class="tcard"><header><b>${esc(t)}</b><small>${L.rows(n)}</small></header><div class="sheetwrap">${sheet(db,t)}</div></div>`}).join('');
+    db.close();
+  }
+  el.innerHTML=`
+    <div class="lesson-head">
+      <span class="label">${L.lesson(l.id)}</span>
+      <h2>${esc(l.title[lang])}</h2>
+      <p>${esc(l.topics[lang])}</p>
+      <div class="progress"><div class="bar"><i style="width:${Math.round(solved.size/total*100)}%"></i></div><span>${L.solved(solved.size,total)}</span>
+        <a class="btn" href="./?lesson=${l.id}&task=${next}">${solved.size?L.cont:L.start}</a></div>
+    </div>
+    <section><h3>${L.theory}</h3><div class="theory">${l.theory[lang]}</div></section>
+    <section><h3>${L.tables}</h3><div class="tables">${tablesHtml}</div></section>
+    <section><h3>${L.tasks}</h3><ol class="tasks">${l.tasks.map((t,i)=>`
+      <li class="${solved.has(i)?'done':''}"><span class="st">${solved.has(i)?'✓':i+1}</span>
+        <div class="txt"><b>${L.task(i+1)}</b>${t.text[lang]}</div>
+        <a class="go" href="./?lesson=${l.id}&task=${i+1}">${solved.has(i)?L.again:L.solve}</a></li>`).join('')}</ol>
+      <div class="teacher" id="teacher"></div>
+    </section>`;
+}
+
+let teacher=false;
+async function refreshTeacher(){ try{const r=await fetch('api/me');teacher=r.ok&&(await r.json()).teacher}catch(e){teacher=false} renderTeacher() }
+async function renderTeacher(){
+  const box=$('teacher'); if(!box) return;
+  const id=currentId(), l=COURSE.lessons.find(x=>x.id===id);
+  if(!teacher){
+    box.innerHTML=`<div class="top"><b>${L.answers}</b><span>${L.teacherOnly}</span></div>
+      <form id="login-form"><label>${L.user}<input id="login-user" autocomplete="username" required></label>
+      <label>${L.pass}<input id="login-pass" type="password" autocomplete="current-password" required></label>
+      <button class="btn small">${L.login}</button><div class="err" id="login-err"></div></form>`;
+    $('login-form').addEventListener('submit',async e=>{
+      e.preventDefault(); $('login-err').textContent='';
+      try{
+        const r=await fetch('api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('login-user').value,password:$('login-pass').value})});
+        if(r.ok){teacher=true;renderTeacher()} else $('login-err').textContent=L.wrongLogin;
+      }catch(err){$('login-err').textContent=L.loginFail}
+    });
+    return;
+  }
+  box.innerHTML=`<div class="top"><b>${L.answers}</b><span>${L.teacherIn} <button class="btn ghost small" id="logout">${L.logout}</button></span></div>`;
+  $('logout').onclick=async()=>{try{await fetch('api/logout',{method:'POST'})}catch(e){} teacher=false; renderTeacher()};
+}
+function applyLang(){
+  L=T[lang]; document.documentElement.lang=lang; document.title=L.title;
+  document.querySelectorAll('[data-i18n]').forEach(e=>{e.textContent=L[e.dataset.i18n]});
+  document.querySelectorAll('.lang button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.lang===lang));
+  renderRoadmap(); renderLesson(); renderTeacher();
+}
+document.querySelectorAll('.lang button').forEach(b=>b.onclick=()=>{lang=b.dataset.lang;try{localStorage.setItem('sqlt-lang',lang)}catch(e){};applyLang()});
+window.addEventListener('hashchange',()=>{renderRoadmap();renderLesson();renderTeacher();window.scrollTo(0,0)});
+window.addEventListener('pageshow',()=>{renderRoadmap();renderLesson();renderTeacher()});   // refresh progress when coming back from the trainer
+applyLang();
+refreshTeacher();
+if(typeof initSqlJs==='function') initSqlJs().then(s=>{SQL=s;renderLesson();renderTeacher()});
+</script>
+<script type="module">
+/* ================= collaboration on the Lessons page =================
+   Shares with everyone in the room: page navigation (Solve, Trainer, Lessons
+   links), the lesson picked in the roadmap, scrolling, the language and mouse
+   pointers. The room is the same one the trainer uses (?room=…). */
+const COLORS=['#e5484d','#0b84f3','#d6409f','#e8590c','#8e4ec6','#0f9d8a','#a16207','#3e63dd'];
+if(/^https?:$/.test(location.protocol)) start();
+
+function start(){
+  const params=new URLSearchParams(location.search);
+  let room=params.get('room');
+  if(!room){room=Math.random().toString(36).slice(2,8);params.set('room',room);history.replaceState(null,'',location.pathname+'?'+params+location.hash)}
+  const cid=String(Math.floor(Math.random()*2147483647));
+  let name='', color='';
+  try{name=sessionStorage.getItem('sqlt-name')||'';color=sessionStorage.getItem('sqlt-color')||''}catch(e){}
+  if(!name) name=(lang==='ru'?'Гость ':'Guest ')+Math.floor(10+Math.random()*90);
+  if(!color) color=COLORS[Math.floor(Math.random()*COLORS.length)];
+  try{sessionStorage.setItem('sqlt-name',name);sessionStorage.setItem('sqlt-color',color)}catch(e){}
+  const me={name,color}, peers=new Map(), pointers=new Map();
+  let ws=null, state='connecting', remoteUntil=0;
+  const live=()=>ws&&ws.readyState===1&&state==='live';
+  const send=m=>{ if(live()) ws.send(JSON.stringify({cid,...m})) };
+
+  const bar=$('collab'); bar.hidden=false;
+  const nameInput=$('collab-name'); nameInput.value=me.name;
+  nameInput.addEventListener('input',()=>{me.name=nameInput.value.trim()||me.name;try{sessionStorage.setItem('sqlt-name',me.name)}catch(e){};renderPresence();sendPresence()});
+  $('collab-copy').onclick=copyLink;
+  const origApply=window.applyLang; window.applyLang=function(){origApply();renderPresence()};
+
+  /* ---- navigation: links take everyone along ---- */
+  function goTo(url,announce){
+    const u=new URL(url,location.href); if(u.origin!==location.origin) return;
+    u.searchParams.set('room',room);
+    if(announce) send({type:'page',kind:'go',url:u.pathname+u.search+u.hash});
+    location.href=u.href;
+  }
+  document.addEventListener('click',e=>{
+    const langBtn=e.target.closest('.lang button');
+    if(langBtn){ send({type:'page',kind:'lang',lang:langBtn.dataset.lang}); return; }
+    const a=e.target.closest('a[href]'); if(!a||a.target==='_blank'||e.metaKey||e.ctrlKey||e.shiftKey) return;
+    const u=new URL(a.getAttribute('href'),location.href); if(u.origin!==location.origin) return;
+    if(u.pathname===location.pathname&&u.search===location.search) return;   // #lesson-N: shared through hashchange
+    e.preventDefault(); goTo(u.href,true);
+  },true);
+  window.addEventListener('hashchange',()=>{ if(Date.now()>remoteUntil) send({type:'page',kind:'hash',hash:location.hash}) });
+
+  /* ---- scrolling, anchored to the content so different window sizes line up ---- */
+  function locate(el){
+    const path=[]; let n=el;
+    while(n&&n!==document.body&&!n.id){const par=n.parentElement;if(!par)break;path.unshift([...par.children].indexOf(n));n=par}
+    return {id:n&&n.id?n.id:null,path};
+  }
+  function resolve(id,path){
+    let n=id?document.getElementById(id):document.body; if(!n) return null;
+    for(const i of path){const c=n.children[i]; if(!c) break; n=c}
+    return n;
+  }
+  let scrollTimer=null;
+  window.addEventListener('scroll',()=>{
+    if(Date.now()<remoteUntil||scrollTimer) return;
+    scrollTimer=setTimeout(()=>{
+      scrollTimer=null;
+      const art=$('lesson').getBoundingClientRect(), x=art.left+Math.min(art.width/2,200);
+      const el=document.elementFromPoint(x,12); if(!el||el.closest('.rptr')) return;
+      const r=el.getBoundingClientRect(), loc=locate(el);
+      send({type:'page',kind:'scroll',id:loc.id,path:loc.path,fy:r.height?(12-r.top)/r.height:0,top:scrollY<4});
+    },120);
+  },{passive:true});
+  function applyScroll(m){
+    remoteUntil=Date.now()+500;
+    if(m.top){window.scrollTo({top:0,behavior:'instant'});return}
+    const el=resolve(m.id,m.path||[]); if(!el) return;
+    const r=el.getBoundingClientRect();
+    window.scrollTo({top:scrollY+r.top+m.fy*r.height-12,behavior:'instant'});
+  }
+
+  /* ---- mouse pointers ---- */
+  let lastMove=0, moveTimer=null, pending=null;
+  document.addEventListener('pointermove',e=>{
+    if(!live()) return;
+    const el=document.elementFromPoint(e.clientX,e.clientY); if(!el||el.closest('.rptr')) return;
+    const r=el.getBoundingClientRect(), loc=locate(el);
+    pending={type:'pointer',name:me.name,color:me.color,id:loc.id,path:loc.path,fx:r.width?(e.clientX-r.left)/r.width:0,fy:r.height?(e.clientY-r.top)/r.height:0};
+    const now=Date.now(), flush=()=>{lastMove=Date.now();moveTimer=null;if(pending)send(pending);pending=null};
+    if(now-lastMove>40) flush(); else if(!moveTimer) moveTimer=setTimeout(flush,40-(now-lastMove));
+  });
+  document.addEventListener('pointerleave',()=>send({type:'pointer',hidden:true}));
+  function showPointer(m){
+    let el=pointers.get(m.cid);
+    if(m.hidden){ if(el) el.hidden=true; return; }
+    const target=resolve(m.id,m.path||[]); if(!target) return;
+    const r=target.getBoundingClientRect();
+    if(!el){
+      el=document.createElement('div'); el.className='rptr';
+      el.innerHTML='<svg width="16" height="20" viewBox="0 0 16 20" aria-hidden="true"><path d="M1 1 L1 16 L5 12 L8 19 L11 17.5 L8 11 L14 11 Z" fill="var(--c)" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg><span></span>';
+      document.body.appendChild(el); pointers.set(m.cid,el);
+    }
+    el.hidden=false; el.style.setProperty('--c',m.color); el.querySelector('span').textContent=m.name;
+    el.style.left=(r.left+scrollX+m.fx*r.width)+'px'; el.style.top=(r.top+scrollY+m.fy*r.height)+'px';
+  }
+  function dropPointer(id){const el=pointers.get(id); if(el){el.remove();pointers.delete(id)}}
+
+  /* ---- presence bar ---- */
+  function sendPresence(){ send({type:'presence',name:me.name,color:me.color}) }
+  function renderPresence(){
+    $('collab-dot').className='dot '+state;
+    $('collab-status').textContent=(state==='live'?L.live:state==='offline'?L.offline:L.connecting)+' · '+L.room+' '+room;
+    let html=`<span class="peer" style="--c:${me.color}"><i></i>${esc(me.name)} <small>(${L.you})</small></span>`;
+    peers.forEach(p=>{html+=`<span class="peer" style="--c:${p.color}"><i></i>${esc(p.name)}</span>`});
+    if(!peers.size&&state==='live') html+=`<span class="alone">${esc(L.alone)}</span>`;
+    $('collab-peers').innerHTML=html;
+  }
+  async function copyLink(){
+    const btn=$('collab-copy'), url=location.href; let ok=false;
+    try{await navigator.clipboard.writeText(url);ok=true}catch(e){
+      const t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();
+      try{ok=document.execCommand('copy')}catch(e2){} t.remove();
+    }
+    btn.textContent=ok?L.copied:url; setTimeout(()=>{btn.textContent=L.copyLink},2000);
+  }
+
+  /* ---- connection ---- */
+  function connect(){
+    renderPresence();
+    ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws/${encodeURIComponent(room+'~lessons')}?cid=${cid}`);
+    ws.onmessage=ev=>{
+      if(typeof ev.data!=='string') return;
+      const m=JSON.parse(ev.data);
+      if(m.type==='synced'){ state='live'; renderPresence(); sendPresence(); return; }
+      if(m.cid===cid) return;
+      if(m.type==='presence'){ peers.set(m.cid,m); renderPresence(); }
+      else if(m.type==='leave'){ peers.delete(m.cid); dropPointer(m.cid); renderPresence(); }
+      else if(m.type==='pointer'){ showPointer(m); }
+      else if(m.type==='page'){
+        if(m.kind==='go') goTo(m.url,false);
+        else if(m.kind==='hash'&&m.hash!==location.hash){ remoteUntil=Date.now()+500; location.hash=m.hash; }
+        else if(m.kind==='scroll') applyScroll(m);
+        else if(m.kind==='lang'&&m.lang!==lang&&T[m.lang]){ lang=m.lang; try{localStorage.setItem('sqlt-lang',lang)}catch(e){}; applyLang(); }
+      }
+    };
+    ws.onclose=()=>{peers.clear();pointers.forEach((_,k)=>dropPointer(k));state='offline';renderPresence();setTimeout(connect,2000)};
+  }
+  connect();
+}
+</script>
+</html>

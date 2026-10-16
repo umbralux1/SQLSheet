@@ -27,12 +27,37 @@ An internet connection is required: the SQLite engine and fonts load from a CDN.
 - `static/index.html` — the whole trainer (HTML + CSS + JS)
 - Translations (`T`), sample data (`SEED`) and lessons (`LESSONS`) are at the top of the `<script>` in `index.html`
 
+## Lessons
+
+`/lessons` is the course page: a roadmap of 13 topics, and for each ready lesson
+the theory, its tables, tasks and answers for teachers. **Solve** opens the trainer
+with that lesson's database (`/?lesson=1&task=3`); after **Run** the result is
+checked against the reference answer. Progress is saved in the browser.
+
+All course content lives in `static/course.js`. To add a lesson, fill in its
+`theory`, `seed`, `tables` and `tasks` (each task needs an `answer` query) and set
+`available: true`.
+
+### Teacher account
+
+Answers are visible only to the teacher: log in at the bottom of a lesson on
+`/lessons` with the user **teacher**. The password comes from the
+`TEACHER_PASSWORD` environment variable; without it the default is `sql2026`,
+so set your own on Render (**Environment → Add variable**). Answers never reach
+students' browsers: the trainer sends a student's result to `/api/check` and the
+server compares it with the answer.
+
 ## Working together
 
 Two or more people work on the same page in real time. Everything is shared:
 the query text as it is typed, text cursors and selections, mouse pointers,
 selected cells and ranges, running queries, the database itself, the open
 sheet, the current lesson, the language and the semicolon mode.
+
+The Lessons page is shared too: the same room link works on both pages, and
+links (**Solve**, **Trainer**, **Lessons**, **All lessons**) take everyone in the
+room along. On `/lessons` scrolling, the chosen lesson, the language and mouse
+pointers are shared.
 
 1. Start the server so other computers on your network can reach it:
    ```bash
@@ -104,6 +129,10 @@ uvicorn main:app --reload --port 8001
 выделенные клетки и диапазоны, запуск запросов, сама база данных, открытый лист,
 текущий урок, язык и режим точки с запятой.
 
+Страница уроков тоже общая: одна ссылка на комнату работает на обеих страницах,
+а переходы («Решить», «Тренажёр», «Уроки», «Все уроки») уводят за собой всех
+участников. На `/lessons` общие прокрутка, выбранный урок, язык и курсоры мыши.
+
 1. Запусти сервер так, чтобы к нему могли подключиться другие компьютеры в сети:
    ```bash
    uvicorn main:app --reload --host 0.0.0.0 --port 8001
@@ -128,3 +157,19 @@ uvicorn main:app --reload --port 8001
 Держи **один экземпляр** сервиса: комнаты хранятся в памяти. На бесплатном плане
 сервис засыпает через 15 минут без посетителей и просыпается за несколько секунд;
 при перезапуске комнаты очищаются.
+
+### Уроки
+
+`/lessons` — страница курса: план из 13 тем, а для готовых уроков теория, таблицы,
+задания и ответы для преподавателя. Кнопка **Решить** открывает тренажёр с базой урока
+(`/?lesson=1&task=3`), и после **Выполнить** результат сверяется с эталонным ответом.
+Весь контент курса — в `static/course.js`: чтобы добавить урок, заполни `theory`,
+`seed`, `tables`, `tasks` (у каждого задания нужен `answer`) и поставь `available: true`.
+
+### Преподаватель
+
+Ответы видит только преподаватель: внизу урока на `/lessons` войди под логином
+**teacher**. Пароль задаётся переменной окружения `TEACHER_PASSWORD`, по умолчанию
+`sql2026`. На Render задай свой пароль: **Environment → Add variable**. Ответы
+не попадают в браузер ученика: тренажёр отправляет результат на `/api/check`,
+и сервер сам сравнивает его с ответом.

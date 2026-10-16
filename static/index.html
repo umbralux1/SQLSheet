@@ -151,6 +151,44 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
 .rl{position:absolute;bottom:100%;left:-2px;background:var(--c);color:#fff;font:600 10px/1.4 var(--f-body);padding:0 5px;border-radius:3px 3px 3px 0;white-space:nowrap;z-index:3}
 .rl.idle{opacity:.55}
 .rs{border-radius:2px}
+/* navigation + lesson mode */
+.nav{display:inline-flex;gap:2px;margin-left:auto;align-self:center}
+.nav a{font-size:13px;font-weight:600;color:var(--muted);text-decoration:none;padding:4px 10px;border-radius:4px}
+.nav a:hover{color:var(--fg);background:var(--head)}
+.nav a[aria-current="page"]{color:var(--accent);background:var(--sel)}
+.nav a:focus-visible{outline:2px solid var(--accent)}
+header .lang{margin-left:0}
+.lessons-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.lessons-head a{font-size:12px;color:var(--accent);text-decoration:none;font-weight:600}
+.lessons-head a:hover{text-decoration:underline}
+.lessons button.solved b{color:var(--accent)}
+.msg .good,.msg .bad{display:block;margin-top:6px;padding:5px 8px;border-radius:3px;font-family:var(--f-body)}
+.msg .good{background:var(--new);color:var(--fg)}
+.msg .win{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:8px;padding:14px 16px;border-radius:8px;
+  background:linear-gradient(135deg,var(--new),var(--sel));border:1.5px solid var(--accent);color:var(--fg);font-family:var(--f-body);
+  animation:win-pop .5s cubic-bezier(.2,1.5,.4,1) both}
+.msg .win .medal{font-size:34px;line-height:1;animation:win-bounce 1s ease-out .15s both}
+.msg .win .words{display:grid;gap:4px;flex:1 1 220px;min-width:0}
+.msg .win .words b{font-family:var(--f-display);font-size:19px;line-height:1.2;color:var(--accent)}
+.msg .win .words small{font-size:13px}
+.msg .win .dots{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.msg .win .dots i{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--accent);background:transparent}
+.msg .win .dots i.on{background:var(--accent)}
+.msg .win .dots i.now{box-shadow:0 0 0 3px var(--sel);animation:win-bounce .8s ease-out .3s both}
+.msg .win .btn{flex:none}
+.msg .win.big{padding:18px 18px}
+.msg .win.big .medal{font-size:46px}
+.msg .win.big .words b{font-size:23px}
+@keyframes win-pop{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes win-bounce{0%{transform:scale(.4) rotate(-15deg)}60%{transform:scale(1.25) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
+canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:100}
+@media (prefers-reduced-motion:reduce){.msg .win,.msg .win .medal,.msg .win .dots i.now{animation:none}}
+.msg .bad{background:var(--err-bg);color:var(--err)}
+.msg .good code,.msg .bad code{font-family:var(--f-mono);font-weight:600}
+.lesson-note .answer{margin-top:8px;padding:6px 10px;background:var(--sel);border-left:3px solid var(--accent);border-radius:3px}
+.lesson-note .answer span{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;color:var(--accent)}
+.lesson-note .answer code{display:block;background:none;padding:0;font-family:var(--f-mono);font-size:13px;white-space:pre-wrap;word-break:break-word}
+.lesson-note .crumb{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:2px}
 .gridwrap{position:relative}
 .rsel{position:absolute;z-index:0;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 10%,transparent);pointer-events:none;box-sizing:border-box}
 .rsel span{position:absolute;top:-2px;left:-2px;transform:translateY(-100%);background:var(--c);color:#fff;font:600 10px/1.4 var(--f-body);padding:0 5px;border-radius:3px 3px 0 0;white-space:nowrap}
@@ -164,6 +202,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
   <header>
     <h1>SQL <span data-i18n="brand2">Sheet</span></h1>
     <p data-i18n="tagline"></p>
+    <nav class="nav"><a href="./" aria-current="page" data-i18n="navTrainer"></a><a href="lessons" data-i18n="navLessons"></a></nav>
     <div class="lang" role="group" aria-label="Language">
       <button id="lang-en" data-lang="en">EN</button><button id="lang-ru" data-lang="ru">RU</button>
     </div>
@@ -176,7 +215,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
         <div id="schema"></div>
       </div>
       <div class="box side">
-        <div class="label" data-i18n="lessons"></div>
+        <div class="lessons-head"><div class="label" id="lessons-label" data-i18n="lessons"></div><a id="lessons-back" href="lessons" hidden></a></div>
         <div class="lessons" id="lessons"></div>
       </div>
     </aside>
@@ -213,6 +252,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-asm.js"></script>
+<script src="course.js"></script>
 <script>
 /* ================= translations ================= */
 const T = {
@@ -224,6 +264,15 @@ const T = {
   caseTip:'Style: SQL keywords are usually written in UPPERCASE:', caseFix:'Make uppercase',
   semiErr:'Missing ; at the end of the query. In strict mode every statement must end with a semicolon.', semiTip:'Tip: end every SQL statement with ;',
   live:'Live', connecting:'Connecting…', offline:'Offline, reconnecting…', room:'room', you:'you', yourName:'Your name', copyLink:'Copy invite link', copied:'Link copied', alone:'Only you here. Share the link to invite someone.',
+  answerLabel:'Answer (only you see this)',
+  navTrainer:'Trainer', navLessons:'Lessons', task:'Task', lessonN:n=>`Lesson ${n}`, tasksOf:n=>`Lesson ${n} · tasks`, allLessons:'← All lessons',
+  correct:'✓ Correct! Task solved.', nextTask:'Next task →', lessonDone:'✓ Correct! That was the last task of this lesson.',
+  praise:['Nailed it!','Excellent!','Brilliant!','Perfect query!','Great job!','You’re a natural!','Spot on!'],
+  solvedOf:(a,b)=>`Task solved · ${a} of ${b} done`, toUnsolved:'Next unsolved task →',
+  lessonComplete:'Lesson complete!', proud:n=>`You solved all ${n} tasks. Be proud of yourself!`,
+  wrongCols:(e,g)=>`✗ Not yet. Expected columns: ${e}. Your query returned: ${g}.`,
+  wrongRows:(e,g)=>`✗ Not yet. Expected ${e} rows, your query returned ${g}.`,
+  wrongVals:'✗ Not yet. The columns and row count match, but some values differ.',
   hint:'Ctrl/⌘ + Enter to run', editor:'SQL query', result:'Result', openSheet:'Open sheet', insertCol:'Insert into query',
   rowsShort:'rows', loading:'Loading SQLite…', preparing:'Preparing the database…',
   ok:n=>`Query ran. Rows in result: ${n}.`, done:'Command ran.', ready:'Press ▶ Run (or Ctrl/⌘ + Enter) to see the result.',
@@ -247,6 +296,15 @@ const T = {
   caseTip:'Стиль: ключевые слова SQL принято писать ЗАГЛАВНЫМИ:', caseFix:'Исправить регистр',
   semiErr:'Нет ; в конце запроса. В строгом режиме каждая команда должна заканчиваться точкой с запятой.', semiTip:'Совет: заканчивай каждую SQL-команду точкой с запятой ;',
   live:'Онлайн', connecting:'Подключение…', offline:'Нет связи, переподключаюсь…', room:'комната', you:'ты', yourName:'Твоё имя', copyLink:'Скопировать ссылку', copied:'Ссылка скопирована', alone:'Пока здесь только ты. Отправь ссылку, чтобы позвать кого-то.',
+  answerLabel:'Ответ (видишь только ты)',
+  navTrainer:'Тренажёр', navLessons:'Уроки', task:'Задание', lessonN:n=>`Урок ${n}`, tasksOf:n=>`Урок ${n} · задания`, allLessons:'← Все уроки',
+  correct:'✓ Верно! Задание решено.', nextTask:'Следующее задание →', lessonDone:'✓ Верно! Это было последнее задание урока.',
+  praise:['Отлично!','В точку!','Великолепно!','Идеальный запрос!','Так держать!','Блестяще!','Супер!'],
+  solvedOf:(a,b)=>`Задание решено · ${a} из ${b}`, toUnsolved:'К нерешённому заданию →',
+  lessonComplete:'Урок пройден!', proud:n=>`Ты решил все ${n} заданий. Можешь гордиться собой!`,
+  wrongCols:(e,g)=>`✗ Пока нет. Нужны столбцы: ${e}. Твой запрос вернул: ${g}.`,
+  wrongRows:(e,g)=>`✗ Пока нет. Нужно строк: ${e}, твой запрос вернул: ${g}.`,
+  wrongVals:'✗ Пока нет. Столбцы и число строк совпадают, но некоторые значения отличаются.',
   hint:'Ctrl/⌘ + Enter — выполнить', editor:'SQL-запрос', result:'Результат', openSheet:'Открыть лист', insertCol:'Вставить в запрос',
   rowsShort:'стр.', loading:'Загрузка движка SQLite…', preparing:'Готовлю базу данных…',
   ok:n=>`Запрос выполнен. Строк в результате: ${n}.`, done:'Команда выполнена.', ready:'Нажми ▶ Выполнить (или Ctrl/⌘ + Enter), чтобы увидеть результат.',
@@ -325,6 +383,88 @@ const LESSONS = {
 const $ = id => document.getElementById(id);
 const ta=$('sql'), hl=$('hl'), gut=$('gutter'), grid=$('gridwrap');
 let SQL, db, lang='en', L=T.en, view={cols:[],types:[],rows:[],marks:{}}, cur={r:0,c:0}, anchor=null, tab='__result', lastResult=null;
+/* ---------- course mode: ?lesson=1&task=3 ---------- */
+const qs=new URLSearchParams(location.search);
+const COURSE_LESSON=(window.COURSE&&COURSE.lessons.find(l=>l.available&&String(l.id)===qs.get('lesson')))||null;
+let activeLesson=-1;
+const stripTags=h=>h.replace(/<[^>]+>/g,'');
+let TEACHER_ANSWERS=null;   // filled only for the logged-in teacher
+async function loadTeacherAnswers(){
+  if(!COURSE_LESSON) return;
+  try{const r=await fetch('api/answers/'+COURSE_LESSON.id); if(!r.ok) return; TEACHER_ANSWERS=(await r.json()).answers}catch(e){return}
+  if(activeLesson>=0) $('note').innerHTML=lessonList()[activeLesson].n;
+}
+function lessonList(){
+  if(!COURSE_LESSON) return LESSONS[lang];
+  const n=COURSE_LESSON.tasks.length;
+  return COURSE_LESSON.tasks.map((t,k)=>({t:`${L.task} ${k+1}`, d:stripTags(t.text[lang]), q:'',
+    n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])} · ${L.task} ${k+1}/${n}</span>${t.text[lang]}`+
+      (TEACHER_ANSWERS&&TEACHER_ANSWERS[k]?`<div class="answer"><span>${esc(L.answerLabel)}</span><code>${esc(TEACHER_ANSWERS[k])}</code></div>`:'')}));
+}
+function defaultLesson(){
+  if(!COURSE_LESSON) return 4;
+  const t=parseInt(qs.get('task'),10)||1;
+  return Math.min(Math.max(t,1),COURSE_LESSON.tasks.length)-1;
+}
+function startLesson(){ return COURSE_LESSON&&activeLesson>=0?activeLesson:defaultLesson() }
+function seedSQL(){ return COURSE_LESSON?COURSE_LESSON.seed:SEED[lang] }
+let runCount=0;
+async function checkTask(r){
+  if(!COURSE_LESSON||activeLesson<0) return;
+  const k=activeLesson, myRun=runCount;
+  let res;
+  try{
+    const resp=await fetch('api/check',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({lesson:COURSE_LESSON.id,task:k,columns:r.columns,rows:r.values})});
+    if(!resp.ok) return;
+    res=await resp.json();
+  }catch(e){return}
+  if(myRun!==runCount||k!==activeLesson) return;      // a newer query or another task is on screen now
+  const msg=$('msg');
+  if(!res.ok){
+    const bad=res.reason==='columns'?L.wrongCols(res.expected.join(', '),r.columns.join(', '))
+            :res.reason==='rows'?L.wrongRows(res.expected,r.values.length):L.wrongVals;
+    msg.insertAdjacentHTML('beforeend',`<span class="bad">${esc(bad)}</span>`);
+    return;
+  }
+  COURSE_PROGRESS.add(COURSE_LESSON.id,k);
+  celebrate(k);
+  renderLessons(k);
+}
+function celebrate(k){
+  const n=COURSE_LESSON.tasks.length, solved=new Set(COURSE_PROGRESS.get(COURSE_LESSON.id));
+  const all=solved.size>=n, nextOpen=[...Array(n).keys()].find(i=>i>k&&!solved.has(i))??[...Array(n).keys()].find(i=>!solved.has(i));
+  const dots=[...Array(n).keys()].map(i=>`<i class="${solved.has(i)?'on':''}${i===k?' now':''}"></i>`).join('');
+  const action=all?`<a class="btn primary" href="lessons">${esc(L.allLessons)}</a>`
+    :k<n-1?`<button class="btn primary" data-lesson-go="${k+1}">${esc(L.nextTask)}</button>`
+    :`<button class="btn primary" data-lesson-go="${nextOpen}">${esc(L.toUnsolved)}</button>`;
+  const title=all?L.lessonComplete:L.praise[Math.floor(Math.random()*L.praise.length)];
+  const line=all?L.proud(n):L.solvedOf(solved.size,n);
+  $('msg').insertAdjacentHTML('beforeend',`<div class="win${all?' big':''}" role="status"><span class="medal" aria-hidden="true">${all?'🏆':'🎉'}</span>
+    <span class="words"><b>${esc(title)}</b><small>${esc(line)}</small><span class="dots" aria-hidden="true">${dots}</span></span>${action}</div>`);
+  confetti($('msg').querySelector('.win'),all);
+}
+function confetti(from,big){
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const c=document.createElement('canvas'); c.className='confetti'; document.body.appendChild(c);
+  const dpr=window.devicePixelRatio||1, W=innerWidth, H=innerHeight; c.width=W*dpr; c.height=H*dpr;
+  const g=c.getContext('2d'); g.scale(dpr,dpr);
+  const r=from?from.getBoundingClientRect():{left:W/2-50,top:H/3,width:100,height:0};
+  const ox=r.left+Math.min(60,r.width/2), oy=r.top+r.height/2;
+  const colors=['#1f7a4d','#4cc283','#f2c94c','#e5484d','#0b84f3','#d6409f','#e8590c'];
+  const parts=[...Array(big?260:140)].map((_,i)=>{
+    const sx=big&&i%2?W-ox:ox, a=(-Math.PI/2)+(Math.random()-.5)*(big?2.6:1.9), v=(big?11:9)+Math.random()*7;
+    return {x:sx,y:oy,vx:Math.cos(a)*v,vy:Math.sin(a)*v,w:5+Math.random()*6,h:3+Math.random()*4,rot:Math.random()*6,vr:(Math.random()-.5)*.4,c:colors[i%colors.length]};
+  });
+  const t0=performance.now(), life=big?2600:1900;
+  (function frame(t){
+    const age=t-t0; g.clearRect(0,0,W,H);
+    for(const p of parts){ p.vy+=.32; p.vx*=.99; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+      g.save(); g.globalAlpha=Math.max(0,1-age/life); g.translate(p.x,p.y); g.rotate(p.rot); g.fillStyle=p.c; g.fillRect(-p.w/2,-p.h/2,p.w,p.h); g.restore(); }
+    if(age<life) requestAnimationFrame(frame); else c.remove();
+  })(t0);
+  setTimeout(()=>c.remove(),life+500);   // clean up even if the tab was in the background
+}
 try{const s=localStorage.getItem('sqlt-lang');if(s==='ru'||s==='en')lang=s}catch(e){}
 L=T[lang];
 
@@ -338,6 +478,7 @@ function applyLang(){
   ta.setAttribute('aria-label',L.editor);
   ['en','ru'].forEach(k=>$('lang-'+k).setAttribute('aria-pressed',k===lang));
   applySemi();
+  if(COURSE_LESSON&&$('lessons').children.length) renderLessons(activeLesson);
 }
 /* ---------- semicolon mode ---------- */
 let semiMode='strict';
@@ -375,7 +516,7 @@ function setLang(next){
   lang=next; try{localStorage.setItem('sqlt-lang',lang)}catch(e){}
   applyLang();
   resetDb();
-  loadLesson(4);
+  loadLesson(startLesson());
 }
 
 /* ---------- highlighting ---------- */
@@ -406,11 +547,12 @@ function colLetter(i){let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromChar
 function tables(){const r=db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY rowid");return r.length?r[0].values.map(v=>v[0]):[]}
 function tableInfo(t){const r=db.exec(`PRAGMA table_info("${t}")`);return r.length?r[0].values.map(v=>({name:v[1],type:v[2]||'',pk:v[5]})):[]}
 function snapshot(t){const m=new Map();try{const r=db.exec(`SELECT rowid,* FROM "${t}"`);if(r.length)r[0].values.forEach(v=>m.set(v[0],JSON.stringify(v.slice(1))))}catch(e){}return m}
-function fmtNum(v){return Number.isInteger(v)?v.toLocaleString(L.locale):v.toLocaleString(L.locale,{maximumFractionDigits:4})}
+function fmtNum(v){return v.toLocaleString(L.locale,{useGrouping:false,maximumFractionDigits:4})}   // like Excel's General format: 1997, 74990, 12.5
 
 /* ---------- run ---------- */
 const marksByTable={};
 function run(given){
+  runCount++;
   const src=(typeof given==='string'?given:ta.value).trim(); if(!src) return;
   const noSemi=missingSemi(src);
   if(noSemi&&semiMode==='strict'){showMsg('err',L.semiErr);$('st-time').textContent='';return}
@@ -435,6 +577,7 @@ function run(given){
     lastResult={cols:r.columns,rows:r.values,types:guessTypes(r.values,r.columns.length)};
     renderTabs(); openTab('__result');
     showMsg('ok',L.ok(r.values.length));
+    checkTask(r);   // in a lesson every Run also checks the answer
   }else if(touched){
     const m=marksByTable[touched], n=Object.values(m.marks), a=n.filter(x=>x==='new').length, c=n.filter(x=>x==='chg').length;
     renderTabs(); openTab(touched);
@@ -580,12 +723,18 @@ function renderSchema(){
   });
 }
 function renderLessons(active){
+  activeLesson=active;
   const el=$('lessons'); el.innerHTML='';
-  LESSONS[lang].forEach((l,i)=>{const b=document.createElement('button');b.innerHTML=`<b>${i+1}. ${l.t}</b><span>${l.d}</span>`;b.setAttribute('aria-current',i===active);
+  const solved=COURSE_LESSON?new Set(COURSE_PROGRESS.get(COURSE_LESSON.id)):new Set();
+  if(COURSE_LESSON){ $('lessons-label').textContent=L.tasksOf(COURSE_LESSON.id); const back=$('lessons-back'); back.hidden=false; back.textContent=L.allLessons; }
+  lessonList().forEach((l,i)=>{const b=document.createElement('button');
+    b.innerHTML=COURSE_LESSON?`<b>${solved.has(i)?'✓ ':''}${esc(l.t)}</b><span>${esc(l.d)}</span>`:`<b>${i+1}. ${l.t}</b><span>${l.d}</span>`;
+    if(solved.has(i)) b.classList.add('solved');
+    b.setAttribute('aria-current',i===active);
     b.onclick=()=>loadLesson(i);el.appendChild(b)});
 }
 function loadLesson(i){
-  const l=LESSONS[lang][i];
+  const l=lessonList()[i];
   ta.value=l.q; highlight(); $('note').innerHTML=l.n; renderLessons(i);
   renderSchema(); clearResult();
 }
@@ -597,8 +746,9 @@ function clearResult(){
 }
 
 /* ---------- boot ---------- */
-function resetDb(){db&&db.close();db=new SQL.Database();db.run(SEED[lang]);for(const k in marksByTable)delete marksByTable[k];lastResult=null;tab='__result'}
-$('run').onclick=run;
+function resetDb(){db&&db.close();db=new SQL.Database();db.run(seedSQL());for(const k in marksByTable)delete marksByTable[k];lastResult=null;tab='__result'}
+$('run').onclick=()=>run();
+$('msg').addEventListener('click',e=>{const b=e.target.closest('[data-lesson-go]');if(b)loadLesson(+b.dataset.lessonGo)});
 $('reset').onclick=()=>{resetDb();renderSchema();clearResult();showMsg('ok',L.resetDone+' '+L.ready)};
 document.querySelectorAll('.lang button').forEach(b=>b.onclick=()=>setLang(b.dataset.lang));
 document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>setSemi(b.dataset.semi));
@@ -611,8 +761,9 @@ grid.innerHTML=`<div class="boot">${L.preparing}</div>`;
     SQL=await initSqlJs();
     resetDb();
     let draft=null;try{draft=localStorage.getItem('sqlt-draft-'+lang)}catch(e){}
-    if(draft){ta.value=draft;highlight();renderLessons(-1);renderSchema();clearResult()}
-    else loadLesson(4);
+    if(draft&&!COURSE_LESSON){ta.value=draft;highlight();renderLessons(-1);renderSchema();clearResult()}
+    else loadLesson(defaultLesson());
+    if(COURSE_LESSON) loadTeacherAnswers();
   }catch(e){showMsg('err',L.bootFail(e.message));grid.innerHTML=`<div class="boot">${L.engineDown}</div>`}
 })();
 </script>
@@ -635,7 +786,11 @@ function start(){
   const doc=new Y.Doc(), ytext=doc.getText('sql'), cid=String(doc.clientID);
   let myName=''; try{myName=sessionStorage.getItem('sqlt-name')||''}catch(e){}   // per tab, so two tabs are two different people
   if(!myName) myName=(lang==='ru'?'Гость ':'Guest ')+Math.floor(10+Math.random()*90);
-  const me={name:myName,color:COLORS[doc.clientID%COLORS.length]};
+  let myColor=''; try{myColor=sessionStorage.getItem('sqlt-color')||''}catch(e){}
+  if(!myColor){myColor=COLORS[doc.clientID%COLORS.length];try{sessionStorage.setItem('sqlt-color',myColor)}catch(e){}}
+  const me={name:myName,color:myColor};
+  // each page has its own shared state, so the room on the server is room + page
+  const ctx=COURSE_LESSON?'L'+COURSE_LESSON.id:'free';
   const peers=new Map();
   let ws=null, state='connecting', synced=false, applyingRemote=false, epoch=null, lastSeq=0;
   const live=()=>synced&&ws&&ws.readyState===1;
@@ -659,7 +814,7 @@ function start(){
   function emit(action){ ws.send(JSON.stringify({type:'event',cid,...action})) }
   document.addEventListener('click',e=>{
     if(!live()) return;
-    const t=e.target.closest('#run,#reset,.lang button,.seg button,#tabs button,.tname,#lessons button');
+    const t=e.target.closest('#run,#reset,.lang button,.seg button,#tabs button,.tname,#lessons button,[data-lesson-go]');
     if(!t) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if(t.id==='run') emit({kind:'run',src:ta.value});
@@ -668,6 +823,7 @@ function start(){
     else if(t.dataset.semi) emit({kind:'semi',mode:t.dataset.semi});
     else if(t.closest('#tabs')) emit({kind:'tab',id:t.dataset.id});
     else if(t.classList.contains('tname')) emit({kind:'tab',id:t.childNodes[0].textContent.trim()});
+    else if(t.dataset.lessonGo) emit({kind:'lesson',i:+t.dataset.lessonGo});
     else emit({kind:'lesson',i:[...t.parentElement.children].indexOf(t)});
   },true);
   document.addEventListener('keydown',e=>{
@@ -689,11 +845,11 @@ function start(){
       case 'lang':
         if(a.lang===lang) return;
         if(mine){ setLang(a.lang); return; }        // the author also swaps the editor text
-        adoptLang(a.lang); $('note').innerHTML=LESSONS[lang][4].n; renderLessons(4); renderSchema(); clearResult();
+        const k=startLesson(); adoptLang(a.lang); $('note').innerHTML=lessonList()[k].n; renderLessons(k); renderSchema(); clearResult();
         return;
       case 'lesson':
         if(mine){ loadLesson(a.i); return; }        // the author also puts the query in the editor
-        $('note').innerHTML=LESSONS[lang][a.i].n; renderLessons(a.i); renderSchema(); clearResult();
+        $('note').innerHTML=lessonList()[a.i].n; renderLessons(a.i); renderSchema(); clearResult();
         return;
     }
   }
@@ -814,6 +970,18 @@ function start(){
     el.hidden=false; el.style.setProperty('--c',m.color); el.querySelector('span').textContent=m.name;
     el.style.left=(r.left+window.scrollX+m.fx*r.width)+'px'; el.style.top=(r.top+window.scrollY+m.fy*r.height)+'px';
   }
+  /* ---------- shared navigation: links take everyone in the room along ---------- */
+  function goTo(url,announce){
+    const u=new URL(url,location.href); if(u.origin!==location.origin) return;
+    u.searchParams.set('room',room);
+    if(announce&&live()) ws.send(JSON.stringify({type:'page',cid,kind:'go',url:u.pathname+u.search+u.hash}));
+    location.href=u.href;
+  }
+  document.addEventListener('click',e=>{
+    const a=e.target.closest('a[href]'); if(!a||a.target==='_blank'||e.metaKey||e.ctrlKey||e.shiftKey) return;
+    const u=new URL(a.getAttribute('href'),location.href); if(u.origin!==location.origin) return;
+    e.preventDefault(); goTo(u.href,true);
+  },true);
   function dropPointer(id){const el=pointers.get(id); if(el){el.remove();pointers.delete(id)}}
 
   /* ---------- presence bar ---------- */
@@ -840,7 +1008,7 @@ function start(){
   /* ---------- connection ---------- */
   function connect(){
     state=epoch?'offline':'connecting'; synced=false; renderPresence();
-    ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws/${encodeURIComponent(room)}?cid=${cid}`);
+    ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws/${encodeURIComponent(room+'~'+ctx)}?cid=${cid}`);
     ws.binaryType='arraybuffer';
     ws.onmessage=ev=>{
       if(typeof ev.data!=='string'){Y.applyUpdate(doc,new Uint8Array(ev.data),'remote');return}
@@ -866,6 +1034,8 @@ function start(){
         const known=peers.has(msg.cid); peers.set(msg.cid,msg);
         if(!known) renderPresence(); else if(peers.get(msg.cid).name!==msg.name) renderPresence();
         renderPresence(); renderCarets(); drawRemoteSels();
+      }else if(msg.type==='page'&&msg.kind==='go'){
+        goTo(msg.url,false);
       }else if(msg.type==='pointer'&&msg.cid!==cid){
         showPointer(msg);
       }else if(msg.type==='leave'){
