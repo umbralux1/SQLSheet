@@ -12,7 +12,7 @@
 :root{
   --bg:#f3f5f2; --panel:#ffffff; --fg:#1d2320; --muted:#68736d; --line:#d5dbd6; --line-strong:#b9c2bb;
   --head:#eaeeea; --head-active:#cfe3d6; --accent:#1f7a4d; --accent-fg:#ffffff; --sel:rgba(31,122,77,.12);
-  --new:#d8f2df; --chg:#fbf0c6; --null:#9aa49e; --err:#b3261e; --err-bg:#fbe9e7; --kw:#1f5fa8; --str:#9a4a12;
+  --new:#d8f2df; --chg:#fbf0c6; --null:#9aa49e; --err:#b3261e; --err-bg:#fbe9e7; --kw:#1f5fa8; --wavy:#c48a00; --str:#9a4a12;
   --f-display:"Unbounded","IBM Plex Sans",system-ui,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
@@ -20,11 +20,11 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#141917; --panel:#1b211e; --fg:#e3e9e5; --muted:#93a099; --line:#2c3531; --line-strong:#3c4842;
   --head:#222a26; --head-active:#24432f; --accent:#4cc283; --accent-fg:#0d1a12; --sel:rgba(76,194,131,.16);
-  --new:#1f3e2a; --chg:#3d3518; --null:#66736c; --err:#ff8a80; --err-bg:#3a1f1d; --kw:#7fb4ff; --str:#f0a46b; color-scheme:dark}}
+  --new:#1f3e2a; --chg:#3d3518; --null:#66736c; --err:#ff8a80; --err-bg:#3a1f1d; --kw:#7fb4ff; --wavy:#e0b341; --str:#f0a46b; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#141917; --panel:#1b211e; --fg:#e3e9e5; --muted:#93a099; --line:#2c3531; --line-strong:#3c4842;
   --head:#222a26; --head-active:#24432f; --accent:#4cc283; --accent-fg:#0d1a12; --sel:rgba(76,194,131,.16);
-  --new:#1f3e2a; --chg:#3d3518; --null:#66736c; --err:#ff8a80; --err-bg:#3a1f1d; --kw:#7fb4ff; --str:#f0a46b; color-scheme:dark}
+  --new:#1f3e2a; --chg:#3d3518; --null:#66736c; --err:#ff8a80; --err-bg:#3a1f1d; --kw:#7fb4ff; --wavy:#e0b341; --str:#f0a46b; color-scheme:dark}
 
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
@@ -74,7 +74,9 @@ aside{display:grid;gap:12px}
 .editor textarea::selection{background:var(--sel);color:transparent}
 .editor .gutter{position:absolute;left:0;top:0;bottom:0;width:34px;background:var(--head);border-right:1px solid var(--line);color:var(--muted);font-size:11px;text-align:right;padding:10px 6px 0 0;overflow:hidden;white-space:pre}
 .editor:focus-within{box-shadow:inset 0 0 0 2px var(--accent)}
-.kw{color:var(--kw);font-weight:600}.st{color:var(--str)}.nu{color:var(--accent)}.cm{color:var(--muted);font-style:italic}
+.kw{color:var(--kw);font-weight:600}.kw.lc{text-decoration:underline wavy var(--wavy);text-decoration-thickness:1.5px;text-underline-offset:3px;text-decoration-skip-ink:none}
+.linkbtn{font:inherit;font-size:12px;font-weight:600;border:1px solid var(--line-strong);background:var(--panel);color:var(--fg);border-radius:3px;padding:1px 8px;margin-left:6px;cursor:pointer}
+.linkbtn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}.st{color:var(--str)}.nu{color:var(--accent)}.cm{color:var(--muted);font-style:italic}
 
 /* formula bar */
 .fbar{display:grid;grid-template-columns:72px 28px minmax(0,1fr);border-bottom:1px solid var(--line);font-family:var(--f-mono);font-size:12.5px}
@@ -122,6 +124,14 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
 .lang button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
 .lang button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .hint{margin-left:auto}
+.semi{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:4px;overflow:hidden}
+.seg button{font:inherit;font-size:12px;font-weight:600;border:0;background:var(--panel);color:var(--muted);padding:4px 10px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line-strong)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.msg .warn{display:block;margin-top:6px;padding:4px 8px;background:var(--chg);color:var(--fg);border-radius:3px;font-family:var(--f-body)}
+.msg .warn code,.msg.err code{font-family:var(--f-mono);font-weight:600}
 </style>
 
 <div class="wrap">
@@ -149,6 +159,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
       <div class="ribbon">
         <button class="btn primary" id="run" data-i18n="run"></button>
         <button class="btn" id="reset" data-i18n="reset"></button>
+        <span class="semi"><span data-i18n="semiLabel"></span><span class="seg" role="group"><button id="semi-strict" data-semi="strict" data-i18n="semiStrict"></button><button id="semi-hint" data-semi="hint" data-i18n="semiHint"></button></span></span>
         <span class="hint" data-i18n="hint"></span>
       </div>
       <div class="lesson-note" id="note"></div>
@@ -176,9 +187,12 @@ const T = {
   brand1:'SQL', brand2:'Sheet', title:'SQL Sheet',
   tagline:'Write a query and see the result as a spreadsheet. The database lives in your browser, so feel free to break it.',
   tables:'Database tables', lessons:'Lessons', run:'▶ Run', reset:'Reset database', resetTitle:'Restore the original data',
+  semiLabel:'Semicolon:', semiStrict:'Strict', semiHint:'Hint', semiStrictTitle:'Queries without ; at the end are not run', semiHintTitle:'Queries run, with a reminder to add ;',
+  caseTip:'Style: SQL keywords are usually written in UPPERCASE:', caseFix:'Make uppercase',
+  semiErr:'Missing ; at the end of the query. In strict mode every statement must end with a semicolon.', semiTip:'Tip: end every SQL statement with ;',
   hint:'Ctrl/⌘ + Enter to run', editor:'SQL query', result:'Result', openSheet:'Open sheet', insertCol:'Insert into query',
   rowsShort:'rows', loading:'Loading SQLite…', preparing:'Preparing the database…',
-  ok:n=>`Query ran. Rows in result: ${n}.`, done:'Command ran.',
+  ok:n=>`Query ran. Rows in result: ${n}.`, done:'Command ran.', ready:'Press ▶ Run (or Ctrl/⌘ + Enter) to see the result.',
   changed:n=>`Rows changed: ${n}.`, added:n=>` Added: ${n}.`, updated:n=>` Updated: ${n}.`, deleted:n=>` Deleted: ${n}.`,
   legNew:'new', legChg:'changed', error:'Error: ',
   hNoTable:' — check the table name in the list on the left.',
@@ -195,9 +209,12 @@ const T = {
   brand1:'SQL', brand2:'Табличка', title:'SQL Табличка',
   tagline:'Пиши запрос — результат появится как лист Excel. База живёт в браузере, ломать можно смело.',
   tables:'Таблицы базы', lessons:'Уроки', run:'▶ Выполнить', reset:'Сбросить базу', resetTitle:'Вернуть исходные данные',
+  semiLabel:'Точка с запятой:', semiStrict:'Строго', semiHint:'Подсказка', semiStrictTitle:'Запросы без ; в конце не выполняются', semiHintTitle:'Запросы выполняются, но с напоминанием поставить ;',
+  caseTip:'Стиль: ключевые слова SQL принято писать ЗАГЛАВНЫМИ:', caseFix:'Исправить регистр',
+  semiErr:'Нет ; в конце запроса. В строгом режиме каждая команда должна заканчиваться точкой с запятой.', semiTip:'Совет: заканчивай каждую SQL-команду точкой с запятой ;',
   hint:'Ctrl/⌘ + Enter — выполнить', editor:'SQL-запрос', result:'Результат', openSheet:'Открыть лист', insertCol:'Вставить в запрос',
   rowsShort:'стр.', loading:'Загрузка движка SQLite…', preparing:'Готовлю базу данных…',
-  ok:n=>`Запрос выполнен. Строк в результате: ${n}.`, done:'Команда выполнена.',
+  ok:n=>`Запрос выполнен. Строк в результате: ${n}.`, done:'Команда выполнена.', ready:'Нажми ▶ Выполнить (или Ctrl/⌘ + Enter), чтобы увидеть результат.',
   changed:n=>`Изменено строк: ${n}.`, added:n=>` Добавлено: ${n}.`, updated:n=>` Обновлено: ${n}.`, deleted:n=>` Удалено: ${n}.`,
   legNew:'новые', legChg:'изменённые', error:'Ошибка: ',
   hNoTable:' — проверь имя таблицы в списке слева.',
@@ -285,7 +302,39 @@ function applyLang(){
   $('reset').title=L.resetTitle;
   ta.setAttribute('aria-label',L.editor);
   ['en','ru'].forEach(k=>$('lang-'+k).setAttribute('aria-pressed',k===lang));
+  applySemi();
 }
+/* ---------- semicolon mode ---------- */
+let semiMode='strict';
+try{const s=localStorage.getItem('sqlt-semi-mode');if(s==='strict'||s==='hint')semiMode=s}catch(e){}
+function applySemi(){
+  $('semi-strict').setAttribute('aria-pressed',semiMode==='strict'); $('semi-strict').title=L.semiStrictTitle;
+  $('semi-hint').setAttribute('aria-pressed',semiMode==='hint'); $('semi-hint').title=L.semiHintTitle;
+}
+function setSemi(m){semiMode=m;try{localStorage.setItem('sqlt-semi-mode',m)}catch(e){};applySemi()}
+function missingSemi(src){
+  const s=src.replace(/'(?:[^']|'')*'/g,"''").replace(/\/\*[\s\S]*?\*\//g,'').replace(/--[^\n]*/g,'').trim();
+  return s.length>0&&!s.endsWith(';');
+}
+/* ---------- keyword case ---------- */
+const TOKEN_RE=/(--[^\n]*)|('(?:[^']|'')*'?)|(\b\d+(?:\.\d+)?\b)|([^'\-\d]+|[\s\S])/g;
+function lcKeywords(src){
+  const seen=new Map(); let m; TOKEN_RE.lastIndex=0;
+  while((m=TOKEN_RE.exec(src))){ if(m[4]) (m[4].match(KW)||[]).forEach(w=>{if(w!==w.toUpperCase()&&!seen.has(w.toUpperCase()))seen.set(w.toUpperCase(),w)}) }
+  return [...seen.values()];
+}
+function upperKeywords(src){
+  let out='', m; TOKEN_RE.lastIndex=0;
+  while((m=TOKEN_RE.exec(src))) out+=m[4]?m[4].replace(KW,w=>w.toUpperCase()):m[0];
+  return out;
+}
+function addCaseTip(src){
+  const words=lcKeywords(src); if(!words.length) return;
+  const list=words.slice(0,5).map(w=>`<code>${esc(w)}</code> → <code>${esc(w.toUpperCase())}</code>`).join(', ')+(words.length>5?', …':'');
+  $('msg').insertAdjacentHTML('beforeend',`<span class="warn" id="case-tip">${esc(L.caseTip)} ${list}<button class="linkbtn" id="fix-case">${esc(L.caseFix)}</button></span>`);
+  $('fix-case').onclick=()=>{ta.value=upperKeywords(ta.value);highlight();const t=$('case-tip');t&&t.remove();ta.focus()};
+}
+function addSemiTip(){$('msg').insertAdjacentHTML('beforeend',`<span class="warn">${esc(L.semiTip)}</span>`)}
 function setLang(next){
   if(next===lang) return;
   lang=next; try{localStorage.setItem('sqlt-lang',lang)}catch(e){}
@@ -304,7 +353,7 @@ function highlight(){
     if(m[1]) out+=`<span class="cm">${esc(m[1])}</span>`;
     else if(m[2]) out+=`<span class="st">${esc(m[2])}</span>`;
     else if(m[3]) out+=`<span class="nu">${m[3]}</span>`;
-    else out+=esc(m[4]).replace(KW,w=>`<span class="kw">${w}</span>`);
+    else out+=esc(m[4]).replace(KW,w=>w===w.toUpperCase()?`<span class="kw">${w}</span>`:`<span class="kw lc">${w}</span>`);
   }
   hl.innerHTML=out+'\n';
   gut.textContent=src.split('\n').map((_,i)=>i+1).join('\n');
@@ -328,6 +377,8 @@ function fmtNum(v){return Number.isInteger(v)?v.toLocaleString(L.locale):v.toLoc
 const marksByTable={};
 function run(){
   const src=ta.value.trim(); if(!src) return;
+  const noSemi=missingSemi(src);
+  if(noSemi&&semiMode==='strict'){showMsg('err',L.semiErr);$('st-time').textContent='';return}
   const dml=[...src.matchAll(/\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+"?(\w+)"?/gi)].map(m=>m[1]);
   const snaps={}; dml.forEach(t=>{if(tables().includes(t)) snaps[t]=snapshot(t)});
   const t0=performance.now();
@@ -357,6 +408,8 @@ function run(){
     renderTabs(); if(!tables().includes(tab)&&tab!=='__result') openTab('__result'); else openTab(tab);
     showMsg('ok',L.done);
   }
+  if(noSemi) addSemiTip();
+  addCaseTip(src);
 }
 function hintFor(m){
   if(/no such table/.test(m)) return L.hNoTable;
@@ -499,14 +552,21 @@ function renderLessons(active){
 function loadLesson(i){
   const l=LESSONS[lang][i];
   ta.value=l.q; highlight(); $('note').innerHTML=l.n; renderLessons(i);
-  renderSchema(); renderTabs(); run();
+  renderSchema(); clearResult();
+}
+function clearResult(){
+  lastResult=null; tab='__result';
+  renderTabs(); openTab('__result');
+  $('st-time').textContent='';
+  showMsg('ok',L.ready);
 }
 
 /* ---------- boot ---------- */
 function resetDb(){db&&db.close();db=new SQL.Database();db.run(SEED[lang]);for(const k in marksByTable)delete marksByTable[k];lastResult=null;tab='__result'}
 $('run').onclick=run;
-$('reset').onclick=()=>{resetDb();renderSchema();renderTabs();openTab('__result');run();showMsg('ok',L.resetDone)};
+$('reset').onclick=()=>{resetDb();renderSchema();clearResult();showMsg('ok',L.resetDone+' '+L.ready)};
 document.querySelectorAll('.lang button').forEach(b=>b.onclick=()=>setLang(b.dataset.lang));
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>setSemi(b.dataset.semi));
 applyLang();
 $('msg').textContent=L.loading;
 grid.innerHTML=`<div class="boot">${L.preparing}</div>`;
@@ -516,7 +576,7 @@ grid.innerHTML=`<div class="boot">${L.preparing}</div>`;
     SQL=await initSqlJs();
     resetDb();
     let draft=null;try{draft=localStorage.getItem('sqlt-draft-'+lang)}catch(e){}
-    if(draft){ta.value=draft;highlight();renderLessons(-1);renderSchema();renderTabs();run()}
+    if(draft){ta.value=draft;highlight();renderLessons(-1);renderSchema();clearResult()}
     else loadLesson(4);
   }catch(e){showMsg('err',L.bootFail(e.message));grid.innerHTML=`<div class="boot">${L.engineDown}</div>`}
 })();
