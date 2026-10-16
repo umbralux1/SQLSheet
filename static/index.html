@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SQL Табличка</title>
+<title>SQL Sheet</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@600&display=swap">
@@ -116,42 +116,52 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
 .boot{padding:40px;text-align:center;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+<style>
+.lang{display:inline-flex;border:1px solid var(--line-strong);border-radius:4px;overflow:hidden;margin-left:auto;align-self:center}
+.lang button{font:inherit;font-size:12px;font-weight:600;border:0;background:var(--panel);color:var(--muted);padding:4px 10px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.lang button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.hint{margin-left:auto}
+</style>
 
 <div class="wrap">
   <header>
-    <h1>SQL <span>Табличка</span></h1>
-    <p>Пиши запрос — результат появится как лист Excel. База живёт в браузере, ломать можно смело.</p>
+    <h1>SQL <span data-i18n="brand2">Sheet</span></h1>
+    <p data-i18n="tagline"></p>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="lang-en" data-lang="en">EN</button><button id="lang-ru" data-lang="ru">RU</button>
+    </div>
   </header>
 
   <div class="layout">
     <aside>
       <div class="box side">
-        <div class="label">Таблицы базы</div>
+        <div class="label" data-i18n="tables"></div>
         <div id="schema"></div>
       </div>
       <div class="box side">
-        <div class="label">Уроки</div>
+        <div class="label" data-i18n="lessons"></div>
         <div class="lessons" id="lessons"></div>
       </div>
     </aside>
 
     <section class="box main">
       <div class="ribbon">
-        <button class="btn primary" id="run">▶ Выполнить</button>
-        <button class="btn" id="reset" title="Вернуть исходные данные">Сбросить базу</button>
-        <span class="hint">Ctrl/⌘ + Enter — выполнить</span>
+        <button class="btn primary" id="run" data-i18n="run"></button>
+        <button class="btn" id="reset" data-i18n="reset"></button>
+        <span class="hint" data-i18n="hint"></span>
       </div>
       <div class="lesson-note" id="note"></div>
       <div class="editor">
         <div class="gutter" id="gutter">1</div>
         <pre id="hl" aria-hidden="true"></pre>
-        <textarea id="sql" spellcheck="false" aria-label="SQL-запрос"></textarea>
+        <textarea id="sql" spellcheck="false"></textarea>
       </div>
       <div class="fbar">
         <div id="namebox">A1</div><div class="fx">fx</div><div class="val" id="fval"></div>
       </div>
-      <div id="msg" class="msg ok">Загрузка движка SQLite…</div>
-      <div class="gridwrap" id="gridwrap" tabindex="0"><div class="boot">Готовлю базу данных…</div></div>
+      <div id="msg" class="msg ok">Loading SQLite…</div>
+      <div class="gridwrap" id="gridwrap" tabindex="0"><div class="boot">Preparing the database…</div></div>
       <div class="tabs" id="tabs" role="tablist"></div>
       <div class="status"><span id="st-rows"></span><span id="st-time"></span><span class="agg" id="st-agg"></span></div>
     </section>
@@ -160,10 +170,68 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
 
 <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-asm.js"></script>
 <script>
-const SEED = `
+/* ================= translations ================= */
+const T = {
+ en:{
+  brand1:'SQL', brand2:'Sheet', title:'SQL Sheet',
+  tagline:'Write a query and see the result as a spreadsheet. The database lives in your browser, so feel free to break it.',
+  tables:'Database tables', lessons:'Lessons', run:'▶ Run', reset:'Reset database', resetTitle:'Restore the original data',
+  hint:'Ctrl/⌘ + Enter to run', editor:'SQL query', result:'Result', openSheet:'Open sheet', insertCol:'Insert into query',
+  rowsShort:'rows', loading:'Loading SQLite…', preparing:'Preparing the database…',
+  ok:n=>`Query ran. Rows in result: ${n}.`, done:'Command ran.',
+  changed:n=>`Rows changed: ${n}.`, added:n=>` Added: ${n}.`, updated:n=>` Updated: ${n}.`, deleted:n=>` Deleted: ${n}.`,
+  legNew:'new', legChg:'changed', error:'Error: ',
+  hNoTable:' — check the table name in the list on the left.',
+  hNoCol:' — there is no such column. Click a column name on the left to insert it.',
+  hSyntax:' — check commas, quotes and clause order (SELECT → FROM → WHERE → GROUP BY → ORDER BY).',
+  time:'Time', ms:'ms', rows:'Rows', cols:'Columns', shown:n=>` (showing ${n})`,
+  empty:'Result is empty — run a query with SELECT',
+  avg:'Average', count:'Count', sum:'Sum', number:'number', text:'text',
+  resetDone:'Database reset to the original data.',
+  bootFail:e=>`Could not start SQLite: ${e}. Reload the page.`, engineMissing:'the engine did not load', engineDown:'The database engine is unavailable.',
+  blob:'B', locale:'en-US'
+ },
+ ru:{
+  brand1:'SQL', brand2:'Табличка', title:'SQL Табличка',
+  tagline:'Пиши запрос — результат появится как лист Excel. База живёт в браузере, ломать можно смело.',
+  tables:'Таблицы базы', lessons:'Уроки', run:'▶ Выполнить', reset:'Сбросить базу', resetTitle:'Вернуть исходные данные',
+  hint:'Ctrl/⌘ + Enter — выполнить', editor:'SQL-запрос', result:'Результат', openSheet:'Открыть лист', insertCol:'Вставить в запрос',
+  rowsShort:'стр.', loading:'Загрузка движка SQLite…', preparing:'Готовлю базу данных…',
+  ok:n=>`Запрос выполнен. Строк в результате: ${n}.`, done:'Команда выполнена.',
+  changed:n=>`Изменено строк: ${n}.`, added:n=>` Добавлено: ${n}.`, updated:n=>` Обновлено: ${n}.`, deleted:n=>` Удалено: ${n}.`,
+  legNew:'новые', legChg:'изменённые', error:'Ошибка: ',
+  hNoTable:' — проверь имя таблицы в списке слева.',
+  hNoCol:' — такого столбца нет. Нажми на имя столбца слева, чтобы вставить его.',
+  hSyntax:' — проверь запятые, кавычки и порядок слов (SELECT → FROM → WHERE → GROUP BY → ORDER BY).',
+  time:'Время', ms:'мс', rows:'Строк', cols:'Столбцов', shown:n=>` (показано ${n})`,
+  empty:'Результат пуст — выполни запрос с SELECT',
+  avg:'Среднее', count:'Количество', sum:'Сумма', number:'число', text:'текст',
+  resetDone:'База сброшена к исходным данным.',
+  bootFail:e=>`Не удалось запустить SQLite: ${e}. Обнови страницу.`, engineMissing:'движок не загрузился', engineDown:'Движок базы данных недоступен.',
+  blob:'б', locale:'ru-RU'
+ }
+};
+
+const SCHEMA = `
 CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, city TEXT, joined DATE);
 CREATE TABLE products (id INTEGER PRIMARY KEY, title TEXT NOT NULL, category TEXT, price INTEGER);
 CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER REFERENCES customers(id), product_id INTEGER REFERENCES products(id), qty INTEGER, order_date DATE);
+INSERT INTO orders VALUES
+ (1,1,1,1,'2025-03-01'),(2,1,2,2,'2025-03-01'),(3,2,4,1,'2025-03-04'),(4,3,3,1,'2025-03-07'),
+ (5,3,8,3,'2025-03-07'),(6,4,7,2,'2025-03-12'),(7,5,5,1,'2025-03-15'),(8,2,6,1,'2025-03-18'),
+ (9,6,2,1,'2025-03-20'),(10,5,1,1,'2025-03-22'),(11,1,3,1,'2025-03-25'),(12,8,4,1,'2025-03-28');`;
+const SEED = {
+ en: SCHEMA + `
+INSERT INTO customers VALUES
+ (1,'Anna Smith','New York','2024-02-11'),(2,'James Carter','Chicago','2024-03-05'),
+ (3,'Maria Lopez','New York','2024-04-19'),(4,'Oliver Brown','Seattle','2024-06-01'),
+ (5,'Emma Wilson','Boston','2024-07-23'),(6,'David Kim','Chicago','2024-09-14'),
+ (7,'Sophie Turner',NULL,'2025-01-08'),(8,'Paul Martin','Boston','2025-02-27');
+INSERT INTO products VALUES
+ (1,'Laptop','Electronics',1299),(2,'Mouse','Electronics',25),(3,'Headphones','Electronics',120),
+ (4,'Coffee maker','Kitchen',180),(5,'Kettle','Kitchen',45),(6,'Backpack','Accessories',70),
+ (7,'Monitor','Electronics',329),(8,'Travel mug','Kitchen',22);`,
+ ru: SCHEMA + `
 INSERT INTO customers VALUES
  (1,'Анна Смирнова','Москва','2024-02-11'),(2,'Игорь Петров','Казань','2024-03-05'),
  (3,'Мария Иванова','Москва','2024-04-19'),(4,'Олег Кузнецов','Новосибирск','2024-06-01'),
@@ -172,13 +240,23 @@ INSERT INTO customers VALUES
 INSERT INTO products VALUES
  (1,'Ноутбук','Электроника',74990),(2,'Мышь','Электроника',1290),(3,'Наушники','Электроника',5990),
  (4,'Кофеварка','Кухня',8990),(5,'Чайник','Кухня',2490),(6,'Рюкзак','Аксессуары',3490),
- (7,'Монитор','Электроника',18990),(8,'Термокружка','Кухня',1190);
-INSERT INTO orders VALUES
- (1,1,1,1,'2025-03-01'),(2,1,2,2,'2025-03-01'),(3,2,4,1,'2025-03-04'),(4,3,3,1,'2025-03-07'),
- (5,3,8,3,'2025-03-07'),(6,4,7,2,'2025-03-12'),(7,5,5,1,'2025-03-15'),(8,2,6,1,'2025-03-18'),
- (9,6,2,1,'2025-03-20'),(10,5,1,1,'2025-03-22'),(11,1,3,1,'2025-03-25'),(12,8,4,1,'2025-03-28');`;
+ (7,'Монитор','Электроника',18990),(8,'Термокружка','Кухня',1190);`
+};
 
-const LESSONS = [
+const LESSONS = {
+ en:[
+ {t:'SELECT *', d:'Show everything', q:`SELECT * FROM customers;`, n:'<code>SELECT *</code> takes every column of the table. Each table row becomes a row on the sheet.'},
+ {t:'WHERE and ORDER BY', d:'Filter and sort', q:`SELECT title, price\nFROM products\nWHERE price > 100\nORDER BY price DESC;`, n:'<code>WHERE</code> works like a filter in Excel. <code>ORDER BY … DESC</code> sorts from largest to smallest.'},
+ {t:'NULL', d:'Empty values', q:`SELECT name, city\nFROM customers\nWHERE city IS NULL;`, n:'An empty cell in SQL is <code>NULL</code>. You cannot compare it with <code>=</code>, only with <code>IS NULL</code>.'},
+ {t:'GROUP BY', d:'Like a pivot table', q:`SELECT city, COUNT(*) AS customers\nFROM customers\nGROUP BY city\nORDER BY customers DESC;`, n:'<code>GROUP BY</code> collapses rows into groups, much like an Excel pivot table.'},
+ {t:'JOIN', d:'Combine tables', q:`SELECT c.name, p.title, o.qty,\n       p.price * o.qty AS total\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN products  p ON p.id = o.product_id\nORDER BY total DESC;`, n:'<code>JOIN</code> pulls data from another table by a key, just like VLOOKUP.'},
+ {t:'HAVING', d:'Filter groups', q:`SELECT c.name, SUM(p.price * o.qty) AS spent\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN products  p ON p.id = o.product_id\nGROUP BY c.name\nHAVING spent > 200;`, n:'<code>WHERE</code> filters rows before grouping; <code>HAVING</code> filters groups after it.'},
+ {t:'LEFT JOIN', d:'Who bought nothing', q:`SELECT c.name, o.id AS order_id\nFROM customers c\nLEFT JOIN orders o ON o.customer_id = c.id\nWHERE o.id IS NULL;`, n:'<code>LEFT JOIN</code> keeps every row on the left, even without a match. Missing matches become <code>NULL</code>.'},
+ {t:'INSERT', d:'Add a row', q:`INSERT INTO products (title, category, price)\nVALUES ('Tablet', 'Electronics', 449);`, n:'New rows are highlighted in <b>green</b> on the table sheet.'},
+ {t:'UPDATE', d:'Change data', q:`UPDATE products\nSET price = price * 0.9\nWHERE category = 'Kitchen';`, n:'Changed rows are highlighted in <b>yellow</b>. Without <code>WHERE</code> the whole table changes!'},
+ {t:'DELETE', d:'Remove rows', q:`DELETE FROM orders\nWHERE order_date < '2025-03-05';`, n:'<code>DELETE</code> without <code>WHERE</code> removes everything. Press “Reset database” to get the data back.'},
+ ],
+ ru:[
  {t:'SELECT *', d:'Показать всё', q:`SELECT * FROM customers;`, n:'<code>SELECT *</code> берёт все столбцы таблицы. Каждая строка таблицы — это строка листа.'},
  {t:'WHERE и ORDER BY', d:'Фильтр и сортировка', q:`SELECT title, price\nFROM products\nWHERE price > 5000\nORDER BY price DESC;`, n:'<code>WHERE</code> — как фильтр в Excel. <code>ORDER BY … DESC</code> — сортировка по убыванию.'},
  {t:'NULL', d:'Пустые значения', q:`SELECT name, city\nFROM customers\nWHERE city IS NULL;`, n:'Пустая ячейка в SQL — это <code>NULL</code>. Сравнивать её через <code>=</code> нельзя, только <code>IS NULL</code>.'},
@@ -189,15 +267,36 @@ const LESSONS = [
  {t:'INSERT', d:'Добавить строку', q:`INSERT INTO products (title, category, price)\nVALUES ('Планшет', 'Электроника', 32990);`, n:'Новые строки подсвечиваются <b>зелёным</b> на листе таблицы.'},
  {t:'UPDATE', d:'Изменить данные', q:`UPDATE products\nSET price = price * 0.9\nWHERE category = 'Кухня';`, n:'Изменённые строки подсвечиваются <b>жёлтым</b>. Без <code>WHERE</code> изменится вся таблица!'},
  {t:'DELETE', d:'Удалить строки', q:`DELETE FROM orders\nWHERE order_date < '2025-03-05';`, n:'<code>DELETE</code> без <code>WHERE</code> удалит всё. Нажми «Сбросить базу», чтобы вернуть данные.'},
-];
+ ]
+};
 
 const $ = id => document.getElementById(id);
 const ta=$('sql'), hl=$('hl'), gut=$('gutter'), grid=$('gridwrap');
-let SQL, db, view={cols:[],types:[],rows:[],marks:{}}, cur={r:0,c:0}, anchor=null, tab='__result', lastResult=null;
+let SQL, db, lang='en', L=T.en, view={cols:[],types:[],rows:[],marks:{}}, cur={r:0,c:0}, anchor=null, tab='__result', lastResult=null;
+try{const s=localStorage.getItem('sqlt-lang');if(s==='ru'||s==='en')lang=s}catch(e){}
+L=T[lang];
+
+/* ---------- language ---------- */
+function applyLang(){
+  L=T[lang];
+  document.documentElement.lang=lang;
+  document.title=L.title;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=L[el.dataset.i18n]});
+  $('reset').title=L.resetTitle;
+  ta.setAttribute('aria-label',L.editor);
+  ['en','ru'].forEach(k=>$('lang-'+k).setAttribute('aria-pressed',k===lang));
+}
+function setLang(next){
+  if(next===lang) return;
+  lang=next; try{localStorage.setItem('sqlt-lang',lang)}catch(e){}
+  applyLang();
+  resetDb();
+  loadLesson(4);
+}
 
 /* ---------- highlighting ---------- */
-const KW=/\b(SELECT|FROM|WHERE|AND|OR|NOT|IN|IS|NULL|AS|ON|JOIN|LEFT|RIGHT|INNER|OUTER|FULL|CROSS|GROUP|BY|ORDER|HAVING|LIMIT|OFFSET|DISTINCT|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|DROP|ALTER|ADD|PRIMARY|KEY|REFERENCES|INTEGER|TEXT|REAL|DATE|ASC|DESC|LIKE|BETWEEN|CASE|WHEN|THEN|ELSE|END|UNION|ALL|EXISTS|COUNT|SUM|AVG|MIN|MAX|ROUND|WITH|DEFAULT|UNIQUE|INDEX|VIEW|ROUND|UPPER|LOWER|LENGTH|COALESCE)\b/gi;
-function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+const KW=/\b(SELECT|FROM|WHERE|AND|OR|NOT|IN|IS|NULL|AS|ON|JOIN|LEFT|RIGHT|INNER|OUTER|FULL|CROSS|GROUP|BY|ORDER|HAVING|LIMIT|OFFSET|DISTINCT|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|DROP|ALTER|ADD|PRIMARY|KEY|REFERENCES|INTEGER|TEXT|REAL|DATE|ASC|DESC|LIKE|BETWEEN|CASE|WHEN|THEN|ELSE|END|UNION|ALL|EXISTS|COUNT|SUM|AVG|MIN|MAX|ROUND|WITH|DEFAULT|UNIQUE|INDEX|VIEW|UPPER|LOWER|LENGTH|COALESCE)\b/gi;
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function highlight(){
   const src=ta.value;
   let out='', re=/(--[^\n]*)|('(?:[^']|'')*'?)|(\b\d+(?:\.\d+)?\b)|([^'\-\d]+|[\s\S])/g, m;
@@ -209,7 +308,7 @@ function highlight(){
   }
   hl.innerHTML=out+'\n';
   gut.textContent=src.split('\n').map((_,i)=>i+1).join('\n');
-  try{localStorage.setItem('sqlt-draft',src)}catch(e){}
+  try{localStorage.setItem('sqlt-draft-'+lang,src)}catch(e){}
 }
 ta.addEventListener('input',highlight);
 ta.addEventListener('scroll',()=>{hl.scrollTop=ta.scrollTop;gut.scrollTop=ta.scrollTop});
@@ -223,7 +322,7 @@ function colLetter(i){let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromChar
 function tables(){const r=db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY rowid");return r.length?r[0].values.map(v=>v[0]):[]}
 function tableInfo(t){const r=db.exec(`PRAGMA table_info("${t}")`);return r.length?r[0].values.map(v=>({name:v[1],type:v[2]||'',pk:v[5]})):[]}
 function snapshot(t){const m=new Map();try{const r=db.exec(`SELECT rowid,* FROM "${t}"`);if(r.length)r[0].values.forEach(v=>m.set(v[0],JSON.stringify(v.slice(1))))}catch(e){}return m}
-function fmtNum(v){return Number.isInteger(v)?v.toLocaleString('ru-RU'):v.toLocaleString('ru-RU',{maximumFractionDigits:4})}
+function fmtNum(v){return Number.isInteger(v)?v.toLocaleString(L.locale):v.toLocaleString(L.locale,{maximumFractionDigits:4})}
 
 /* ---------- run ---------- */
 const marksByTable={};
@@ -234,10 +333,9 @@ function run(){
   const t0=performance.now();
   let res;
   try{ res=db.exec(src); }
-  catch(e){ showMsg('err','Ошибка: '+e.message+hintFor(e.message)); $('st-time').textContent=''; return; }
+  catch(e){ showMsg('err',L.error+e.message+hintFor(e.message)); $('st-time').textContent=''; return; }
   const ms=(performance.now()-t0).toFixed(1), changed=db.getRowsModified();
-  $('st-time').innerHTML=`Время: <b>${ms} мс</b>`;
-  // diff for DML
+  $('st-time').innerHTML=`${L.time}: <b>${ms} ${L.ms}</b>`;
   let touched=null;
   for(const t of Object.keys(snaps)){
     const before=snaps[t], after=snapshot(t), mk={};
@@ -250,33 +348,34 @@ function run(){
     const r=res[res.length-1];
     lastResult={cols:r.columns,rows:r.values,types:guessTypes(r.values,r.columns.length)};
     renderTabs(); openTab('__result');
-    showMsg('ok',`Запрос выполнен. Строк в результате: ${r.values.length}.`);
+    showMsg('ok',L.ok(r.values.length));
   }else if(touched){
     const m=marksByTable[touched], n=Object.values(m.marks), a=n.filter(x=>x==='new').length, c=n.filter(x=>x==='chg').length;
     renderTabs(); openTab(touched);
-    showMsg('ok',`Изменено строк: ${changed}.`+(a?` Добавлено: ${a}.`:'')+(c?` Обновлено: ${c}.`:'')+(m.deleted?` Удалено: ${m.deleted}.`:''),true);
+    showMsg('ok',L.changed(changed)+(a?L.added(a):'')+(c?L.updated(c):'')+(m.deleted?L.deleted(m.deleted):''),true);
   }else{
     renderTabs(); if(!tables().includes(tab)&&tab!=='__result') openTab('__result'); else openTab(tab);
-    showMsg('ok','Команда выполнена.');
+    showMsg('ok',L.done);
   }
 }
 function hintFor(m){
-  if(/no such table/.test(m)) return ' — проверь имя таблицы в списке слева.';
-  if(/no such column/.test(m)) return ' — такого столбца нет. Нажми на имя столбца слева, чтобы вставить его.';
-  if(/syntax error/.test(m)) return ' — проверь запятые, кавычки и порядок слов (SELECT → FROM → WHERE → GROUP BY → ORDER BY).';
+  if(/no such table/.test(m)) return L.hNoTable;
+  if(/no such column/.test(m)) return L.hNoCol;
+  if(/syntax error/.test(m)) return L.hSyntax;
   return '';
 }
 function showMsg(kind,text,legend){
   const el=$('msg'); el.className='msg '+kind; el.textContent=text;
-  if(legend) el.insertAdjacentHTML('beforeend','<span class="lg"><i class="sw" style="background:var(--new)"></i>новые</span><span class="lg"><i class="sw" style="background:var(--chg)"></i>изменённые</span>');
+  if(legend) el.insertAdjacentHTML('beforeend',`<span class="lg"><i class="sw" style="background:var(--new)"></i>${L.legNew}</span><span class="lg"><i class="sw" style="background:var(--chg)"></i>${L.legChg}</span>`);
 }
-function guessTypes(rows,n){const t=[];for(let c=0;c<n;c++){t[c]=rows.length&&rows.every(r=>r[c]===null||typeof r[c]==='number')&&rows.some(r=>r[c]!==null)?'число':'текст'}return t}
+function guessTypes(rows,n){const t=[];for(let c=0;c<n;c++){t[c]=rows.length&&rows.every(r=>r[c]===null||typeof r[c]==='number')&&rows.some(r=>r[c]!==null)?'number':'text'}return t}
+function typeLabel(t){return t==='number'?L.number:t==='text'?L.text:t}
 
 /* ---------- tabs & views ---------- */
 function renderTabs(){
   const el=$('tabs'); el.innerHTML='';
   const mk=(id,label)=>{const b=document.createElement('button');b.role='tab';b.textContent=label;b.dataset.id=id;b.setAttribute('aria-selected',id===tab);b.onclick=()=>openTab(id);el.appendChild(b)};
-  mk('__result','Результат');
+  mk('__result',L.result);
   tables().forEach(t=>mk(t,t));
 }
 function openTab(id){
@@ -306,7 +405,7 @@ function renderGrid(){
     h+=`<tr class="${cls}"><th data-row="${r}">${r+1}</th>`;
     for(let c=0;c<nc;c++){
       if(r===0){
-        if(c<view.cols.length) h+=`<td data-r="0" data-c="${c}" title="${esc(view.cols[c])}">${esc(view.cols[c])}<small>${esc(view.types[c]||'')}</small></td>`;
+        if(c<view.cols.length) h+=`<td data-r="0" data-c="${c}" title="${esc(view.cols[c])}">${esc(view.cols[c])}<small>${esc(typeLabel(view.types[c]||''))}</small></td>`;
         else h+=`<td class="empty" data-r="0" data-c="${c}"></td>`;
         continue;
       }
@@ -315,7 +414,7 @@ function renderGrid(){
       const v=row[c];
       if(v===null) h+=`<td class="null" data-r="${r}" data-c="${c}">NULL</td>`;
       else if(typeof v==='number') h+=`<td class="n" data-r="${r}" data-c="${c}">${fmtNum(v)}</td>`;
-      else if(v instanceof Uint8Array) h+=`<td data-r="${r}" data-c="${c}">[BLOB ${v.length} б]</td>`;
+      else if(v instanceof Uint8Array) h+=`<td data-r="${r}" data-c="${c}">[BLOB ${v.length} ${L.blob}]</td>`;
       else h+=`<td data-r="${r}" data-c="${c}" title="${esc(String(v))}">${esc(String(v))}</td>`;
     }
     h+='</tr>';
@@ -323,7 +422,7 @@ function renderGrid(){
   h+='</tbody></table>';
   grid.innerHTML=h;
   const total=view.rows.length;
-  $('st-rows').innerHTML=view.cols.length?`Строк: <b>${total}</b>${total>MAX_ROWS?` (показано ${MAX_ROWS})`:''} · Столбцов: <b>${view.cols.length}</b>`:'Результат пуст — выполни запрос с SELECT';
+  $('st-rows').innerHTML=view.cols.length?`${L.rows}: <b>${total}</b>${total>MAX_ROWS?L.shown(MAX_ROWS):''} · ${L.cols}: <b>${view.cols.length}</b>`:L.empty;
   paintSel();
 }
 function cellVal(r,c){if(r===0)return view.cols[c];const row=view.rows[r-1];return row?row[c]:undefined}
@@ -344,7 +443,10 @@ function paintSel(){
   const v=cellVal(cur.r,cur.c);
   $('fval').textContent=v===null?'NULL':v===undefined?'':String(v);
   const cnt=(r2-r1+1)*(c2-c1+1);
-  $('st-agg').innerHTML=nums.length>1||cnt>1&&nums.length?`Среднее: <b>${fmtNum(+(nums.reduce((a,b)=>a+b,0)/nums.length).toFixed(2))}</b><span>Количество: <b>${nums.length}</b></span><span>Сумма: <b>${fmtNum(nums.reduce((a,b)=>a+b,0))}</b></span>`:'';
+  if(nums.length>1||(cnt>1&&nums.length)){
+    const sum=nums.reduce((a,b)=>a+b,0);
+    $('st-agg').innerHTML=`${L.avg}: <b>${fmtNum(+(sum/nums.length).toFixed(2))}</b><span>${L.count}: <b>${nums.length}</b></span><span>${L.sum}: <b>${fmtNum(sum)}</b></span>`;
+  }else $('st-agg').innerHTML='';
   const td=grid.querySelector(`td[data-r="${cur.r}"][data-c="${cur.c}"]`);
   if(td){const g=grid.getBoundingClientRect(),b=td.getBoundingClientRect();
     if(b.bottom>g.bottom)grid.scrollTop+=b.bottom-g.bottom; if(b.top<g.top+26)grid.scrollTop-=g.top+26-b.top;
@@ -383,32 +485,40 @@ function renderSchema(){
   tables().forEach(t=>{
     const cnt=db.exec(`SELECT COUNT(*) FROM "${t}"`)[0].values[0][0];
     const d=document.createElement('div'); d.className='tbl';
-    d.innerHTML=`<button class="tname" title="Открыть лист">${esc(t)} <small>${cnt} стр.</small></button><div class="cols"></div>`;
+    d.innerHTML=`<button class="tname" title="${esc(L.openSheet)}">${esc(t)} <small>${cnt} ${L.rowsShort}</small></button><div class="cols"></div>`;
     d.querySelector('.tname').onclick=()=>openTab(t);
-    tableInfo(t).forEach(c=>{const b=document.createElement('button');b.innerHTML=`${esc(c.name)}${c.pk?' 🔑':''} <i>${esc((c.type||'').toLowerCase())}</i>`;b.title='Вставить в запрос';b.onclick=()=>insert(c.name);d.querySelector('.cols').appendChild(b)});
+    tableInfo(t).forEach(c=>{const b=document.createElement('button');b.innerHTML=`${esc(c.name)}${c.pk?' 🔑':''} <i>${esc((c.type||'').toLowerCase())}</i>`;b.title=L.insertCol;b.onclick=()=>insert(c.name);d.querySelector('.cols').appendChild(b)});
     el.appendChild(d);
   });
 }
 function renderLessons(active){
   const el=$('lessons'); el.innerHTML='';
-  LESSONS.forEach((l,i)=>{const b=document.createElement('button');b.innerHTML=`<b>${i+1}. ${l.t}</b><span>${l.d}</span>`;b.setAttribute('aria-current',i===active);
-    b.onclick=()=>{ta.value=l.q;highlight();$('note').innerHTML=l.n;renderLessons(i);run()};el.appendChild(b)});
+  LESSONS[lang].forEach((l,i)=>{const b=document.createElement('button');b.innerHTML=`<b>${i+1}. ${l.t}</b><span>${l.d}</span>`;b.setAttribute('aria-current',i===active);
+    b.onclick=()=>loadLesson(i);el.appendChild(b)});
+}
+function loadLesson(i){
+  const l=LESSONS[lang][i];
+  ta.value=l.q; highlight(); $('note').innerHTML=l.n; renderLessons(i);
+  renderSchema(); renderTabs(); run();
 }
 
 /* ---------- boot ---------- */
-function resetDb(){db&&db.close();db=new SQL.Database();db.run(SEED);for(const k in marksByTable)delete marksByTable[k];lastResult=null}
+function resetDb(){db&&db.close();db=new SQL.Database();db.run(SEED[lang]);for(const k in marksByTable)delete marksByTable[k];lastResult=null;tab='__result'}
 $('run').onclick=run;
-$('reset').onclick=()=>{resetDb();renderSchema();renderTabs();openTab('__result');run();showMsg('ok','База сброшена к исходным данным.')};
+$('reset').onclick=()=>{resetDb();renderSchema();renderTabs();openTab('__result');run();showMsg('ok',L.resetDone)};
+document.querySelectorAll('.lang button').forEach(b=>b.onclick=()=>setLang(b.dataset.lang));
+applyLang();
+$('msg').textContent=L.loading;
+grid.innerHTML=`<div class="boot">${L.preparing}</div>`;
 (async()=>{
   try{
-    if(typeof initSqlJs!=='function') throw new Error('движок не загрузился');
+    if(typeof initSqlJs!=='function') throw new Error(L.engineMissing);
     SQL=await initSqlJs();
     resetDb();
-    let draft=null;try{draft=localStorage.getItem('sqlt-draft')}catch(e){}
-    ta.value=draft||LESSONS[4].q;
-    if(!draft)$('note').innerHTML=LESSONS[4].n;
-    highlight(); renderSchema(); renderLessons(draft?-1:4); renderTabs(); run();
-  }catch(e){showMsg('err','Не удалось запустить SQLite: '+e.message+'. Обнови страницу.');grid.innerHTML='<div class="boot">Движок базы данных недоступен.</div>'}
+    let draft=null;try{draft=localStorage.getItem('sqlt-draft-'+lang)}catch(e){}
+    if(draft){ta.value=draft;highlight();renderLessons(-1);renderSchema();renderTabs();run()}
+    else loadLesson(4);
+  }catch(e){showMsg('err',L.bootFail(e.message));grid.innerHTML=`<div class="boot">${L.engineDown}</div>`}
 })();
 </script>
 
