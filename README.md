@@ -10,6 +10,23 @@ The interface, lessons and sample database are available in English (default) an
 Russian. Switch with the EN / RU buttons in the top right; the choice is remembered.
 Switching the language reloads the sample database in that language.
 
+## Commands
+
+Everything is in the `Makefile`; run `make` to see the list.
+
+| Command | What it does |
+|---|---|
+| `make install` | Create `venv/` and install the dependencies |
+| `make run` | Start locally with auto-reload on http://127.0.0.1:8001 (`PORT=8002 make run` for another port) |
+| `make run-lan` | Start for other computers on your network and print the address to share |
+| `make start` | Start like Render does, without reload |
+| `make open` | Open the trainer and the lessons page in the browser |
+| `make check` | Check the code, that every lesson answer and example runs, and that answers stay hidden |
+| `make deploy` | Run the checks, refuse if something is not committed, then push to GitHub; Render deploys from there |
+| `make deploy-hook` | Ask Render to redeploy right away (`RENDER_DEPLOY_HOOK=<url> make deploy-hook`) |
+| `make status` | Show uncommitted files and commits not pushed yet |
+| `make clean` | Remove Python caches |
+
 ## Run
 
 ```bash
@@ -173,3 +190,10 @@ uvicorn main:app --reload --port 8001
 `sql2026`. На Render задай свой пароль: **Environment → Add variable**. Ответы
 не попадают в браузер ученика: тренажёр отправляет результат на `/api/check`,
 и сервер сам сравнивает его с ответом.
+
+### Команды
+
+Все команды в `Makefile`, список — `make`. Основные: `make install` (окружение и зависимости),
+`make run` (запуск на порту 8001), `make run-lan` (запуск для других компьютеров в сети),
+`make check` (проверка кода и всех ответов уроков), `make deploy` (проверка, затем push
+на GitHub, откуда Render развернёт новую версию).
