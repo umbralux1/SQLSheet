@@ -19,6 +19,12 @@ async def root():
     return FileResponse(STATIC_DIR / "index.html")
 
 
+@app.get("/healthz", include_in_schema=False)
+async def healthz():
+    """Used by Render to check that the service is up."""
+    return {"status": "ok"}
+
+
 @app.get("/hello/{name}")
 async def say_hello(name: str):
     return {"message": f"Hello {name}"}

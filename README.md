@@ -49,6 +49,33 @@ joins later replays the log. Rooms are kept in the server's memory and disappear
 when the last person leaves or the server restarts. Collaboration needs the server;
 opening `static/index.html` directly works in single-user mode.
 
+## Deploy to Render
+
+The repository is ready for [Render](https://render.com): `render.yaml` describes
+the service, `requirements.txt` lists the dependencies and `.python-version`
+pins Python 3.11.
+
+1. Push the project to GitHub (or GitLab / Bitbucket).
+2. In the Render dashboard choose **New → Blueprint** and pick the repository.
+   Render reads `render.yaml` and creates the `sql-sheet` web service.
+3. Wait for the first deploy, then open `https://<name>.onrender.com`.
+
+Without the Blueprint, create a **Web Service** by hand with:
+
+| Setting | Value |
+|---|---|
+| Language | Python 3 |
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
+| Health Check Path | `/healthz` |
+
+Notes:
+- Keep **one instance**. Collaboration rooms live in the server's memory, so two
+  instances would split people into different rooms.
+- On the **free plan** the service sleeps after 15 minutes without traffic and
+  the next visit takes a few seconds to wake it. A restart clears all rooms;
+  the database in each browser is unaffected and the page reconnects by itself.
+
 ---
 
 ## Русский
@@ -90,3 +117,14 @@ uvicorn main:app --reload --port 8001
 базы у всех участников одинаковые; кто подключился позже, проигрывает журнал.
 Комнаты хранятся в памяти сервера и пропадают, когда все вышли или сервер
 перезапустился.
+
+### Развёртывание на Render
+
+1. Залей проект на GitHub.
+2. В Render: **New → Blueprint**, выбери репозиторий. Render прочитает `render.yaml`
+   и сам создаст сервис.
+3. После первого деплоя открой `https://<имя>.onrender.com`.
+
+Держи **один экземпляр** сервиса: комнаты хранятся в памяти. На бесплатном плане
+сервис засыпает через 15 минут без посетителей и просыпается за несколько секунд;
+при перезапуске комнаты очищаются.
