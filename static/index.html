@@ -27,6 +27,7 @@
   --new:#1f3e2a; --chg:#3d3518; --null:#66736c; --err:#ff8a80; --err-bg:#3a1f1d; --kw:#7fb4ff; --wavy:#e0b341; --str:#f0a46b; color-scheme:dark}
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}   /* hidden always wins over a component's display */
 /* show <>, !=, >=, <= exactly as typed: no programming ligatures (≠ ≥ ≤) in a SQL course */
 body,code,pre,textarea,input{font-variant-ligatures:none;font-feature-settings:"liga" 0,"calt" 0}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
@@ -873,7 +874,7 @@ function start(){
   let ws=null, state='connecting', synced=false, applyingRemote=false, epoch=null, lastSeq=0;
   const live=()=>synced&&ws&&ws.readyState===1;
 
-  bar.hidden=false;
+  bar.hidden=!!COURSE_LESSON;   // task pages show no room bar; people are invited from the Lessons page
   const nameInput=document.getElementById('collab-name');
   nameInput.value=me.name;
   nameInput.addEventListener('input',()=>{me.name=nameInput.value.trim()||me.name;try{sessionStorage.setItem('sqlt-name',me.name)}catch(e){};renderPresence();sendPresence()});
