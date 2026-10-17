@@ -55,14 +55,21 @@ SECRET_KEY = os.environ.get("SECRET_KEY") or secrets.token_hex(32)  # a random k
 SESSION_COOKIE = "sqlt_teacher"
 
 PROGRESS_JS = """
-/* Progress is kept per browser. */
+/* Progress is kept per browser, as a list of solved task ids ("2.10", "2.or3", ...).
+   Older versions saved task positions (0, 1, 2, ...). Task ids were numbered from
+   those positions, so position n is task "<lesson>.<n+1>" and old progress carries over. */
 window.COURSE_PROGRESS = {
-  key: id => 'sqlt-solved-L' + id,
-  get(id) { try { return JSON.parse(localStorage.getItem(this.key(id)) || '[]') } catch (e) { return [] } },
-  add(id, taskIndex) {
-    const s = new Set(this.get(id)); s.add(taskIndex);
-    try { localStorage.setItem(this.key(id), JSON.stringify([...s])) } catch (e) {}
-  }
+  key: lessonId => 'sqlt-solved-L' + lessonId,
+  get(lessonId) {
+    let raw = [];
+    try { raw = JSON.parse(localStorage.getItem(this.key(lessonId)) || '[]') } catch (e) {}
+    return raw.map(v => typeof v === 'number' ? lessonId + '.' + (v + 1) : v);
+  },
+  add(lessonId, taskId) {
+    const s = new Set(this.get(lessonId)); s.add(taskId);
+    try { localStorage.setItem(this.key(lessonId), JSON.stringify([...s])) } catch (e) {}
+  },
+  count(lesson) { const s = new Set(this.get(lesson.id)); return lesson.tasks.filter(t => s.has(t.id)).length }
 };
 """
 

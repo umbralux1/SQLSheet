@@ -77,43 +77,43 @@ INSERT INTO books VALUES
 (8, 'The Final Hour',     'B. Cornwell',    2007, 18.50, 'Historical');
 ''',
             "tasks": [
-                {
+                {"id": "1.1", 
                     "text": {"en": "Select all columns from the <code>students</code> table.", "ru": "Выбери все столбцы из таблицы <code>students</code>."},
                     "answer": "SELECT * FROM students;",
                 },
-                {
+                {"id": "1.2", 
                     "text": {"en": "Select only <code>first_name</code> and <code>last_name</code> from <code>students</code>.", "ru": "Выбери только <code>first_name</code> и <code>last_name</code> из <code>students</code>."},
                     "answer": "SELECT first_name, last_name FROM students;",
                 },
-                {
+                {"id": "1.3", 
                     "text": {"en": "Select <code>title</code> and <code>price</code> from <code>books</code>.", "ru": "Выбери <code>title</code> и <code>price</code> из <code>books</code>."},
                     "answer": "SELECT title, price FROM books;",
                 },
-                {
+                {"id": "1.4", 
                     "text": {"en": "Select all columns from <code>books</code>.", "ru": "Выбери все столбцы из <code>books</code>."},
                     "answer": "SELECT * FROM books;",
                 },
-                {
+                {"id": "1.5", 
                     "text": {"en": "Select <code>first_name</code>, <code>city</code> and <code>grade</code> from <code>students</code>.", "ru": "Выбери <code>first_name</code>, <code>city</code> и <code>grade</code> из <code>students</code>."},
                     "answer": "SELECT first_name, city, grade FROM students;",
                 },
-                {
+                {"id": "1.6", 
                     "text": {"en": "Select only the <code>author</code> column from <code>books</code>.", "ru": "Выбери только столбец <code>author</code> из <code>books</code>."},
                     "answer": "SELECT author FROM books;",
                 },
-                {
+                {"id": "1.7", 
                     "text": {"en": "Select <code>title</code>, <code>year_published</code> and <code>genre</code> from <code>books</code>.", "ru": "Выбери <code>title</code>, <code>year_published</code> и <code>genre</code> из <code>books</code>."},
                     "answer": "SELECT title, year_published, genre FROM books;",
                 },
-                {
+                {"id": "1.8", 
                     "text": {"en": "Select <code>student_id</code> and <code>age</code> from <code>students</code>.", "ru": "Выбери <code>student_id</code> и <code>age</code> из <code>students</code>."},
                     "answer": "SELECT student_id, age FROM students;",
                 },
-                {
+                {"id": "1.9", 
                     "text": {"en": "Select only <code>book_id</code>, <code>title</code> and <code>author</code> from <code>books</code>.", "ru": "Выбери только <code>book_id</code>, <code>title</code> и <code>author</code> из <code>books</code>."},
                     "answer": "SELECT book_id, title, author FROM books;",
                 },
-                {
+                {"id": "1.10", 
                     "text": {"en": "Select <code>city</code> and <code>grade</code> from <code>students</code>.", "ru": "Выбери <code>city</code> и <code>grade</code> из <code>students</code>."},
                     "answer": "SELECT city, grade FROM students;",
                 },
@@ -196,11 +196,13 @@ WHERE condition;</pre>
                     "Watch for common mistakes: <code>= NULL</code> instead of <code>IS NULL</code>, and missing parentheses when mixing <code>AND</code> and <code>OR</code>.",
                     "Ask the student to <b>predict the row count</b> before running a query. It builds intuition.",
                     "Have them <b>modify</b> queries, for example change <code>&gt;</code> to <code>&gt;=</code>: what changes?",
+                    "If task 10 is hard, use section <b>B+</b>: ten more <code>OR</code> tasks. Show both wrong versions from its theory and ask the student to predict their row counts first.",
                 ],
                 "ru": [
                     "Следи за типичными ошибками: <code>= NULL</code> вместо <code>IS NULL</code> и забытые скобки, когда смешиваются <code>AND</code> и <code>OR</code>.",
                     "Проси ученика <b>предсказать число строк</b> до запуска запроса. Это развивает интуицию.",
                     "Предлагай <b>менять</b> запросы, например заменить <code>&gt;</code> на <code>&gt;=</code>: что изменится?",
+                    "Если задание 10 даётся тяжело, переходи к разделу <b>B+</b>: ещё десять заданий на <code>OR</code>. Покажи обе ошибки из его теории и попроси сначала предсказать, сколько строк они вернут.",
                 ],
             },
             "tables": ["employees", "products"],
@@ -247,7 +249,7 @@ INSERT INTO products VALUES
 ''',
             "tasks": [
                 # Section A
-                {"section": {"en": "A · Comparison operators", "ru": "A · Операторы сравнения"},
+                {"id": "2.1", "section": {"en": "A · Comparison operators", "ru": "A · Операторы сравнения"},
                  "intro": {
                      "en": '''<p><code>WHERE</code> keeps only the rows where the condition is true. A condition compares a column with a value using <code>=</code>, <code>&lt;&gt;</code>, <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code>. Text goes in single quotes (<code>'Berlin'</code>), numbers go without quotes (<code>60000</code>).</p>
 <p><b>Example:</b> employees who work in Berlin.</p>''',
@@ -257,22 +259,22 @@ INSERT INTO products VALUES
                  "example": "SELECT first_name, city\nFROM employees\nWHERE city = 'Berlin';",
                  "text": {"en": "Get all employees whose <code>salary</code> is greater than 60000.", "ru": "Выведи всех сотрудников, у которых <code>salary</code> больше 60000."},
                  "answer": "SELECT * FROM employees WHERE salary > 60000;"},
-                {"text": {"en": "Get all employees who work in the <code>'IT'</code> department.", "ru": "Выведи всех сотрудников отдела <code>'IT'</code>."},
+                {"id": "2.2", "text": {"en": "Get all employees who work in the <code>'IT'</code> department.", "ru": "Выведи всех сотрудников отдела <code>'IT'</code>."},
                  "answer": "SELECT * FROM employees WHERE department = 'IT';"},
-                {"text": {"en": "Get all products whose <code>price</code> is less than 50.", "ru": "Выведи все товары с ценой (<code>price</code>) меньше 50."},
+                {"id": "2.3", "text": {"en": "Get all products whose <code>price</code> is less than 50.", "ru": "Выведи все товары с ценой (<code>price</code>) меньше 50."},
                  "answer": "SELECT * FROM products WHERE price < 50;"},
-                {"text": {"en": "Get all employees hired in 2018.", "ru": "Выведи всех сотрудников, нанятых в 2018 году."},
+                {"id": "2.4", "text": {"en": "Get all employees hired in 2018.", "ru": "Выведи всех сотрудников, нанятых в 2018 году."},
                  "answer": "SELECT * FROM employees WHERE hire_year = 2018;"},
-                {"text": {"en": "Get all products with <code>stock</code> equal to 0 (if any). Check with <code>=</code>.", "ru": "Выведи все товары, у которых <code>stock</code> равен 0 (если такие есть). Проверь через <code>=</code>."},
+                {"id": "2.5", "text": {"en": "Get all products with <code>stock</code> equal to 0 (if any). Check with <code>=</code>.", "ru": "Выведи все товары, у которых <code>stock</code> равен 0 (если такие есть). Проверь через <code>=</code>."},
                  "answer": "SELECT * FROM products WHERE stock = 0;"},
-                {"text": {"en": "Get all employees whose salary is not equal to 45000.", "ru": "Выведи всех сотрудников, у которых зарплата не равна 45000."},
+                {"id": "2.6", "text": {"en": "Get all employees whose salary is not equal to 45000.", "ru": "Выведи всех сотрудников, у которых зарплата не равна 45000."},
                  "answer": "SELECT * FROM employees WHERE salary <> 45000;"},
-                {"text": {"en": "Get all products with price greater than or equal to 200.", "ru": "Выведи все товары с ценой больше или равной 200."},
+                {"id": "2.7", "text": {"en": "Get all products with price greater than or equal to 200.", "ru": "Выведи все товары с ценой больше или равной 200."},
                  "answer": "SELECT * FROM products WHERE price >= 200;"},
-                {"text": {"en": "Get all employees hired <b>before</b> 2017.", "ru": "Выведи всех сотрудников, нанятых <b>до</b> 2017 года."},
+                {"id": "2.8", "text": {"en": "Get all employees hired <b>before</b> 2017.", "ru": "Выведи всех сотрудников, нанятых <b>до</b> 2017 года."},
                  "answer": "SELECT * FROM employees WHERE hire_year < 2017;"},
                 # Section B
-                {"section": {"en": "B · AND / OR / NOT", "ru": "B · AND / OR / NOT"},
+                {"id": "2.9", "section": {"en": "B · AND / OR / NOT", "ru": "B · AND / OR / NOT"},
                  "intro": {
                      "en": '''<p><code>AND</code> needs both conditions to be true, <code>OR</code> needs at least one, <code>NOT</code> turns a condition around. <code>AND</code> is applied before <code>OR</code>, so when you mix them, put the <code>OR</code> part in parentheses.</p>
 <p><b>Example:</b> HR employees hired after 2018.</p>''',
@@ -282,18 +284,58 @@ INSERT INTO products VALUES
                  "example": "SELECT first_name, department, hire_year\nFROM employees\nWHERE department = 'HR' AND hire_year > 2018;",
                  "text": {"en": "Get all IT employees with salary greater than 65000.", "ru": "Выведи всех сотрудников IT с зарплатой больше 65000."},
                  "answer": "SELECT * FROM employees WHERE department = 'IT' AND salary > 65000;"},
-                {"text": {"en": "Get all employees from <code>'London'</code> OR <code>'Paris'</code>.", "ru": "Выведи всех сотрудников из <code>'London'</code> ИЛИ <code>'Paris'</code>."},
+                {"id": "2.10", "text": {"en": "Get all employees from <code>'London'</code> OR <code>'Paris'</code>.", "ru": "Выведи всех сотрудников из <code>'London'</code> ИЛИ <code>'Paris'</code>."},
                  "answer": "SELECT * FROM employees WHERE city = 'London' OR city = 'Paris';"},
-                {"text": {"en": "Get all employees from <code>'London'</code> or <code>'Paris'</code> <b>whose salary is above 50000</b>.", "ru": "Выведи всех сотрудников из <code>'London'</code> или <code>'Paris'</code> <b>с зарплатой выше 50000</b>."},
+                {"id": "2.11", "text": {"en": "Get all employees from <code>'London'</code> or <code>'Paris'</code> <b>whose salary is above 50000</b>.", "ru": "Выведи всех сотрудников из <code>'London'</code> или <code>'Paris'</code> <b>с зарплатой выше 50000</b>."},
                  "answer": "SELECT * FROM employees\nWHERE (city = 'London' OR city = 'Paris') AND salary > 50000;"},
-                {"text": {"en": "Get all products in the <code>'Electronics'</code> category with price below 500.", "ru": "Выведи все товары категории <code>'Electronics'</code> с ценой меньше 500."},
+                {"id": "2.12", "text": {"en": "Get all products in the <code>'Electronics'</code> category with price below 500.", "ru": "Выведи все товары категории <code>'Electronics'</code> с ценой меньше 500."},
                  "answer": "SELECT * FROM products WHERE category = 'Electronics' AND price < 500;"},
-                {"text": {"en": "Get all employees NOT in the <code>'HR'</code> department.", "ru": "Выведи всех сотрудников, которые НЕ работают в отделе <code>'HR'</code>."},
+                {"id": "2.13", "text": {"en": "Get all employees NOT in the <code>'HR'</code> department.", "ru": "Выведи всех сотрудников, которые НЕ работают в отделе <code>'HR'</code>."},
                  "answer": "SELECT * FROM employees WHERE NOT department = 'HR';"},
-                {"text": {"en": "Get all products that are NOT in <code>'Stationery'</code> and cost more than 100.", "ru": "Выведи все товары НЕ из категории <code>'Stationery'</code> дороже 100."},
+                {"id": "2.14", "text": {"en": "Get all products that are NOT in <code>'Stationery'</code> and cost more than 100.", "ru": "Выведи все товары НЕ из категории <code>'Stationery'</code> дороже 100."},
                  "answer": "SELECT * FROM products WHERE NOT category = 'Stationery' AND price > 100;"},
+                # Section B+ (extra practice, added after task 10 caused trouble)
+                {"id": "2.or1",
+                 "section": {"en": "B+ · Practice: OR on one column", "ru": "B+ · Практика: OR по одному столбцу"},
+                 "intro": {
+                     "en": '''<p>To match one of several values in the <b>same column</b>, write the full condition on each side of <code>OR</code>: <code>city = 'London' OR city = 'Paris'</code>.</p>
+<p>Two mistakes to avoid:</p>
+<ul>
+  <li><code>city = 'London' OR 'Paris'</code> — the part after <code>OR</code> is not a condition, so SQL quietly returns only London (3 rows instead of 6). No error, just a wrong answer.</li>
+  <li><code>city = 'London' AND city = 'Paris'</code> — one row cannot be in two cities at once, so the result is empty.</li>
+</ul>
+<p><b>Example:</b> products from TechCorp or BrightHome.</p>''',
+                     "ru": '''<p>Чтобы найти одно из нескольких значений в <b>одном и том же столбце</b>, пиши полное условие с каждой стороны <code>OR</code>: <code>city = 'London' OR city = 'Paris'</code>.</p>
+<p>Две ошибки, которых стоит избегать:</p>
+<ul>
+  <li><code>city = 'London' OR 'Paris'</code> — после <code>OR</code> стоит не условие, поэтому SQL молча вернёт только London (3 строки вместо 6). Ошибки не будет, просто неверный ответ.</li>
+  <li><code>city = 'London' AND city = 'Paris'</code> — строка не может быть сразу в двух городах, поэтому результат пустой.</li>
+</ul>
+<p><b>Пример:</b> товары от TechCorp или BrightHome.</p>''',
+                 },
+                 "example": "SELECT product_name, supplier\nFROM products\nWHERE supplier = 'TechCorp' OR supplier = 'BrightHome';",
+                 "text": {"en": "Get all employees from <code>'Berlin'</code> OR <code>'Madrid'</code>.", "ru": "Выведи всех сотрудников из <code>'Berlin'</code> ИЛИ <code>'Madrid'</code>."},
+                 "answer": "SELECT * FROM employees WHERE city = 'Berlin' OR city = 'Madrid';"},
+                {"id": "2.or2", "text": {"en": "Get all employees who work in <code>'HR'</code> OR <code>'Sales'</code>.", "ru": "Выведи всех сотрудников отделов <code>'HR'</code> ИЛИ <code>'Sales'</code>."},
+                 "answer": "SELECT * FROM employees WHERE department = 'HR' OR department = 'Sales';"},
+                {"id": "2.or3", "text": {"en": "Get all employees hired in 2018 OR 2020.", "ru": "Выведи всех сотрудников, нанятых в 2018 ИЛИ 2020 году."},
+                 "answer": "SELECT * FROM employees WHERE hire_year = 2018 OR hire_year = 2020;"},
+                {"id": "2.or4", "text": {"en": "Get all products in the <code>'Furniture'</code> OR <code>'Stationery'</code> category.", "ru": "Выведи все товары категории <code>'Furniture'</code> ИЛИ <code>'Stationery'</code>."},
+                 "answer": "SELECT * FROM products WHERE category = 'Furniture' OR category = 'Stationery';"},
+                {"id": "2.or5", "text": {"en": "Get all products from the supplier <code>'GadgetInc'</code> OR <code>'ComfortPlus'</code>.", "ru": "Выведи все товары поставщика <code>'GadgetInc'</code> ИЛИ <code>'ComfortPlus'</code>."},
+                 "answer": "SELECT * FROM products WHERE supplier = 'GadgetInc' OR supplier = 'ComfortPlus';"},
+                {"id": "2.or6", "text": {"en": "Get the employees whose first name is <code>'Alice'</code> OR <code>'Bob'</code>.", "ru": "Выведи сотрудников, которых зовут <code>'Alice'</code> ИЛИ <code>'Bob'</code>."},
+                 "answer": "SELECT * FROM employees WHERE first_name = 'Alice' OR first_name = 'Bob';"},
+                {"id": "2.or7", "text": {"en": "Get all employees whose salary is exactly 45000 OR 55000.", "ru": "Выведи всех сотрудников с зарплатой ровно 45000 ИЛИ 55000."},
+                 "answer": "SELECT * FROM employees WHERE salary = 45000 OR salary = 55000;"},
+                {"id": "2.or8", "text": {"en": "Get all employees from <code>'London'</code>, <code>'Paris'</code> OR <code>'Berlin'</code> (three values, use <code>OR</code> twice).", "ru": "Выведи всех сотрудников из <code>'London'</code>, <code>'Paris'</code> ИЛИ <code>'Berlin'</code> (три значения, два раза <code>OR</code>)."},
+                 "answer": "SELECT * FROM employees WHERE city = 'London' OR city = 'Paris' OR city = 'Berlin';"},
+                {"id": "2.or9", "text": {"en": "Show <code>product_name</code> and <code>stock</code> of the products whose stock is 15 OR 20.", "ru": "Покажи <code>product_name</code> и <code>stock</code> товаров, у которых <code>stock</code> равен 15 ИЛИ 20."},
+                 "answer": "SELECT product_name, stock FROM products WHERE stock = 15 OR stock = 20;"},
+                {"id": "2.or10", "text": {"en": "Show <code>first_name</code>, <code>last_name</code> and <code>city</code> of the employees whose last name is <code>'Smith'</code> OR <code>'Davis'</code>.", "ru": "Покажи <code>first_name</code>, <code>last_name</code> и <code>city</code> сотрудников с фамилией <code>'Smith'</code> ИЛИ <code>'Davis'</code>."},
+                 "answer": "SELECT first_name, last_name, city FROM employees WHERE last_name = 'Smith' OR last_name = 'Davis';"},
                 # Section C
-                {"section": {"en": "C · BETWEEN", "ru": "C · BETWEEN"},
+                {"id": "2.15", "section": {"en": "C · BETWEEN", "ru": "C · BETWEEN"},
                  "intro": {
                      "en": '''<p><code>x BETWEEN a AND b</code> is a short way to write <code>x &gt;= a AND x &lt;= b</code>. Both ends are <b>included</b>.</p>
 <p><b>Example:</b> employees with a bonus from 3000 to 6000.</p>''',
@@ -303,14 +345,14 @@ INSERT INTO products VALUES
                  "example": "SELECT first_name, bonus\nFROM employees\nWHERE bonus BETWEEN 3000 AND 6000;",
                  "text": {"en": "Get all employees with salary between 45000 and 65000 (inclusive).", "ru": "Выведи всех сотрудников с зарплатой от 45000 до 65000 включительно."},
                  "answer": "SELECT * FROM employees WHERE salary BETWEEN 45000 AND 65000;"},
-                {"text": {"en": "Get all products with price between 20 and 200.", "ru": "Выведи все товары с ценой от 20 до 200."},
+                {"id": "2.16", "text": {"en": "Get all products with price between 20 and 200.", "ru": "Выведи все товары с ценой от 20 до 200."},
                  "answer": "SELECT * FROM products WHERE price BETWEEN 20 AND 200;"},
-                {"text": {"en": "Get all employees hired between 2016 and 2019.", "ru": "Выведи всех сотрудников, нанятых с 2016 по 2019 год."},
+                {"id": "2.17", "text": {"en": "Get all employees hired between 2016 and 2019.", "ru": "Выведи всех сотрудников, нанятых с 2016 по 2019 год."},
                  "answer": "SELECT * FROM employees WHERE hire_year BETWEEN 2016 AND 2019;"},
-                {"text": {"en": "Get all products with stock between 50 and 200.", "ru": "Выведи все товары, у которых <code>stock</code> от 50 до 200."},
+                {"id": "2.18", "text": {"en": "Get all products with stock between 50 and 200.", "ru": "Выведи все товары, у которых <code>stock</code> от 50 до 200."},
                  "answer": "SELECT * FROM products WHERE stock BETWEEN 50 AND 200;"},
                 # Section D
-                {"section": {"en": "D · IN", "ru": "D · IN"},
+                {"id": "2.19", "section": {"en": "D · IN", "ru": "D · IN"},
                  "intro": {
                      "en": '''<p><code>x IN (a, b, c)</code> is true when <code>x</code> equals any value in the list. It replaces a chain of <code>OR</code>s: <code>x = a OR x = b OR x = c</code>.</p>
 <p><b>Example:</b> employees hired in 2014, 2015 or 2022.</p>''',
@@ -320,14 +362,14 @@ INSERT INTO products VALUES
                  "example": "SELECT first_name, hire_year\nFROM employees\nWHERE hire_year IN (2014, 2015, 2022);",
                  "text": {"en": "Get all employees who work in <code>'IT'</code> or <code>'Sales'</code> (use <code>IN</code>).", "ru": "Выведи всех сотрудников отделов <code>'IT'</code> и <code>'Sales'</code> (используй <code>IN</code>)."},
                  "answer": "SELECT * FROM employees WHERE department IN ('IT', 'Sales');"},
-                {"text": {"en": "Get all products from suppliers <code>'TechCorp'</code> or <code>'PaperWorld'</code>.", "ru": "Выведи все товары поставщиков <code>'TechCorp'</code> и <code>'PaperWorld'</code>."},
+                {"id": "2.20", "text": {"en": "Get all products from suppliers <code>'TechCorp'</code> or <code>'PaperWorld'</code>.", "ru": "Выведи все товары поставщиков <code>'TechCorp'</code> и <code>'PaperWorld'</code>."},
                  "answer": "SELECT * FROM products WHERE supplier IN ('TechCorp', 'PaperWorld');"},
-                {"text": {"en": "Get all employees from the cities <code>'London'</code>, <code>'Berlin'</code>, <code>'Madrid'</code>.", "ru": "Выведи всех сотрудников из городов <code>'London'</code>, <code>'Berlin'</code>, <code>'Madrid'</code>."},
+                {"id": "2.21", "text": {"en": "Get all employees from the cities <code>'London'</code>, <code>'Berlin'</code>, <code>'Madrid'</code>.", "ru": "Выведи всех сотрудников из городов <code>'London'</code>, <code>'Berlin'</code>, <code>'Madrid'</code>."},
                  "answer": "SELECT * FROM employees WHERE city IN ('London', 'Berlin', 'Madrid');"},
-                {"text": {"en": "Get all products in the categories <code>'Electronics'</code> or <code>'Furniture'</code>.", "ru": "Выведи все товары категорий <code>'Electronics'</code> и <code>'Furniture'</code>."},
+                {"id": "2.22", "text": {"en": "Get all products in the categories <code>'Electronics'</code> or <code>'Furniture'</code>.", "ru": "Выведи все товары категорий <code>'Electronics'</code> и <code>'Furniture'</code>."},
                  "answer": "SELECT * FROM products WHERE category IN ('Electronics', 'Furniture');"},
                 # Section E
-                {"section": {"en": "E · LIKE", "ru": "E · LIKE"},
+                {"id": "2.23", "section": {"en": "E · LIKE", "ru": "E · LIKE"},
                  "intro": {
                      "en": '''<p><code>LIKE</code> compares text with a pattern. <code>%</code> means any number of characters (even none), <code>_</code> means exactly one character. <code>'A%'</code> starts with A, <code>'%a'</code> ends with a, <code>'%a%'</code> contains a.</p>
 <p><b>Example:</b> employees whose last name ends with "r".</p>''',
@@ -337,18 +379,18 @@ INSERT INTO products VALUES
                  "example": "SELECT first_name, last_name\nFROM employees\nWHERE last_name LIKE '%r';",
                  "text": {"en": "Get all employees whose first name starts with <code>'A'</code>.", "ru": "Выведи всех сотрудников, чьё имя начинается на <code>'A'</code>."},
                  "answer": "SELECT * FROM employees WHERE first_name LIKE 'A%';"},
-                {"text": {"en": "Get all products whose name ends with <code>'e'</code>.", "ru": "Выведи все товары, название которых заканчивается на <code>'e'</code>."},
+                {"id": "2.24", "text": {"en": "Get all products whose name ends with <code>'e'</code>.", "ru": "Выведи все товары, название которых заканчивается на <code>'e'</code>."},
                  "answer": "SELECT * FROM products WHERE product_name LIKE '%e';"},
-                {"text": {"en": "Get all employees whose last name contains <code>'son'</code>.", "ru": "Выведи всех сотрудников, в фамилии которых есть <code>'son'</code>."},
+                {"id": "2.25", "text": {"en": "Get all employees whose last name contains <code>'son'</code>.", "ru": "Выведи всех сотрудников, в фамилии которых есть <code>'son'</code>."},
                  "answer": "SELECT * FROM employees WHERE last_name LIKE '%son%';"},
-                {"text": {"en": "Get all products whose name contains the word <code>'Set'</code>.", "ru": "Выведи все товары, в названии которых есть слово <code>'Set'</code>."},
+                {"id": "2.26", "text": {"en": "Get all products whose name contains the word <code>'Set'</code>.", "ru": "Выведи все товары, в названии которых есть слово <code>'Set'</code>."},
                  "answer": "SELECT * FROM products WHERE product_name LIKE '%Set%';"},
-                {"text": {"en": "Get all employees whose first name has exactly 5 letters (use <code>_</code>).", "ru": "Выведи всех сотрудников, чьё имя состоит ровно из 5 букв (используй <code>_</code>)."},
+                {"id": "2.27", "text": {"en": "Get all employees whose first name has exactly 5 letters (use <code>_</code>).", "ru": "Выведи всех сотрудников, чьё имя состоит ровно из 5 букв (используй <code>_</code>)."},
                  "answer": "SELECT * FROM employees WHERE first_name LIKE '_____';"},
-                {"text": {"en": "Get all products whose name starts with <code>'B'</code>.", "ru": "Выведи все товары, название которых начинается на <code>'B'</code>."},
+                {"id": "2.28", "text": {"en": "Get all products whose name starts with <code>'B'</code>.", "ru": "Выведи все товары, название которых начинается на <code>'B'</code>."},
                  "answer": "SELECT * FROM products WHERE product_name LIKE 'B%';"},
                 # Section F
-                {"section": {"en": "F · NULL", "ru": "F · NULL"},
+                {"id": "2.29", "section": {"en": "F · NULL", "ru": "F · NULL"},
                  "intro": {
                      "en": '''<p><code>NULL</code> means "no value", like an empty cell. Any comparison with <code>NULL</code>, even <code>= NULL</code>, is never true, so <code>WHERE bonus = NULL</code> returns nothing. Use <code>IS NULL</code> and <code>IS NOT NULL</code>.</p>
 <p><b>Example:</b> employees in Paris who have no bonus.</p>''',
@@ -358,12 +400,12 @@ INSERT INTO products VALUES
                  "example": "SELECT first_name, city, bonus\nFROM employees\nWHERE city = 'Paris' AND bonus IS NULL;",
                  "text": {"en": "Get all employees who have a bonus (<code>bonus IS NOT NULL</code>).", "ru": "Выведи всех сотрудников, у которых есть бонус (<code>bonus IS NOT NULL</code>)."},
                  "answer": "SELECT * FROM employees WHERE bonus IS NOT NULL;"},
-                {"text": {"en": "Get all employees who do NOT have a bonus.", "ru": "Выведи всех сотрудников, у которых НЕТ бонуса."},
+                {"id": "2.30", "text": {"en": "Get all employees who do NOT have a bonus.", "ru": "Выведи всех сотрудников, у которых НЕТ бонуса."},
                  "answer": "SELECT * FROM employees WHERE bonus IS NULL;"},
-                {"text": {"en": "Get all employees who have a bonus greater than 4000.", "ru": "Выведи всех сотрудников с бонусом больше 4000."},
+                {"id": "2.31", "text": {"en": "Get all employees who have a bonus greater than 4000.", "ru": "Выведи всех сотрудников с бонусом больше 4000."},
                  "answer": "SELECT * FROM employees WHERE bonus > 4000;"},
                 # Section G
-                {"section": {"en": "G · DISTINCT", "ru": "G · DISTINCT"},
+                {"id": "2.32", "section": {"en": "G · DISTINCT", "ru": "G · DISTINCT"},
                  "intro": {
                      "en": '''<p><code>SELECT DISTINCT</code> removes duplicate rows from the result, like "Remove duplicates" in Excel. With several columns, a row is a duplicate only if <b>all</b> its selected values repeat. <code>DISTINCT</code> goes right after <code>SELECT</code> and works together with <code>WHERE</code>.</p>
 <p><b>Example:</b> the years in which people were hired. There are 10 employees but only 9 different years, because 2018 appears twice.</p>''',
@@ -373,18 +415,18 @@ INSERT INTO products VALUES
                  "example": "SELECT DISTINCT hire_year\nFROM employees;",
                  "text": {"en": "List every department once, without duplicates.", "ru": "Выведи список отделов, каждый по одному разу."},
                  "answer": "SELECT DISTINCT department FROM employees;"},
-                {"text": {"en": "List every city where employees work, without repeats.", "ru": "Выведи все города, где работают сотрудники, без повторов."},
+                {"id": "2.33", "text": {"en": "List every city where employees work, without repeats.", "ru": "Выведи все города, где работают сотрудники, без повторов."},
                  "answer": "SELECT DISTINCT city FROM employees;"},
-                {"text": {"en": "List all suppliers of products, each one once.", "ru": "Выведи всех поставщиков товаров, каждого по одному разу."},
+                {"id": "2.34", "text": {"en": "List all suppliers of products, each one once.", "ru": "Выведи всех поставщиков товаров, каждого по одному разу."},
                  "answer": "SELECT DISTINCT supplier FROM products;"},
-                {"text": {"en": "List every unique combination of <code>department</code> and <code>city</code>.", "ru": "Выведи все уникальные сочетания <code>department</code> и <code>city</code>."},
+                {"id": "2.35", "text": {"en": "List every unique combination of <code>department</code> and <code>city</code>.", "ru": "Выведи все уникальные сочетания <code>department</code> и <code>city</code>."},
                  "answer": "SELECT DISTINCT department, city FROM employees;"},
-                {"text": {"en": "List the cities that have at least one employee with salary above 50000, without repeats.", "ru": "Выведи без повторов города, где есть сотрудники с зарплатой выше 50000."},
+                {"id": "2.36", "text": {"en": "List the cities that have at least one employee with salary above 50000, without repeats.", "ru": "Выведи без повторов города, где есть сотрудники с зарплатой выше 50000."},
                  "answer": "SELECT DISTINCT city FROM employees WHERE salary > 50000;"},
-                {"text": {"en": "List the product categories that have products cheaper than 100, each category once.", "ru": "Выведи категории, в которых есть товары дешевле 100, каждую по одному разу."},
+                {"id": "2.37", "text": {"en": "List the product categories that have products cheaper than 100, each category once.", "ru": "Выведи категории, в которых есть товары дешевле 100, каждую по одному разу."},
                  "answer": "SELECT DISTINCT category FROM products WHERE price < 100;"},
                 # Section H
-                {"section": {"en": "H · Mixed", "ru": "H · Всё вместе"},
+                {"id": "2.38", "section": {"en": "H · Mixed", "ru": "H · Всё вместе"},
                  "intro": {
                      "en": '''<p>Real questions combine everything above. Build the condition step by step: write one part, run it, check the rows, then add the next part with <code>AND</code> or <code>OR</code>.</p>
 <p><b>Example:</b> IT employees in London or Madrid who have a bonus.</p>''',
@@ -394,11 +436,11 @@ INSERT INTO products VALUES
                  "example": "SELECT first_name, city, bonus\nFROM employees\nWHERE department = 'IT'\n  AND city IN ('London', 'Madrid')\n  AND bonus IS NOT NULL;",
                  "text": {"en": "Get all IT or Sales employees from <code>'London'</code> with salary &gt; 55000.", "ru": "Выведи всех сотрудников IT или Sales из <code>'London'</code> с зарплатой &gt; 55000."},
                  "answer": "SELECT * FROM employees\nWHERE department IN ('IT', 'Sales')\n  AND city = 'London'\n  AND salary > 55000;"},
-                {"text": {"en": "Get all products in <code>'Electronics'</code> with price <code>BETWEEN</code> 50 <code>AND</code> 400 and stock &gt; 20.", "ru": "Выведи все товары <code>'Electronics'</code> с ценой <code>BETWEEN</code> 50 <code>AND</code> 400 и <code>stock</code> &gt; 20."},
+                {"id": "2.39", "text": {"en": "Get all products in <code>'Electronics'</code> with price <code>BETWEEN</code> 50 <code>AND</code> 400 and stock &gt; 20.", "ru": "Выведи все товары <code>'Electronics'</code> с ценой <code>BETWEEN</code> 50 <code>AND</code> 400 и <code>stock</code> &gt; 20."},
                  "answer": "SELECT * FROM products\nWHERE category = 'Electronics'\n  AND price BETWEEN 50 AND 400\n  AND stock > 20;"},
-                {"text": {"en": "Get all employees whose first name starts with <code>'J'</code> OR last name starts with <code>'B'</code>.", "ru": "Выведи всех сотрудников, у которых имя начинается на <code>'J'</code> ИЛИ фамилия на <code>'B'</code>."},
+                {"id": "2.40", "text": {"en": "Get all employees whose first name starts with <code>'J'</code> OR last name starts with <code>'B'</code>.", "ru": "Выведи всех сотрудников, у которых имя начинается на <code>'J'</code> ИЛИ фамилия на <code>'B'</code>."},
                  "answer": "SELECT * FROM employees\nWHERE first_name LIKE 'J%' OR last_name LIKE 'B%';"},
-                {"text": {"en": "Get all products whose name contains <code>'o'</code> and whose category is NOT <code>'Furniture'</code>.", "ru": "Выведи все товары, в названии которых есть <code>'o'</code>, а категория НЕ <code>'Furniture'</code>."},
+                {"id": "2.41", "text": {"en": "Get all products whose name contains <code>'o'</code> and whose category is NOT <code>'Furniture'</code>.", "ru": "Выведи все товары, в названии которых есть <code>'o'</code>, а категория НЕ <code>'Furniture'</code>."},
                  "answer": "SELECT * FROM products\nWHERE product_name LIKE '%o%' AND category <> 'Furniture';"},
             ],
         },

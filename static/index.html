@@ -461,20 +461,21 @@ async function checkTask(r){
     msg.insertAdjacentHTML('beforeend',`<span class="bad">${esc(bad)}</span>`);
     return;
   }
-  COURSE_PROGRESS.add(COURSE_LESSON.id,k);
+  COURSE_PROGRESS.add(COURSE_LESSON.id,COURSE_LESSON.tasks[k].id);
   celebrate(k);
   renderLessons(k);
 }
 function celebrate(k){
-  const n=COURSE_LESSON.tasks.length, solved=new Set(COURSE_PROGRESS.get(COURSE_LESSON.id));
-  const all=solved.size>=n, nextOpen=[...Array(n).keys()].find(i=>i>k&&!solved.has(i))??[...Array(n).keys()].find(i=>!solved.has(i));
-  const dots=[...Array(n).keys()].map(i=>`<i class="${solved.has(i)?'on':''}${i===k?' now':''}"></i>`).join('');
+  const n=COURSE_LESSON.tasks.length, ids=new Set(COURSE_PROGRESS.get(COURSE_LESSON.id)), done=i=>ids.has(COURSE_LESSON.tasks[i].id);
+  const doneCount=COURSE_PROGRESS.count(COURSE_LESSON);
+  const all=doneCount>=n, nextOpen=[...Array(n).keys()].find(i=>i>k&&!done(i))??[...Array(n).keys()].find(i=>!done(i));
+  const dots=[...Array(n).keys()].map(i=>`<i class="${done(i)?'on':''}${i===k?' now':''}"></i>`).join('');
   const nextLesson=COURSE.lessons.find(x=>x.id>COURSE_LESSON.id&&x.available);
   const action=all?(nextLesson?`<a class="btn primary" href="./?lesson=${nextLesson.id}&task=1">${esc(L.nextLesson)}</a>`:`<a class="btn primary" href="lessons">${esc(L.allLessons)}</a>`)
     :k<n-1?`<button class="btn primary" data-lesson-go="${k+1}">${esc(L.nextTask)}</button>`
     :`<button class="btn primary" data-lesson-go="${nextOpen}">${esc(L.toUnsolved)}</button>`;
   const title=all?L.lessonComplete:L.praise[Math.floor(Math.random()*L.praise.length)];
-  const line=all?L.proud(n):L.solvedOf(solved.size,n);
+  const line=all?L.proud(n):L.solvedOf(doneCount,n);
   $('msg').insertAdjacentHTML('beforeend',`<div class="win${all?' big':''}" role="status"><span class="medal" aria-hidden="true">${all?'🏆':'🎉'}</span>
     <span class="words"><b>${esc(title)}</b><small>${esc(line)}</small><span class="dots" aria-hidden="true">${dots}</span></span>${action}</div>`);
   confetti($('msg').querySelector('.win'),all);
@@ -771,7 +772,8 @@ function renderSchema(){
 function renderLessons(active){
   activeLesson=active;
   const el=$('lessons'); el.innerHTML='';
-  const solved=COURSE_LESSON?new Set(COURSE_PROGRESS.get(COURSE_LESSON.id)):new Set();
+  const ids=COURSE_LESSON?new Set(COURSE_PROGRESS.get(COURSE_LESSON.id)):new Set();
+  const solved={has:i=>!!COURSE_LESSON&&ids.has(COURSE_LESSON.tasks[i].id)};
   if(COURSE_LESSON){ $('lessons-label').textContent=L.tasksOf(COURSE_LESSON.id); const back=$('lessons-back'); back.hidden=false; back.textContent=L.allLessons; }
   lessonList().forEach((l,i)=>{
     if(l.section){const h=document.createElement('div');h.className='sect';h.textContent=l.section;el.appendChild(h)}

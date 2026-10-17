@@ -2,6 +2,7 @@
 
 * main.py and course.py are valid Python;
 * every lesson's seed loads, and every task answer and section example runs;
+* every task has a unique id (progress is saved by task id);
 * the course sent to browsers (/course.js) contains no answers or teacher tips.
 
 Usage: python scripts/check.py   (or: make check)
@@ -42,6 +43,10 @@ for lesson in COURSE["lessons"]:
         fail(f"lesson {lid}: seed does not load: {e}")
         continue
     bad = 0
+    ids = [t.get("id") for t in tasks]
+    if None in ids or len(set(ids)) != len(ids):
+        bad += 1
+        fail(f"lesson {lid}: every task needs its own unique \"id\" (progress is saved by it)")
     for i, task in enumerate(tasks, 1):
         for field in ("answer", "example"):
             if field in task:
