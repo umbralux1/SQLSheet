@@ -46,10 +46,6 @@ header p{margin:0;color:var(--muted)}
   #lessons-box:not(.open) .lessons{display:none}
   #schema-box{display:none}   /* no room for the table list on a phone */
 }
-.task-nav{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px}
-.task-nav button{font:inherit;font-size:12px;font-weight:600;border:1px solid var(--line-strong);background:var(--panel);color:var(--fg);border-radius:4px;padding:3px 10px;cursor:pointer}
-.task-nav button:disabled{opacity:.4;cursor:default}
-.task-nav button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .box{background:var(--panel);border:1px solid var(--line);border-radius:6px;min-width:0}
 .label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
 
@@ -461,7 +457,6 @@ function lessonList(){
     return `<details class="intro"><summary>${esc(L.sectionTheory(t.section[lang]))}</summary><div class="intro-body">${t.intro[lang]}<pre class="code">${esc(t.example||'')}</pre></div></details>`};
   return COURSE_LESSON.tasks.map((t,k)=>({t:`${L.task} ${k+1}`, d:stripTags(t.text[lang]), q:'', section:t.section?t.section[lang]:'',
     n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${L.task} ${k+1}/${n}</span><div class="task-text">${t.text[lang]}</div>`+introOf(k)+
-      `<div class="task-nav"><button data-lesson-go="${k-1}"${k===0?' disabled':''}>${esc(L.prevTask)}</button><button data-lesson-go="${k+1}"${k===n-1?' disabled':''}>${esc(L.nextTaskShort)}</button></div>`+
       (TEACHER_ANSWERS&&TEACHER_ANSWERS[k]?`<details class="answer"><summary><span class="when-closed">${esc(L.answerLabel)}</span><span class="when-open">${esc(L.answerHide)}</span></summary><code>${esc(TEACHER_ANSWERS[k])}</code></details>`:'')}));
 }
 function defaultLesson(){
