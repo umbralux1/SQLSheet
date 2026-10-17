@@ -447,9 +447,9 @@ function lessonList(){
   const n=COURSE_LESSON.tasks.length;
   const sectionOf=k=>{for(let i=k;i>=0;i--) if(COURSE_LESSON.tasks[i].section) return COURSE_LESSON.tasks[i].section[lang]; return ''};
   const sectionStart=k=>{for(let i=k;i>=0;i--) if(COURSE_LESSON.tasks[i].section) return i; return -1};
-  // section theory + worked example: open on the first task of a section, folded on the others
+  // section theory + worked example, folded until the student opens it
   const introOf=k=>{const i=sectionStart(k), t=i>=0?COURSE_LESSON.tasks[i]:null; if(!t||!t.intro) return '';
-    return `<details class="intro"${i===k?' open':''}><summary>${esc(L.sectionTheory(t.section[lang]))}</summary><div class="intro-body">${t.intro[lang]}<pre class="code">${esc(t.example||'')}</pre></div></details>`};
+    return `<details class="intro"><summary>${esc(L.sectionTheory(t.section[lang]))}</summary><div class="intro-body">${t.intro[lang]}<pre class="code">${esc(t.example||'')}</pre></div></details>`};
   return COURSE_LESSON.tasks.map((t,k)=>({t:`${L.task} ${k+1}`, d:stripTags(t.text[lang]), q:'', section:t.section?t.section[lang]:'',
     n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${L.task} ${k+1}/${n}</span>${t.text[lang]}`+introOf(k)+
       `<div class="task-nav"><button data-lesson-go="${k-1}"${k===0?' disabled':''}>${esc(L.prevTask)}</button><button data-lesson-go="${k+1}"${k===n-1?' disabled':''}>${esc(L.nextTaskShort)}</button></div>`+
