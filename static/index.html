@@ -279,7 +279,6 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:n
       <div class="ribbon">
         <button class="btn primary" id="run" data-i18n="run"></button>
         <button class="btn" id="reset" data-i18n="reset"></button>
-        <span class="semi"><span data-i18n="semiLabel"></span><span class="seg" role="group"><button id="semi-strict" data-semi="strict" data-i18n="semiStrict"></button><button id="semi-hint" data-semi="hint" data-i18n="semiHint"></button></span></span>
         <span class="hint" data-i18n="hint"></span>
       </div>
       <div class="collab" id="collab" hidden>
@@ -317,7 +316,7 @@ const T = {
   tables:'Database tables', lessons:'Lessons', run:'▶ Run', reset:'Reset database', resetTitle:'Restore the original data',
   semiLabel:'Semicolon:', semiStrict:'Strict', semiHint:'Hint', semiStrictTitle:'Queries without ; at the end are not run', semiHintTitle:'Queries run, with a reminder to add ;',
   caseTip:'Style: SQL keywords are usually written in UPPERCASE:', caseFix:'Make uppercase',
-  semiErr:'Missing ; at the end of the query. In strict mode every statement must end with a semicolon.', semiTip:'Tip: end every SQL statement with ;',
+  semiErr:'Missing ; at the end of the query. Every SQL statement must end with a semicolon.', semiTip:'Tip: end every SQL statement with ;',
   live:'Live', connecting:'Connecting…', offline:'Offline, reconnecting…', room:'room', you:'you', yourName:'Your name', copyLink:'Copy invite link', copied:'Link copied', alone:'Only you here. Share the link to invite someone.',
   sectionTheory:s=>`Theory and example · ${s}`, answerLabel:'Show answer · only you see it', answerHide:'Hide answer',
   prevTask:'← Previous', nextTaskShort:'Next →', showTasks:n=>`▾ All tasks (${n})`, showLessons:'▾ All lessons', hideTasks:'▴ Hide the list',
@@ -350,7 +349,7 @@ const T = {
   tables:'Таблицы базы', lessons:'Уроки', run:'▶ Выполнить', reset:'Сбросить базу', resetTitle:'Вернуть исходные данные',
   semiLabel:'Точка с запятой:', semiStrict:'Строго', semiHint:'Подсказка', semiStrictTitle:'Запросы без ; в конце не выполняются', semiHintTitle:'Запросы выполняются, но с напоминанием поставить ;',
   caseTip:'Стиль: ключевые слова SQL принято писать ЗАГЛАВНЫМИ:', caseFix:'Исправить регистр',
-  semiErr:'Нет ; в конце запроса. В строгом режиме каждая команда должна заканчиваться точкой с запятой.', semiTip:'Совет: заканчивай каждую SQL-команду точкой с запятой ;',
+  semiErr:'Нет ; в конце запроса. Каждая SQL-команда должна заканчиваться точкой с запятой.', semiTip:'Совет: заканчивай каждую SQL-команду точкой с запятой ;',
   live:'Онлайн', connecting:'Подключение…', offline:'Нет связи, переподключаюсь…', room:'комната', you:'ты', yourName:'Твоё имя', copyLink:'Скопировать ссылку', copied:'Ссылка скопирована', alone:'Пока здесь только ты. Отправь ссылку, чтобы позвать кого-то.',
   sectionTheory:s=>`Теория и пример · ${s}`, answerLabel:'Показать ответ · видишь только ты', answerHide:'Скрыть ответ',
   prevTask:'← Назад', nextTaskShort:'Далее →', showTasks:n=>`▾ Все задания (${n})`, showLessons:'▾ Все уроки', hideTasks:'▴ Свернуть список',
@@ -546,14 +545,12 @@ function applyLang(){
   if(COURSE_LESSON&&$('lessons').children.length) renderLessons(activeLesson);
   if(window.renderToggle) renderToggle();
 }
-/* ---------- semicolon mode ---------- */
-let semiMode='strict';
-try{const s=localStorage.getItem('sqlt-semi-mode');if(s==='strict'||s==='hint')semiMode=s}catch(e){}
-function applySemi(){
-  $('semi-strict').setAttribute('aria-pressed',semiMode==='strict'); $('semi-strict').title=L.semiStrictTitle;
-  $('semi-hint').setAttribute('aria-pressed',semiMode==='hint'); $('semi-hint').title=L.semiHintTitle;
-}
-function setSemi(m){semiMode=m;try{localStorage.setItem('sqlt-semi-mode',m)}catch(e){};applySemi()}
+/* ---------- semicolon mode ----------
+   Always strict: a query without ; at the end is not run. (There used to be a
+   Strict / Hint switch; it was removed, so saved or shared choices are ignored.) */
+const semiMode='strict';
+function applySemi(){}
+function setSemi(){}
 function missingSemi(src){
   const s=src.replace(/'(?:[^']|'')*'/g,"''").replace(/\/\*[\s\S]*?\*\//g,'').replace(/--[^\n]*/g,'').trim();
   return s.length>0&&!s.endsWith(';');
@@ -833,7 +830,6 @@ $('lessons-toggle').onclick=()=>{const box=$('lessons-box'),open=box.classList.t
 function renderToggle(){const open=$('lessons-box').classList.contains('open');$('lessons-toggle').textContent=open?L.hideTasks:(COURSE_LESSON?L.showTasks(COURSE_LESSON.tasks.length):L.showLessons)}
 $('reset').onclick=()=>{resetDb();renderSchema();clearResult();showMsg('ok',L.resetDone+' '+L.ready)};
 document.querySelectorAll('.lang button').forEach(b=>b.onclick=()=>setLang(b.dataset.lang));
-document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>setSemi(b.dataset.semi));
 applyLang();
 $('msg').textContent=L.loading;
 grid.innerHTML=`<div class="boot">${L.preparing}</div>`;
@@ -902,7 +898,6 @@ function start(){
     if(t.id==='run') emit({kind:'run',src:ta.value});
     else if(t.id==='reset') emit({kind:'reset'});
     else if(t.dataset.lang) emit({kind:'lang',lang:t.dataset.lang});
-    else if(t.dataset.semi) emit({kind:'semi',mode:t.dataset.semi});
     else if(t.closest('#tabs')) emit({kind:'tab',id:t.dataset.id});
     else if(t.classList.contains('tname')) emit({kind:'tab',id:t.childNodes[0].textContent.trim()});
     else if(t.dataset.lessonGo) emit({kind:'lesson',i:+t.dataset.lessonGo});
