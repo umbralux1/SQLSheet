@@ -6,7 +6,7 @@
 <title>SQL Sheet</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@600;800&display=swap">
 <style>
 /* Layout: Excel-like workbook — schema rail left, editor + formula bar + grid right, sheet tabs + status bar at the bottom */
 :root{
@@ -119,6 +119,16 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
 .status .agg{margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
 .boot{padding:40px;text-align:center;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* message for Rosa at the top of the page */
+.rosa{margin:6px 0 2px;text-align:center;font-family:var(--f-display);font-weight:800;
+  font-size:clamp(24px,4.4vw,46px);line-height:1.15;letter-spacing:-.015em;text-wrap:balance;
+  background:linear-gradient(90deg,#ff2e63,#ff7a00,#f5b700,#1fbf6a,#00a8e8,#7b5cff,#ff2e63);
+  background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:rosa-shine 9s linear infinite}
+.rosa span{display:inline-block}
+@keyframes rosa-shine{to{background-position:200% center}}
+@media (prefers-reduced-motion:reduce){.rosa{animation:none}}
 </style>
 <style>
 .lang{display:inline-flex;border:1px solid var(--line-strong);border-radius:4px;overflow:hidden;margin-left:auto;align-self:center}
@@ -217,6 +227,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:n
 </style>
 
 <div class="wrap">
+  <p class="rosa"><span>Rosa, Beardy made this site to teach u SQL.</span> <span>Why u don't believe him?</span></p>
   <header>
     <h1>SQL <span data-i18n="brand2">Sheet</span></h1>
     <p data-i18n="tagline"></p>
