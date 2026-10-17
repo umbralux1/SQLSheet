@@ -80,6 +80,14 @@ aside{display:grid;gap:12px}
 .lesson-note{padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px;color:var(--fg);background:var(--panel)}
 .lesson-note:empty{display:none}
 .lesson-note code{font-family:var(--f-mono);font-size:12px;background:var(--head);padding:0 4px;border-radius:3px}
+/* the task statement: its own card, a little larger, easy to spot */
+.lesson-note .task-text{margin:8px 0 10px;padding:12px 16px 12px 18px;max-width:72ch;
+  font-size:clamp(17px,1.4vw,19px);line-height:1.45;font-weight:500;color:var(--fg);text-wrap:pretty;
+  background:linear-gradient(90deg,var(--sel),transparent 65%),var(--panel);
+  border:1px solid var(--line-strong);border-left:4px solid var(--accent);border-radius:8px;
+  box-shadow:0 1px 2px rgba(0,0,0,.06),0 8px 20px -14px rgba(0,0,0,.35)}
+.lesson-note .task-text code{font-size:.86em;padding:1px 6px;border-radius:4px;background:var(--panel);border:1px solid var(--line)}
+.lesson-note .task-text b{font-weight:700}
 .editor{position:relative;font-family:var(--f-mono);font-size:13.5px;line-height:1.6;border-bottom:1px solid var(--line)}
 .editor pre,.editor textarea{margin:0;padding:10px 12px 10px 46px;min-height:120px;white-space:pre-wrap;word-break:break-word;font:inherit;tab-size:2}
 .editor pre{pointer-events:none;color:var(--fg)}
@@ -451,7 +459,7 @@ function lessonList(){
   const introOf=k=>{const i=sectionStart(k), t=i>=0?COURSE_LESSON.tasks[i]:null; if(!t||!t.intro) return '';
     return `<details class="intro"><summary>${esc(L.sectionTheory(t.section[lang]))}</summary><div class="intro-body">${t.intro[lang]}<pre class="code">${esc(t.example||'')}</pre></div></details>`};
   return COURSE_LESSON.tasks.map((t,k)=>({t:`${L.task} ${k+1}`, d:stripTags(t.text[lang]), q:'', section:t.section?t.section[lang]:'',
-    n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${L.task} ${k+1}/${n}</span>${t.text[lang]}`+introOf(k)+
+    n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${L.task} ${k+1}/${n}</span><div class="task-text">${t.text[lang]}</div>`+introOf(k)+
       `<div class="task-nav"><button data-lesson-go="${k-1}"${k===0?' disabled':''}>${esc(L.prevTask)}</button><button data-lesson-go="${k+1}"${k===n-1?' disabled':''}>${esc(L.nextTaskShort)}</button></div>`+
       (TEACHER_ANSWERS&&TEACHER_ANSWERS[k]?`<details class="answer"><summary><span class="when-closed">${esc(L.answerLabel)}</span><span class="when-open">${esc(L.answerHide)}</span></summary><code>${esc(TEACHER_ANSWERS[k])}</code></details>`:'')}));
 }
