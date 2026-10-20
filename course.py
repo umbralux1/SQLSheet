@@ -196,6 +196,7 @@ WHERE condition;</pre>
                     "Watch for common mistakes: <code>= NULL</code> instead of <code>IS NULL</code>, and missing parentheses when mixing <code>AND</code> and <code>OR</code>.",
                     "Ask the student to <b>predict the row count</b> before running a query. It builds intuition.",
                     "Have them <b>modify</b> queries, for example change <code>&gt;</code> to <code>&gt;=</code>: what changes?",
+                    "<b>B++</b> (brackets with <code>AND</code> + <code>OR</code>) was added after <code>city = 'Paris' OR 'Berlin' AND salary &gt; 50000</code>. In every task the version without brackets returns different rows, so the trainer catches it. Ask the student to run the wrong version first and say who should not be in the result.",
                     "If task 10 is hard, use section <b>B+</b>: ten more <code>OR</code> tasks. Show both wrong versions from its theory and ask the student to predict their row counts first.",
                     "<b>Extra practice</b> (50 tasks) repeats the lesson's topics and is optional. Good for homework or for a student who finished early.",
                     "<b>Extra AND / OR / NOT</b> introduces De Morgan's law: <code>NOT (A OR B)</code> equals <code>NOT A AND NOT B</code>. Ask the student to write each task both ways and compare the row counts.",
@@ -206,6 +207,7 @@ WHERE condition;</pre>
                     "Следи за типичными ошибками: <code>= NULL</code> вместо <code>IS NULL</code> и забытые скобки, когда смешиваются <code>AND</code> и <code>OR</code>.",
                     "Проси ученика <b>предсказать число строк</b> до запуска запроса. Это развивает интуицию.",
                     "Предлагай <b>менять</b> запросы, например заменить <code>&gt;</code> на <code>&gt;=</code>: что изменится?",
+                    "<b>B++</b> (скобки при <code>AND</code> + <code>OR</code>) добавлен после запроса <code>city = 'Paris' OR 'Berlin' AND salary &gt; 50000</code>. В каждом задании вариант без скобок возвращает другие строки, и тренажёр его не засчитает. Попроси ученика сначала запустить неверный вариант и сказать, кого в результате быть не должно.",
                     "Если задание 10 даётся тяжело, переходи к разделу <b>B+</b>: ещё десять заданий на <code>OR</code>. Покажи обе ошибки из его теории и попроси сначала предсказать, сколько строк они вернут.",
                     "<b>Дополнительная практика</b> (50 заданий) повторяет темы урока и не обязательна. Подходит для домашней работы или для ученика, который закончил раньше.",
                     "<b>Доп. AND / OR / NOT</b> знакомит с законом де Моргана: <code>NOT (A OR B)</code> равно <code>NOT A AND NOT B</code>. Попроси записать каждое задание обоими способами и сравнить число строк.",
@@ -342,6 +344,70 @@ INSERT INTO products VALUES
                  "answer": "SELECT product_name, stock FROM products WHERE stock = 15 OR stock = 20;"},
                 {"id": "2.or10", "text": {"en": "Show <code>first_name</code>, <code>last_name</code> and <code>city</code> of the employees whose last name is <code>'Smith'</code> OR <code>'Davis'</code>.", "ru": "Покажи <code>first_name</code>, <code>last_name</code> и <code>city</code> сотрудников с фамилией <code>'Smith'</code> ИЛИ <code>'Davis'</code>."},
                  "answer": "SELECT first_name, last_name, city FROM employees WHERE last_name = 'Smith' OR last_name = 'Davis';"},
+                # Section B++ (added after the "Paris OR 'Berlin' AND salary" mistake)
+                {"id": "2.p1",
+                 "section": {"en": "B++ · Practice: AND with OR, use brackets", "ru": "B++ · Практика: AND вместе с OR, нужны скобки"},
+                 "intro": {"en": '''<p>"Employees from Paris or Berlin with salary above 50000" has two parts: <b>which city</b> (Paris or Berlin) and <b>which salary</b> (above 50000). Both parts must be true, so the city part has to be one group.</p>
+<p><b>Why <code>city = 'Paris' OR 'Berlin' AND salary &gt; 50000</code> is wrong.</b> It has two separate problems:</p>
+<ol>
+  <li><b><code>'Berlin'</code> on its own is not a condition.</b> It is just a piece of text, and nothing compares it with <code>city</code>. In this trainer such text counts as false, so the Berlin part never matches anyone (some databases give an error instead). You have to write <code>city = 'Berlin'</code>.</li>
+  <li><b><code>AND</code> is worked out before <code>OR</code></b>, the way × comes before + in maths. So SQL reads the condition as <code>city = 'Paris' OR ('Berlin' AND salary &gt; 50000)</code>, and every employee from Paris passes, whatever their salary.</li>
+</ol>
+<p>Even with both comparisons written out, <code>city = 'Paris' OR city = 'Berlin' AND salary &gt; 50000</code> is still wrong. It means "everyone from Paris, plus the people from Berlin who earn more than 50000".</p>
+<table class="ops"><thead><tr><th>Condition</th><th>Rows</th><th>Who</th></tr></thead><tbody>
+<tr><td><code>city = 'Paris' OR 'Berlin' AND salary &gt; 50000</code></td><td>3</td><td>Bob, Ethan, Julia: all of Paris, even Bob (45000) and Julia (41000)</td></tr>
+<tr><td><code>city = 'Paris' OR city = 'Berlin' AND salary &gt; 50000</code></td><td>5</td><td>Bob, Ethan, Julia, Diana, George</td></tr>
+<tr><td><code>(city = 'Paris' OR city = 'Berlin') AND salary &gt; 50000</code></td><td>3</td><td>Ethan, Diana, George ✓</td></tr>
+</tbody></table>
+<p>The first wrong version also returns 3 rows, but they are the wrong people. Always check <b>who</b> is in the result, not only how many rows there are.</p>
+<p><b>Why the brackets fix it.</b> Brackets are worked out first, as in maths. <code>(city = 'Paris' OR city = 'Berlin')</code> becomes one yes-or-no answer, "is the city Paris or Berlin?", and only then <code>AND salary &gt; 50000</code> is applied to it.</p>
+<p><b>Rule:</b> whenever a condition has both <code>AND</code> and <code>OR</code>, put the <code>OR</code> part in brackets. <code>A OR B AND C</code> works like <code>a + b × c</code>, which is <code>a + (b × c)</code>, not <code>(a + b) × c</code>.</p>
+<p><b>Example:</b> the correct query from the table.</p>''', "ru": '''<p>«Сотрудники из Парижа или Берлина с зарплатой выше 50000» состоит из двух частей: <b>какой город</b> (Париж или Берлин) и <b>какая зарплата</b> (выше 50000). Обе части должны выполняться, поэтому часть про город должна быть одной группой.</p>
+<p><b>Почему <code>city = 'Paris' OR 'Berlin' AND salary &gt; 50000</code> неверно.</b> Здесь две отдельные ошибки:</p>
+<ol>
+  <li><b><code>'Berlin'</code> сам по себе не условие.</b> Это просто текст, его ни с чем не сравнивают. В этом тренажёре такой текст считается ложью, поэтому часть про Берлин не находит никого (в некоторых СУБД будет ошибка). Нужно писать <code>city = 'Berlin'</code>.</li>
+  <li><b><code>AND</code> выполняется раньше <code>OR</code></b>, как умножение раньше сложения. Поэтому SQL читает условие как <code>city = 'Paris' OR ('Berlin' AND salary &gt; 50000)</code>, и проходят все сотрудники из Парижа, с любой зарплатой.</li>
+</ol>
+<p>Даже если написать оба сравнения полностью, <code>city = 'Paris' OR city = 'Berlin' AND salary &gt; 50000</code> всё равно неверно. Это значит «все из Парижа плюс те из Берлина, кто получает больше 50000».</p>
+<table class="ops"><thead><tr><th>Условие</th><th>Строк</th><th>Кто</th></tr></thead><tbody>
+<tr><td><code>city = 'Paris' OR 'Berlin' AND salary &gt; 50000</code></td><td>3</td><td>Bob, Ethan, Julia: весь Париж, даже Bob (45000) и Julia (41000)</td></tr>
+<tr><td><code>city = 'Paris' OR city = 'Berlin' AND salary &gt; 50000</code></td><td>5</td><td>Bob, Ethan, Julia, Diana, George</td></tr>
+<tr><td><code>(city = 'Paris' OR city = 'Berlin') AND salary &gt; 50000</code></td><td>3</td><td>Ethan, Diana, George ✓</td></tr>
+</tbody></table>
+<p>Первый неверный вариант тоже возвращает 3 строки, но не тех людей. Всегда смотри, <b>кто</b> попал в результат, а не только сколько строк.</p>
+<p><b>Почему скобки всё исправляют.</b> Скобки выполняются первыми, как в математике. <code>(city = 'Paris' OR city = 'Berlin')</code> превращается в один ответ «да или нет»: «город Париж или Берлин?», и только потом к нему применяется <code>AND salary &gt; 50000</code>.</p>
+<p><b>Правило:</b> если в условии есть и <code>AND</code>, и <code>OR</code>, бери часть с <code>OR</code> в скобки. <code>A OR B AND C</code> работает как <code>a + b × c</code>, то есть <code>a + (b × c)</code>, а не <code>(a + b) × c</code>.</p>
+<p><b>Пример:</b> правильный запрос из таблицы.</p>'''},
+                 "example": "SELECT first_name, city, salary\nFROM employees\nWHERE (city = 'Paris' OR city = 'Berlin') AND salary > 50000;",
+                 "text": {"en": "Get all employees from <code>'Paris'</code> OR <code>'Berlin'</code> with salary above 50000. This is the task that caused trouble: now write it with brackets.", "ru": "Выведи всех сотрудников из <code>'Paris'</code> ИЛИ <code>'Berlin'</code> с зарплатой выше 50000. Это то самое задание, на котором была ошибка: теперь напиши его со скобками."},
+                 "answer": "SELECT * FROM employees\nWHERE (city = 'Paris' OR city = 'Berlin') AND salary > 50000;"},
+                {"id": "2.p2",
+                 "text": {"en": "Get all employees from <code>'Sales'</code> OR <code>'HR'</code> with salary above 50000.", "ru": "Выведи всех сотрудников отделов <code>'Sales'</code> ИЛИ <code>'HR'</code> с зарплатой выше 50000."},
+                 "answer": "SELECT * FROM employees\nWHERE (department = 'Sales' OR department = 'HR') AND salary > 50000;"},
+                {"id": "2.p3",
+                 "text": {"en": "Get all employees with salary greater than 60000 who work in <code>'IT'</code> OR <code>'Sales'</code>.", "ru": "Выведи всех сотрудников с зарплатой больше 60000, которые работают в <code>'IT'</code> ИЛИ <code>'Sales'</code>."},
+                 "answer": "SELECT * FROM employees\nWHERE salary > 60000 AND (department = 'IT' OR department = 'Sales');"},
+                {"id": "2.p4",
+                 "text": {"en": "Get all employees from <code>'London'</code> OR <code>'Madrid'</code> hired after 2016.", "ru": "Выведи всех сотрудников из <code>'London'</code> ИЛИ <code>'Madrid'</code>, нанятых после 2016 года."},
+                 "answer": "SELECT * FROM employees\nWHERE (city = 'London' OR city = 'Madrid') AND hire_year > 2016;"},
+                {"id": "2.p5",
+                 "text": {"en": "Get all employees from <code>'HR'</code> OR <code>'Sales'</code> who have a bonus.", "ru": "Выведи всех сотрудников отделов <code>'HR'</code> ИЛИ <code>'Sales'</code>, у которых есть бонус."},
+                 "answer": "SELECT * FROM employees\nWHERE (department = 'HR' OR department = 'Sales') AND bonus IS NOT NULL;"},
+                {"id": "2.p6",
+                 "text": {"en": "Get all employees from <code>'Paris'</code> OR <code>'Berlin'</code> whose salary is <code>BETWEEN</code> 45000 <code>AND</code> 60000.", "ru": "Выведи всех сотрудников из <code>'Paris'</code> ИЛИ <code>'Berlin'</code> с зарплатой <code>BETWEEN</code> 45000 <code>AND</code> 60000."},
+                 "answer": "SELECT * FROM employees\nWHERE (city = 'Paris' OR city = 'Berlin')\n  AND salary BETWEEN 45000 AND 60000;"},
+                {"id": "2.p7",
+                 "text": {"en": "Get all employees whose first name starts with <code>'J'</code> OR last name starts with <code>'P'</code>, and whose salary is above 55000.", "ru": "Выведи всех сотрудников, у которых имя начинается на <code>'J'</code> ИЛИ фамилия на <code>'P'</code>, а зарплата выше 55000."},
+                 "answer": "SELECT * FROM employees\nWHERE (first_name LIKE 'J%' OR last_name LIKE 'P%') AND salary > 55000;"},
+                {"id": "2.p8",
+                 "text": {"en": "Get all employees from <code>'HR'</code> OR <code>'Sales'</code> whose salary is <code>NOT BETWEEN</code> 45000 <code>AND</code> 55000.", "ru": "Выведи всех сотрудников отделов <code>'HR'</code> ИЛИ <code>'Sales'</code> с зарплатой <code>NOT BETWEEN</code> 45000 <code>AND</code> 55000."},
+                 "answer": "SELECT * FROM employees\nWHERE (department = 'HR' OR department = 'Sales')\n  AND salary NOT BETWEEN 45000 AND 55000;"},
+                {"id": "2.p9",
+                 "text": {"en": "Get all employees from <code>'London'</code> OR <code>'Berlin'</code> who work in <code>'IT'</code> OR <code>'Sales'</code>. Two groups, two pairs of brackets.", "ru": "Выведи всех сотрудников из <code>'London'</code> ИЛИ <code>'Berlin'</code>, которые работают в <code>'IT'</code> ИЛИ <code>'Sales'</code>. Две группы — две пары скобок."},
+                 "answer": "SELECT * FROM employees\nWHERE (city = 'London' OR city = 'Berlin')\n  AND (department = 'IT' OR department = 'Sales');"},
+                {"id": "2.p10",
+                 "text": {"en": "Fix the bug. This query should return IT and Sales employees who earn more than 60000, but it returns every IT employee whatever the salary: <code>SELECT * FROM employees WHERE department = 'IT' OR department = 'Sales' AND salary &gt; 60000;</code> Write the correct query.", "ru": "Найди ошибку. Этот запрос должен вернуть сотрудников IT и Sales с зарплатой больше 60000, но возвращает всех сотрудников IT с любой зарплатой: <code>SELECT * FROM employees WHERE department = 'IT' OR department = 'Sales' AND salary &gt; 60000;</code> Напиши правильный запрос."},
+                 "answer": "SELECT * FROM employees\nWHERE (department = 'IT' OR department = 'Sales') AND salary > 60000;"},
                 # Section C
                 {"id": "2.15", "section": {"en": "C · BETWEEN", "ru": "C · BETWEEN"},
                  "intro": {
