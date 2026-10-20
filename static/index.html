@@ -606,7 +606,7 @@ function highlight(){
   }
   hl.innerHTML=out+'\n';
   gut.textContent=src.split('\n').map((_,i)=>i+1).join('\n');
-  try{localStorage.setItem('sqlt-draft-'+lang,src)}catch(e){}
+  saveCode(src);
 }
 ta.addEventListener('input',highlight);
 ta.addEventListener('scroll',()=>{hl.scrollTop=ta.scrollTop;gut.scrollTop=ta.scrollTop});
@@ -821,9 +821,20 @@ function renderLessons(active){
     b.setAttribute('aria-current',i===active);
     b.onclick=()=>loadLesson(i);el.appendChild(b)});
 }
+/* ---------- the code typed in the editor is kept: per task in a lesson, as one draft otherwise ---------- */
+function codeKey(i){
+  if(!COURSE_LESSON) return 'sqlt-draft-'+lang;
+  const t=COURSE_LESSON.tasks[i]; return t?'sqlt-code-'+t.id:null;
+}
+function saveCode(src){
+  const key=codeKey(activeLesson); if(!key) return;
+  try{ if(src) localStorage.setItem(key,src); else localStorage.removeItem(key) }catch(e){}
+}
+function savedCode(i){ try{return localStorage.getItem(codeKey(i))||''}catch(e){return ''} }
 function loadLesson(i){
   const l=lessonList()[i];
-  ta.value=l.q; highlight(); $('note').innerHTML=l.n; renderLessons(i);
+  activeLesson=i;                                   // so the code below is saved under this task
+  ta.value=COURSE_LESSON?savedCode(i):l.q; highlight(); $('note').innerHTML=l.n; renderLessons(i);
   renderSchema(); clearResult();
 }
 function clearResult(){
