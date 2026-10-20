@@ -93,6 +93,8 @@ aside{display:grid;gap:12px}
 .editor textarea::selection{background:var(--sel);color:transparent}
 .editor .gutter{position:absolute;left:0;top:0;bottom:0;width:34px;background:var(--head);border-right:1px solid var(--line);color:var(--muted);font-size:11px;text-align:right;padding:10px 6px 0 0;overflow:hidden;white-space:pre}
 .editor:focus-within{box-shadow:inset 0 0 0 2px var(--accent)}
+.update-banner{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:200;display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:calc(100% - 32px);padding:10px 12px 10px 16px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.paste-note{position:absolute;right:10px;bottom:10px;z-index:4;max-width:calc(100% - 60px);padding:6px 10px;border-radius:6px;background:var(--fg);color:var(--bg);font-family:var(--f-body);font-size:12.5px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .kw{color:var(--kw);font-weight:600}.kw.lc{text-decoration:underline wavy var(--wavy);text-decoration-thickness:1.5px;text-underline-offset:3px;text-decoration-skip-ink:none}
 .linkbtn{font:inherit;font-size:12px;font-weight:600;border:1px solid var(--line-strong);background:var(--panel);color:var(--fg);border-radius:3px;padding:1px 8px;margin-left:6px;cursor:pointer}
 .linkbtn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}.st{color:var(--str)}.nu{color:var(--accent)}.cm{color:var(--muted);font-style:italic}
@@ -296,6 +298,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:n
         <pre id="hl" aria-hidden="true"></pre>
         <pre id="carets" class="carets" aria-hidden="true"></pre>
         <textarea id="sql" spellcheck="false"></textarea>
+        <div class="paste-note" id="paste-note" role="status" hidden></div>
       </div>
       <div class="fbar">
         <div id="namebox">A1</div><div class="fx">fx</div><div class="val" id="fval"></div>
@@ -327,6 +330,8 @@ const T = {
   correct:'✓ Correct! Task solved.', nextTask:'Next task →', lessonDone:'✓ Correct! That was the last task of this lesson.',
   praise:['Nailed it!','Excellent!','Brilliant!','Perfect query!','Great job!','You’re a natural!','Spot on!'],
   solvedOf:(a,b)=>`Task solved · ${a} of ${b} done`, toUnsolved:'Next unsolved task →',
+  noPaste:'Pasting is off in lessons. Type the query yourself.',
+  siteUpdated:'The site was updated and you and your partner have different versions. Both of you, please reload the page.', reload:'Reload',
   extraTask:'Extra', extraHead:'Extra practice', extraSolvedOf:(a,b)=>`Extra task solved · ${a} of ${b} done`, extraComplete:'Extra practice complete!', extraProud:n=>`All ${n} extra tasks solved. That is serious dedication!`, tryExtra:'Extra practice →',
   nextLesson:'Next lesson →', lessonComplete:'Lesson complete!', proud:n=>`You solved all ${n} tasks. Be proud of yourself!`,
   wrongCols:(e,g)=>`✗ Not yet. Expected columns: ${e}. Your query returned: ${g}.`,
@@ -361,6 +366,8 @@ const T = {
   correct:'✓ Верно! Задание решено.', nextTask:'Следующее задание →', lessonDone:'✓ Верно! Это было последнее задание урока.',
   praise:['Отлично!','В точку!','Великолепно!','Идеальный запрос!','Так держать!','Блестяще!','Супер!'],
   solvedOf:(a,b)=>`Задание решено · ${a} из ${b}`, toUnsolved:'К нерешённому заданию →',
+  noPaste:'В уроках вставка отключена. Набери запрос сам.',
+  siteUpdated:'Сайт обновился, и у тебя с собеседником разные версии. Обновите страницу оба.', reload:'Обновить',
   extraTask:'Доп.', extraHead:'Дополнительная практика', extraSolvedOf:(a,b)=>`Доп. задание решено · ${a} из ${b}`, extraComplete:'Дополнительная практика пройдена!', extraProud:n=>`Все ${n} доп. заданий решены. Вот это упорство!`, tryExtra:'Доп. практика →',
   nextLesson:'Следующий урок →', lessonComplete:'Урок пройден!', proud:n=>`Ты решил все ${n} заданий. Можешь гордиться собой!`,
   wrongCols:(e,g)=>`✗ Пока нет. Нужны столбцы: ${e}. Твой запрос вернул: ${g}.`,
@@ -474,7 +481,9 @@ function lessonList(){
 }
 function defaultLesson(){
   if(!COURSE_LESSON) return 4;
-  const t=parseInt(qs.get('task'),10)||1;
+  const raw=qs.get('task')||'', byId=COURSE_LESSON.tasks.findIndex(t=>t.id===raw);
+  if(byId>=0) return byId;
+  const t=parseInt(raw,10)||1;
   return Math.min(Math.max(t,1),COURSE_LESSON.tasks.length)-1;
 }
 function startLesson(){ return COURSE_LESSON&&activeLesson>=0?activeLesson:defaultLesson() }
@@ -614,6 +623,17 @@ function highlight(){
 }
 ta.addEventListener('input',highlight);
 ta.addEventListener('scroll',()=>{hl.scrollTop=ta.scrollTop;gut.scrollTop=ta.scrollTop});
+/* ---------- in a lesson the answer has to be typed: no pasting (the logged-in teacher may paste) ---------- */
+let pasteNoteTimer=null;
+function blockPaste(e){
+  if(!COURSE_LESSON||TEACHER_ANSWERS) return;
+  e.preventDefault();
+  const n=$('paste-note'); n.textContent=L.noPaste; n.hidden=false;
+  clearTimeout(pasteNoteTimer); pasteNoteTimer=setTimeout(()=>{n.hidden=true},2500);
+}
+ta.addEventListener('paste',blockPaste);
+ta.addEventListener('drop',blockPaste);
+ta.addEventListener('beforeinput',e=>{ if(e.inputType==='insertFromPaste'||e.inputType==='insertFromDrop'||e.inputType==='insertFromPasteAsQuotation') blockPaste(e); });
 ta.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();run()}
   else if(e.key==='Tab'){e.preventDefault();const s=ta.selectionStart;ta.setRangeText('  ',s,ta.selectionEnd,'end');highlight()}
@@ -916,6 +936,18 @@ function start(){
 
   /* ---------- shared actions: send to the server, apply when it echoes back ---------- */
   function emit(action){ ws.send(JSON.stringify({type:'event',cid,...action})) }
+  function emitTask(i){ emit({kind:'lesson',i,id:COURSE_LESSON&&COURSE_LESSON.tasks[i]?COURSE_LESSON.tasks[i].id:null}) }
+
+  /* ---------- everyone in the room must run the same version of the course ---------- */
+  const courseVersion=(()=>{ const s=JSON.stringify((window.COURSE?COURSE.lessons:[]).map(l=>(l.tasks||[]).map(t=>t.id)));
+    let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))|0; return String(h) })();
+  function showUpdateBanner(){
+    if(document.getElementById('update-banner')) return;
+    const b=document.createElement('div'); b.id='update-banner'; b.className='update-banner'; b.setAttribute('role','alert');
+    b.innerHTML=`<span>${esc(L.siteUpdated)}</span><button class="btn primary" type="button">${esc(L.reload)}</button>`;
+    b.querySelector('button').onclick=()=>location.reload();
+    document.body.appendChild(b);
+  }
   document.addEventListener('click',e=>{
     if(!live()) return;
     const t=e.target.closest('#run,#reset,.lang button,.seg button,#tabs button,.tname,#lessons button,[data-lesson-go]');
@@ -926,8 +958,8 @@ function start(){
     else if(t.dataset.lang) emit({kind:'lang',lang:t.dataset.lang});
     else if(t.closest('#tabs')) emit({kind:'tab',id:t.dataset.id});
     else if(t.classList.contains('tname')) emit({kind:'tab',id:t.childNodes[0].textContent.trim()});
-    else if(t.dataset.lessonGo) emit({kind:'lesson',i:+t.dataset.lessonGo});
-    else emit({kind:'lesson',i:t.dataset.i!=null?+t.dataset.i:[...t.parentElement.children].indexOf(t)});
+    else if(t.dataset.lessonGo) emitTask(+t.dataset.lessonGo);
+    else emitTask(t.dataset.i!=null?+t.dataset.i:[...t.parentElement.children].indexOf(t));
   },true);
   document.addEventListener('keydown',e=>{
     if(!live()||e.target!==ta) return;
@@ -950,10 +982,15 @@ function start(){
         if(mine){ setLang(a.lang); return; }        // the author also swaps the editor text
         const k=startLesson(); adoptLang(a.lang); $('note').innerHTML=lessonList()[k].n; renderLessons(k); renderSchema(); clearResult();
         return;
-      case 'lesson':
-        if(mine){ loadLesson(a.i); return; }        // the author also puts the query in the editor
-        $('note').innerHTML=lessonList()[a.i].n; renderLessons(a.i); renderSchema(); clearResult();
+      case 'lesson': {
+        // find the task by its id: a position in the list differs between versions of the course
+        let i=a.i;
+        if(a.id&&COURSE_LESSON){ i=COURSE_LESSON.tasks.findIndex(t=>t.id===a.id); if(i<0){ showUpdateBanner(); return; } }
+        if(!lessonList()[i]) return;
+        if(mine){ loadLesson(i); return; }          // the author also puts the query in the editor
+        $('note').innerHTML=lessonList()[i].n; renderLessons(i); renderSchema(); clearResult();
         return;
+      }
     }
   }
   function adoptLang(next){ lang=next; try{localStorage.setItem('sqlt-lang',lang)}catch(e){}; applyLang(); resetDb(); }
@@ -996,7 +1033,7 @@ function start(){
       if(!live()) return;
       const back=ta.selectionDirection==='backward';
       const anchorI=back?ta.selectionEnd:ta.selectionStart, headI=back?ta.selectionStart:ta.selectionEnd;
-      ws.send(JSON.stringify({type:'presence',cid,name:me.name,color:me.color,
+      ws.send(JSON.stringify({type:'presence',cid,v:courseVersion,name:me.name,color:me.color,
         focused:document.activeElement===ta,anchor:rel(anchorI),head:rel(headI),
         sel:{tab,a:anchor?{...anchor}:{...cur},c:{...cur}}}));
     },30);
@@ -1134,6 +1171,7 @@ function start(){
         if(msg.seq<=lastSeq) return; lastSeq=msg.seq;
         applyAction(msg,msg.cid===cid);
       }else if(msg.type==='presence'&&msg.cid!==cid){
+        if(msg.v!==courseVersion) showUpdateBanner();   // the other person has a different version of the site
         const known=peers.has(msg.cid); peers.set(msg.cid,msg);
         if(!known) renderPresence(); else if(peers.get(msg.cid).name!==msg.name) renderPresence();
         renderPresence(); renderCarets(); drawRemoteSels();

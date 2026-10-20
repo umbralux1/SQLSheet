@@ -290,14 +290,14 @@ function renderLesson(){
     return `${t.section?`<li class="sect">${esc(t.section[lang])}</li>`:''}${t.intro?`<li class="intro"><div class="theory">${t.intro[lang]}</div><pre class="code">${esc(t.example||'')}</pre>${exampleHtml[i]||''}</li>`:''}
       <li class="${solved.has(i)?'done':''}"><span class="st">${solved.has(i)?'✓':n}</span>
         <div class="txt"><b>${t.extra?L.extraTask(n):L.task(n)}</b>${t.text[lang]}</div>
-        <a class="go" href="./?lesson=${l.id}&task=${i+1}">${solved.has(i)?L.again:L.solve}</a></li>`};
+        <a class="go" href="./?lesson=${l.id}&task=${encodeURIComponent(t.id)}">${solved.has(i)?L.again:L.solve}</a></li>`};
   el.innerHTML=`
     <div class="lesson-head">
       <span class="label">${L.lesson(l.id)}</span>
       <h2>${esc(l.title[lang])}</h2>
       <p>${esc(l.topics[lang])}</p>
       <div class="progress"><div class="bar"><i style="width:${Math.round(solved.size/total*100)}%"></i></div><span>${L.solved(solved.size,total)}</span>
-        <a class="btn" href="./?lesson=${l.id}&task=${next}">${solved.size?L.cont:L.start}</a></div>
+        <a class="btn" href="./?lesson=${l.id}&task=${encodeURIComponent(l.tasks[next-1].id)}">${solved.size?L.cont:L.start}</a></div>
     </div>
     <section><h3>${L.theory}</h3><div class="theory">${l.theory[lang]}</div></section>
     <section><h3>${L.tables}</h3><div class="tables">${tablesHtml}</div></section>
