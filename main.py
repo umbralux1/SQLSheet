@@ -69,7 +69,8 @@ window.COURSE_PROGRESS = {
     const s = new Set(this.get(lessonId)); s.add(taskId);
     try { localStorage.setItem(this.key(lessonId), JSON.stringify([...s])) } catch (e) {}
   },
-  count(lesson) { const s = new Set(this.get(lesson.id)); return lesson.tasks.filter(t => s.has(t.id)).length }
+  // solved tasks of a lesson: main tasks by default, extra practice with extra = true
+  count(lesson, extra) { const s = new Set(this.get(lesson.id)); return lesson.tasks.filter(t => !!t.extra === !!extra && s.has(t.id)).length }
 };
 """
 

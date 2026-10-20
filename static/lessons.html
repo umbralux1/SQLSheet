@@ -117,6 +117,16 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:12.5px;font-vari
 .ex-result .sheetwrap{background:var(--panel);border:1px solid var(--line);border-radius:4px;width:fit-content;max-width:100%}
 .ex-result table.sheet{width:auto}
 .sheet td.null{color:var(--muted);font-style:italic}
+.extra-block{margin-top:4px;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.extra-block summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:14px 16px}
+.extra-block summary::-webkit-details-marker{display:none}
+.extra-block summary::before{content:'▸';color:var(--accent);font-size:13px}
+.extra-block[open] summary::before{content:'▾'}
+.extra-block summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.extra-block .eb-title{font-family:var(--f-display);font-size:17px;color:var(--accent)}
+.extra-block .eb-meta{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.extra-block .eb-text{margin:0;padding:0 16px 12px;color:var(--muted);font-size:14px;max-width:68ch}
+.extra-block .tasks{border:0;border-top:1px solid var(--line);border-radius:0 0 6px 6px}
 .tasks > li.sect{display:block;padding:8px 14px;background:var(--head);font-size:12px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;color:var(--muted)}
 .tasks .st{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line-strong);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--muted);font-family:var(--f-mono)}
 .tasks > li.done .st{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
@@ -202,12 +212,16 @@ const T={
  en:{live:'Live', connecting:'Connecting…', offline:'Offline, reconnecting…', room:'room', you:'you', yourName:'Your name', copyLink:'Copy invite link', copied:'Link copied', alone:'Only you here. Share the link to invite someone.',
    brand2:'Sheet', title:'SQL Sheet Lessons', navTrainer:'Trainer', navLessons:'Lessons', roadmap:'Course roadmap',
    lesson:n=>`Lesson ${n}`, soon:'Soon', theory:'Theory', tables:'Tables for this lesson', tasks:'Tasks',
+   extraHead:'Extra practice', extraMeta:(n,d)=>`${n} more tasks · ${d} solved`, extraTask:n=>`Extra ${n}`,
+   extraText:'Optional tasks on the same topics, for homework or more practice. They do not count towards finishing the lesson.',
    rows:n=>`${n} rows`, result:n=>`Result: ${n} ${n===1?'row':'rows'}`, solved:(a,b)=>`${a} of ${b} tasks solved`, start:'Start lesson in the trainer', cont:'Continue in the trainer',
    solve:'Solve →', again:'Solve again →', task:n=>`Task ${n}`, answers:'For the teacher', answer:'Answer', tips:'Teaching tips', teacherOnly:'Answers and teaching tips are visible to the teacher only.', login:'Log in', logout:'Log out', user:'Username', pass:'Password', wrongLogin:'Wrong username or password.', teacherIn:'You are logged in as teacher. The answer is shown on each task page in the trainer.', loginFail:'Could not reach the server. Answers need the app running on a server.',
    soonText:'This lesson is not ready yet. Lesson 1 is available now.', back:'Open lesson 1', number:'number', text:'text'},
  ru:{live:'Онлайн', connecting:'Подключение…', offline:'Нет связи, переподключаюсь…', room:'комната', you:'ты', yourName:'Твоё имя', copyLink:'Скопировать ссылку', copied:'Ссылка скопирована', alone:'Пока здесь только ты. Отправь ссылку, чтобы позвать кого-то.',
    brand2:'Табличка', title:'SQL Табличка — уроки', navTrainer:'Тренажёр', navLessons:'Уроки', roadmap:'План курса',
    lesson:n=>`Урок ${n}`, soon:'Скоро', theory:'Теория', tables:'Таблицы урока', tasks:'Задания',
+   extraHead:'Дополнительная практика', extraMeta:(n,d)=>`ещё ${n} заданий · решено ${d}`, extraTask:n=>`Доп. ${n}`,
+   extraText:'Необязательные задания на те же темы: для домашней работы или чтобы потренироваться ещё. На прохождение урока они не влияют.',
    rows:n=>`${n} стр.`, result:n=>`Результат: строк — ${n}`, solved:(a,b)=>`Решено ${a} из ${b}`, start:'Начать урок в тренажёре', cont:'Продолжить в тренажёре',
    solve:'Решить →', again:'Решить ещё раз →', task:n=>`Задание ${n}`, answers:'Для преподавателя', answer:'Ответ', tips:'Советы преподавателю', teacherOnly:'Ответы и советы видит только преподаватель.', login:'Войти', logout:'Выйти', user:'Логин', pass:'Пароль', wrongLogin:'Неверный логин или пароль.', teacherIn:'Ты вошёл как преподаватель. Ответ показывается на странице каждого задания в тренажёре.', loginFail:'Нет связи с сервером. Ответы доступны, только когда приложение запущено на сервере.',
    soonText:'Этот урок ещё готовится. Сейчас доступен урок 1.', back:'Открыть урок 1', number:'число', text:'текст'}
@@ -223,7 +237,7 @@ function currentId(){ const m=(location.hash||'').match(/^#lesson-(\d+)$/); retu
 function renderRoadmap(){
   const id=currentId();
   $('roadmap').innerHTML=COURSE.lessons.map(l=>{
-    const done=l.available?COURSE_PROGRESS.count(l):0, total=l.available?l.tasks.length:0;
+    const done=l.available?COURSE_PROGRESS.count(l):0, total=l.available?l.tasks.filter(t=>!t.extra).length:0;   // a lesson is done when its main tasks are
     const inner=`<span class="num">${String(l.id).padStart(2,'0')}</span><b>${esc(l.title[lang])}${l.available?'':`<span class="soon-tag">${L.soon}</span>`}${l.available&&done===total?'<span class="done-tag">✓</span>':''}</b><small>${esc(l.topics[lang])}</small>`;
     return l.available
       ? `<li><a href="#lesson-${l.id}" aria-current="${l.id===id}">${inner}</a></li>`
@@ -254,9 +268,11 @@ function renderLesson(){
       <div class="soon-box"><p style="margin:0 0 12px">${L.soonText}</p><a class="btn ghost" href="#lesson-1">${L.back}</a></div>`;
     return;
   }
-  const ids=new Set(COURSE_PROGRESS.get(l.id)), total=l.tasks.length;
-  const solved={has:i=>ids.has(l.tasks[i].id), size:COURSE_PROGRESS.count(l)};
-  const firstOpen=l.tasks.findIndex((_,i)=>!solved.has(i)), next=firstOpen<0?1:firstOpen+1;
+  const ids=new Set(COURSE_PROGRESS.get(l.id));
+  const mainIdx=[...l.tasks.keys()].filter(i=>!l.tasks[i].extra), extraIdx=[...l.tasks.keys()].filter(i=>l.tasks[i].extra);
+  const total=mainIdx.length, pos={}; mainIdx.forEach((i,n)=>pos[i]=n+1); extraIdx.forEach((i,n)=>pos[i]=n+1);
+  const solved={has:i=>ids.has(l.tasks[i].id), size:COURSE_PROGRESS.count(l)}, extraDone=COURSE_PROGRESS.count(l,true);
+  const firstOpen=mainIdx.find(i=>!solved.has(i)), next=(firstOpen==null?mainIdx[0]:firstOpen)+1;
   let tablesHtml=''; const exampleHtml={};
   if(SQL){
     const db=new SQL.Database(); db.run(l.seed);
@@ -268,6 +284,11 @@ function renderLesson(){
       }catch(e){} });
     db.close();
   }
+  const row=i=>{const t=l.tasks[i], n=pos[i];
+    return `${t.section?`<li class="sect">${esc(t.section[lang])}</li>`:''}${t.intro?`<li class="intro"><div class="theory">${t.intro[lang]}</div><pre class="code">${esc(t.example||'')}</pre>${exampleHtml[i]||''}</li>`:''}
+      <li class="${solved.has(i)?'done':''}"><span class="st">${solved.has(i)?'✓':n}</span>
+        <div class="txt"><b>${t.extra?L.extraTask(n):L.task(n)}</b>${t.text[lang]}</div>
+        <a class="go" href="./?lesson=${l.id}&task=${i+1}">${solved.has(i)?L.again:L.solve}</a></li>`};
   el.innerHTML=`
     <div class="lesson-head">
       <span class="label">${L.lesson(l.id)}</span>
@@ -278,10 +299,12 @@ function renderLesson(){
     </div>
     <section><h3>${L.theory}</h3><div class="theory">${l.theory[lang]}</div></section>
     <section><h3>${L.tables}</h3><div class="tables">${tablesHtml}</div></section>
-    <section><h3>${L.tasks}</h3><ol class="tasks">${l.tasks.map((t,i)=>`${t.section?`<li class="sect">${esc(t.section[lang])}</li>`:''}${t.intro?`<li class="intro"><div class="theory">${t.intro[lang]}</div><pre class="code">${esc(t.example||'')}</pre>${exampleHtml[i]||''}</li>`:''}
-      <li class="${solved.has(i)?'done':''}"><span class="st">${solved.has(i)?'✓':i+1}</span>
-        <div class="txt"><b>${L.task(i+1)}</b>${t.text[lang]}</div>
-        <a class="go" href="./?lesson=${l.id}&task=${i+1}">${solved.has(i)?L.again:L.solve}</a></li>`).join('')}</ol>
+    <section><h3>${L.tasks}</h3><ol class="tasks">${mainIdx.map(row).join('')}</ol>
+      ${extraIdx.length?`<details class="extra-block"${extraDone?' open':''}>
+        <summary><span class="eb-title">${L.extraHead}</span><span class="eb-meta">${L.extraMeta(extraIdx.length,extraDone)}</span></summary>
+        <p class="eb-text">${L.extraText}</p>
+        <ol class="tasks">${extraIdx.map(row).join('')}</ol>
+      </details>`:''}
       <div class="teacher" id="teacher"></div>
     </section>`;
 }

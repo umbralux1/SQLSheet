@@ -196,6 +196,8 @@ header .lang{margin-left:0}
 .lessons-head a{font-size:12px;color:var(--accent);text-decoration:none;font-weight:600}
 .lessons-head a:hover{text-decoration:underline}
 .lessons button.solved b{color:var(--accent)}
+.lessons .extra-head{margin-top:14px;padding:7px 8px;border-radius:4px;background:var(--sel);color:var(--accent);font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+.msg .win .win-actions{display:inline-flex;gap:8px;flex-wrap:wrap}
 .lessons .sect{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:10px 8px 2px}
 .msg .good,.msg .bad{display:block;margin-top:6px;padding:5px 8px;border-radius:3px;font-family:var(--f-body)}
 .msg .good{background:var(--new);color:var(--fg)}
@@ -321,6 +323,7 @@ const T = {
   correct:'✓ Correct! Task solved.', nextTask:'Next task →', lessonDone:'✓ Correct! That was the last task of this lesson.',
   praise:['Nailed it!','Excellent!','Brilliant!','Perfect query!','Great job!','You’re a natural!','Spot on!'],
   solvedOf:(a,b)=>`Task solved · ${a} of ${b} done`, toUnsolved:'Next unsolved task →',
+  extraTask:'Extra', extraHead:'Extra practice', extraSolvedOf:(a,b)=>`Extra task solved · ${a} of ${b} done`, extraComplete:'Extra practice complete!', extraProud:n=>`All ${n} extra tasks solved. That is serious dedication!`, tryExtra:'Extra practice →',
   nextLesson:'Next lesson →', lessonComplete:'Lesson complete!', proud:n=>`You solved all ${n} tasks. Be proud of yourself!`,
   wrongCols:(e,g)=>`✗ Not yet. Expected columns: ${e}. Your query returned: ${g}.`,
   wrongRows:(e,g)=>`✗ Not yet. Expected ${e} rows, your query returned ${g}.`,
@@ -354,6 +357,7 @@ const T = {
   correct:'✓ Верно! Задание решено.', nextTask:'Следующее задание →', lessonDone:'✓ Верно! Это было последнее задание урока.',
   praise:['Отлично!','В точку!','Великолепно!','Идеальный запрос!','Так держать!','Блестяще!','Супер!'],
   solvedOf:(a,b)=>`Задание решено · ${a} из ${b}`, toUnsolved:'К нерешённому заданию →',
+  extraTask:'Доп.', extraHead:'Дополнительная практика', extraSolvedOf:(a,b)=>`Доп. задание решено · ${a} из ${b}`, extraComplete:'Дополнительная практика пройдена!', extraProud:n=>`Все ${n} доп. заданий решены. Вот это упорство!`, tryExtra:'Доп. практика →',
   nextLesson:'Следующий урок →', lessonComplete:'Урок пройден!', proud:n=>`Ты решил все ${n} заданий. Можешь гордиться собой!`,
   wrongCols:(e,g)=>`✗ Пока нет. Нужны столбцы: ${e}. Твой запрос вернул: ${g}.`,
   wrongRows:(e,g)=>`✗ Пока нет. Нужно строк: ${e}, твой запрос вернул: ${g}.`,
@@ -455,8 +459,13 @@ function lessonList(){
   // section theory + worked example, folded until the student opens it
   const introOf=k=>{const i=sectionStart(k), t=i>=0?COURSE_LESSON.tasks[i]:null; if(!t||!t.intro) return '';
     return `<details class="intro"><summary>${esc(L.sectionTheory(t.section[lang]))}</summary><div class="intro-body">${t.intro[lang]}<pre class="code">${esc(t.example||'')}</pre></div></details>`};
-  return COURSE_LESSON.tasks.map((t,k)=>({t:`${L.task} ${k+1}`, d:stripTags(t.text[lang]), q:'', section:t.section?t.section[lang]:'',
-    n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${L.task} ${k+1}/${n}</span><div class="task-text">${t.text[lang]}</div>`+introOf(k)+
+  // main tasks and extra practice are numbered separately: Task 1…51, Extra 1…50
+  const T=COURSE_LESSON.tasks, pos=[], cnt={main:0,extra:0};
+  T.forEach(t=>pos.push(t.extra?++cnt.extra:++cnt.main));
+  const label=k=>T[k].extra?`${L.extraTask} ${pos[k]}`:`${L.task} ${pos[k]}`;
+  return COURSE_LESSON.tasks.map((t,k)=>({t:label(k), d:stripTags(t.text[lang]), q:'', section:t.section?t.section[lang]:'',
+    extraStart:!!t.extra&&(k===0||!T[k-1].extra),
+    n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${label(k)}/${t.extra?cnt.extra:cnt.main}</span><div class="task-text">${t.text[lang]}</div>`+introOf(k)+
       (TEACHER_ANSWERS&&TEACHER_ANSWERS[k]?`<details class="answer"><summary><span class="when-closed">${esc(L.answerLabel)}</span><span class="when-open">${esc(L.answerHide)}</span></summary><code>${esc(TEACHER_ANSWERS[k])}</code></details>`:'')}));
 }
 function defaultLesson(){
@@ -490,16 +499,21 @@ async function checkTask(r){
   renderLessons(k);
 }
 function celebrate(k){
-  const n=COURSE_LESSON.tasks.length, ids=new Set(COURSE_PROGRESS.get(COURSE_LESSON.id)), done=i=>ids.has(COURSE_LESSON.tasks[i].id);
-  const doneCount=COURSE_PROGRESS.count(COURSE_LESSON);
-  const all=doneCount>=n, nextOpen=[...Array(n).keys()].find(i=>i>k&&!done(i))??[...Array(n).keys()].find(i=>!done(i));
-  const dots=[...Array(n).keys()].map(i=>`<i class="${done(i)?'on':''}${i===k?' now':''}"></i>`).join('');
+  // main tasks and extra practice are celebrated (and counted) separately
+  const T=COURSE_LESSON.tasks, ex=!!T[k].extra, group=[...T.keys()].filter(i=>!!T[i].extra===ex), n=group.length;
+  const ids=new Set(COURSE_PROGRESS.get(COURSE_LESSON.id)), done=i=>ids.has(T[i].id);
+  const doneCount=group.filter(done).length, all=doneCount>=n;
+  const after=group.filter(i=>i>k), nextOpen=after.find(i=>!done(i))??group.find(i=>!done(i));
+  const dots=group.map(i=>`<i class="${done(i)?'on':''}${i===k?' now':''}"></i>`).join('');
   const nextLesson=COURSE.lessons.find(x=>x.id>COURSE_LESSON.id&&x.available);
-  const action=all?(nextLesson?`<a class="btn primary" href="./?lesson=${nextLesson.id}&task=1">${esc(L.nextLesson)}</a>`:`<a class="btn primary" href="lessons">${esc(L.allLessons)}</a>`)
-    :k<n-1?`<button class="btn primary" data-lesson-go="${k+1}">${esc(L.nextTask)}</button>`
+  const extras=[...T.keys()].filter(i=>T[i].extra), extraOpen=extras.find(i=>!done(i));
+  const finishMain=(nextLesson?`<a class="btn primary" href="./?lesson=${nextLesson.id}&task=1">${esc(L.nextLesson)}</a>`:`<a class="btn primary" href="lessons">${esc(L.allLessons)}</a>`)+
+    (extraOpen!=null?` <button class="btn" data-lesson-go="${extraOpen}">${esc(L.tryExtra)}</button>`:'');
+  const action=all?(ex?`<a class="btn primary" href="lessons">${esc(L.allLessons)}</a>`:`<span class="win-actions">${finishMain}</span>`)
+    :after.length?`<button class="btn primary" data-lesson-go="${after[0]}">${esc(L.nextTask)}</button>`
     :`<button class="btn primary" data-lesson-go="${nextOpen}">${esc(L.toUnsolved)}</button>`;
-  const title=all?L.lessonComplete:L.praise[Math.floor(Math.random()*L.praise.length)];
-  const line=all?L.proud(n):L.solvedOf(doneCount,n);
+  const title=all?(ex?L.extraComplete:L.lessonComplete):L.praise[Math.floor(Math.random()*L.praise.length)];
+  const line=all?(ex?L.extraProud(n):L.proud(n)):(ex?L.extraSolvedOf(doneCount,n):L.solvedOf(doneCount,n));
   $('msg').insertAdjacentHTML('beforeend',`<div class="win${all?' big':''}" role="status"><span class="medal" aria-hidden="true">${all?'🏆':'🎉'}</span>
     <span class="words"><b>${esc(title)}</b><small>${esc(line)}</small><span class="dots" aria-hidden="true">${dots}</span></span>${action}</div>`);
   confetti($('msg').querySelector('.win'),all);
@@ -799,6 +813,7 @@ function renderLessons(active){
   const solved={has:i=>!!COURSE_LESSON&&ids.has(COURSE_LESSON.tasks[i].id)};
   if(COURSE_LESSON){ $('lessons-label').textContent=L.tasksOf(COURSE_LESSON.id); const back=$('lessons-back'); back.hidden=false; back.textContent=L.allLessons; }
   lessonList().forEach((l,i)=>{
+    if(l.extraStart){const h=document.createElement('div');h.className='extra-head';h.textContent=L.extraHead;el.appendChild(h)}
     if(l.section){const h=document.createElement('div');h.className='sect';h.textContent=l.section;el.appendChild(h)}
     const b=document.createElement('button'); b.dataset.i=i;
     b.innerHTML=COURSE_LESSON?`<b>${solved.has(i)?'✓ ':''}${esc(l.t)}</b><span>${esc(l.d)}</span>`:`<b>${i+1}. ${l.t}</b><span>${l.d}</span>`;
