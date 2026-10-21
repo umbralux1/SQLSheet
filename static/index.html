@@ -153,6 +153,32 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
 .msg .dumb{margin-top:8px;font-family:var(--f-display);font-weight:800;font-size:clamp(20px,3vw,28px);line-height:1.2;color:var(--err);animation:dumb-shake .5s ease-in-out both}
 @keyframes dumb-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px) rotate(-1deg)}40%{transform:translateX(7px) rotate(1deg)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 @media (prefers-reduced-motion:reduce){.msg .dumb{animation:none}}
+
+/* prediction tasks */
+.main>*,.lesson-note{min-width:0}   /* wide tables scroll inside their box instead of stretching the card */
+.predict-mode .ribbon,.predict-mode .editor,.predict-mode .fbar{display:none}
+.lesson-note pre.cond{margin:8px 0;padding:8px 12px;max-width:72ch;font-family:var(--f-mono);font-size:13.5px;line-height:1.5;background:var(--panel);border:1px solid var(--line-strong);border-radius:6px;white-space:pre-wrap;word-break:break-word}
+.lesson-note .pwrap{overflow-x:auto;margin:6px 0 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.ptable{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+.ptable th{background:var(--head);color:var(--muted);font-weight:600;font-size:11.5px;text-align:left;padding:5px 8px;white-space:nowrap}
+.ptable td{padding:6px 8px;border-top:1px solid var(--line);white-space:nowrap}
+.ptable td.n{text-align:right}
+.ptable td.null{color:var(--muted);font-style:italic}
+.ptable tr[data-emp]{cursor:pointer}
+.ptable tr[data-emp]:hover td{background:var(--head)}
+.ptable tr[data-emp].on td{background:var(--sel)}
+.ptable tr[data-emp]:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.ptable .tick{display:inline-grid;place-items:center;width:18px;height:18px;border:2px solid var(--line-strong);border-radius:4px;vertical-align:middle}
+.ptable tr.on .tick{background:var(--accent);border-color:var(--accent)}
+.ptable tr.on .tick::after{content:'✓';color:var(--accent-fg);font-size:12px;font-weight:700;line-height:1}
+.lesson-note .yn{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 8px}
+.lesson-note .yn .btn{min-width:88px;font-size:14px;padding:7px 18px}
+.lesson-note .yn .btn.chosen{outline:2px solid var(--accent);outline-offset:1px}
+.lesson-note .pcount{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.lesson-note .pexplain{margin:4px 0 6px;padding:10px 12px;border-radius:6px;font-size:14px;line-height:1.5;max-width:80ch}
+.lesson-note .pexplain.good{background:var(--new)}
+.lesson-note .pexplain.bad{background:var(--err-bg)}
+.lesson-note .pexplain code{font-size:.9em}
 </style>
 <style>
 .lang{display:inline-flex;border:1px solid var(--line-strong);border-radius:4px;overflow:hidden;margin-left:auto;align-self:center}
@@ -331,6 +357,8 @@ const T = {
   praise:['Nailed it!','Excellent!','Brilliant!','Perfect query!','Great job!','You’re a natural!','Spot on!'],
   solvedOf:(a,b)=>`Task solved · ${a} of ${b} done`, toUnsolved:'Next unsolved task →',
   noPaste:'Pasting is off in lessons. Type the query yourself.',
+  yes:'Yes', no:'No', checkPick:'Check', marked:n=>`Marked: ${n}`, pickWrong:n=>`Not quite: ${n} ${n===1?'mark is':'marks are'} wrong. Try again.`,
+  showAnswer:'Show the answer', answerShown:'Here is the real result.', predictRight:'Right!', predictWrong:'Not this time.', predictReady:'Answer the question above. Then the real result of the query appears here.',
   siteUpdated:'The site was updated and you and your partner have different versions. Both of you, please reload the page.', reload:'Reload',
   extraTask:'Extra', extraHead:'Extra practice', extraSolvedOf:(a,b)=>`Extra task solved · ${a} of ${b} done`, extraComplete:'Extra practice complete!', extraProud:n=>`All ${n} extra tasks solved. That is serious dedication!`, tryExtra:'Extra practice →',
   nextLesson:'Next lesson →', lessonComplete:'Lesson complete!', proud:n=>`You solved all ${n} tasks. Be proud of yourself!`,
@@ -367,6 +395,8 @@ const T = {
   praise:['Отлично!','В точку!','Великолепно!','Идеальный запрос!','Так держать!','Блестяще!','Супер!'],
   solvedOf:(a,b)=>`Задание решено · ${a} из ${b}`, toUnsolved:'К нерешённому заданию →',
   noPaste:'В уроках вставка отключена. Набери запрос сам.',
+  yes:'Да', no:'Нет', checkPick:'Проверить', marked:n=>`Отмечено: ${n}`, pickWrong:n=>`Пока нет: неверных отметок — ${n}. Попробуй ещё.`,
+  showAnswer:'Показать ответ', answerShown:'Вот настоящий результат.', predictRight:'Верно!', predictWrong:'На этот раз нет.', predictReady:'Ответь на вопрос выше. Потом здесь появится настоящий результат запроса.',
   siteUpdated:'Сайт обновился, и у тебя с собеседником разные версии. Обновите страницу оба.', reload:'Обновить',
   extraTask:'Доп.', extraHead:'Дополнительная практика', extraSolvedOf:(a,b)=>`Доп. задание решено · ${a} из ${b}`, extraComplete:'Дополнительная практика пройдена!', extraProud:n=>`Все ${n} доп. заданий решены. Вот это упорство!`, tryExtra:'Доп. практика →',
   nextLesson:'Следующий урок →', lessonComplete:'Урок пройден!', proud:n=>`Ты решил все ${n} заданий. Можешь гордиться собой!`,
@@ -476,7 +506,7 @@ function lessonList(){
   const label=k=>T[k].extra?`${L.extraTask} ${pos[k]}`:`${L.task} ${pos[k]}`;
   return COURSE_LESSON.tasks.map((t,k)=>({t:label(k), d:stripTags(t.text[lang]), q:'', section:t.section?t.section[lang]:'',
     extraStart:!!t.extra&&(k===0||!T[k-1].extra),
-    n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${label(k)}/${t.extra?cnt.extra:cnt.main}</span><div class="task-text">${t.text[lang]}</div>`+introOf(k)+
+    n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${label(k)}/${t.extra?cnt.extra:cnt.main}</span><div class="task-text">${t.text[lang]}</div>`+predictBlock(k)+introOf(k)+
       (TEACHER_ANSWERS&&TEACHER_ANSWERS[k]?`<details class="answer"><summary><span class="when-closed">${esc(L.answerLabel)}</span><span class="when-open">${esc(L.answerHide)}</span></summary><code>${esc(TEACHER_ANSWERS[k])}</code></details>`:'')}));
 }
 function defaultLesson(){
@@ -489,8 +519,89 @@ function defaultLesson(){
 function startLesson(){ return COURSE_LESSON&&activeLesson>=0?activeLesson:defaultLesson() }
 function seedSQL(){ return COURSE_LESSON?COURSE_LESSON.seed:SEED[lang] }
 let runCount=0;
+/* ---------- prediction tasks: "will this person pass?" (row) and "mark who passes" (pick) ---------- */
+let pickState=new Set(), lastExplain=null, SEED_DB=null;
+function resetPredict(){ pickState=new Set(); lastExplain=null; }
+function seedDB(){                       // the lesson's original data, untouched by the student's queries
+  if(!COURSE_LESSON||typeof SQL==='undefined'||!SQL) return null;
+  if(!SEED_DB){ SEED_DB=new SQL.Database(); SEED_DB.run(COURSE_LESSON.seed); }
+  return SEED_DB;
+}
+function predictTableName(t){ return t.table||COURSE_LESSON.tables[0] }
+function predictTable(cols,rows,pickable,active){
+  const cell=v=>v===null?'<td class="null">NULL</td>':typeof v==='number'?`<td class="n">${v}</td>`:`<td>${esc(String(v))}</td>`;
+  let h=`<table class="ptable"><thead><tr>${pickable?'<th></th>':''}${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>`;
+  rows.forEach(r=>{
+    const on=pickable&&active&&pickState.has(r[0]);
+    h+=pickable?`<tr data-emp="${r[0]}" class="${on?'on':''}" role="checkbox" aria-checked="${on}" tabindex="0"><td><span class="tick"></span></td>${r.map(cell).join('')}</tr>`
+               :`<tr>${r.map(cell).join('')}</tr>`;
+  });
+  return h+'</tbody></table>';
+}
+function predictBlock(k){
+  const t=COURSE_LESSON.tasks[k]; if(!t.kind) return '';
+  const table=predictTableName(t), active=k===activeLesson;
+  const cond=t.kind==='pick'?`<pre class="cond">SELECT * FROM ${esc(table)}\nWHERE ${esc(t.condition)};</pre>`:`<pre class="cond">WHERE ${esc(t.condition)}</pre>`;
+  const db=seedDB(); if(!db) return cond;
+  const res=db.exec(`SELECT * FROM "${table}"`)[0];
+  if(t.kind==='row'){
+    const r=res.values.find(v=>v[0]===t.row);
+    return cond+`<div class="pwrap">${predictTable(res.columns,r?[r]:[],false,active)}</div>
+      <div class="yn"><button class="btn" type="button" data-yn="yes">${esc(L.yes)}</button><button class="btn" type="button" data-yn="no">${esc(L.no)}</button></div><div class="pfeed" id="pfeed"></div>`;
+  }
+  return cond+`<div class="pwrap">${predictTable(res.columns,res.values,true,active)}</div>
+    <div class="yn"><button class="btn primary" type="button" id="pick-check">${esc(L.checkPick)}</button><span class="pcount" id="pcount">${esc(L.marked(active?pickState.size:0))}</span></div><div class="pfeed" id="pfeed"></div>`;
+}
+function setPredictMode(i){
+  const t=COURSE_LESSON&&COURSE_LESSON.tasks[i], on=!!(t&&t.kind);
+  document.body.classList.toggle('predict-mode',on);
+  if(on) showMsg('ok',L.predictReady);
+}
+function togglePick(emp){
+  if(pickState.has(emp)) pickState.delete(emp); else pickState.add(emp);
+  const tr=document.querySelector(`#note [data-emp="${emp}"]`);
+  if(tr){ tr.classList.toggle('on',pickState.has(emp)); tr.setAttribute('aria-checked',pickState.has(emp)); }
+  const c=$('pcount'); if(c) c.textContent=L.marked(pickState.size);
+}
+async function predictCheck(body){
+  const k=activeLesson;
+  try{
+    const r=await fetch('api/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lesson:COURSE_LESSON.id,task:k,...body})});
+    if(!r.ok) return null;
+    const res=await r.json();
+    return k===activeLesson?res:null;     // the student moved on meanwhile
+  }catch(e){ return null }
+}
+function revealResult(){                 // run the task's query so the real result appears in the grid
+  const t=COURSE_LESSON.tasks[activeLesson];
+  run(`SELECT * FROM ${predictTableName(t)} WHERE ${t.condition};`);
+}
+function predictOutcome(ok,explain,note){
+  const k=activeLesson;
+  $('pfeed').innerHTML=`<div class="pexplain ${ok?'good':'bad'}"><b>${esc(ok?L.predictRight:L.predictWrong)}</b> ${explain?explain[lang]:''}</div>`;
+  if(ok){ COURSE_PROGRESS.add(COURSE_LESSON.id,COURSE_LESSON.tasks[k].id); celebrate(k); renderLessons(k); }
+  else $('msg').insertAdjacentHTML('beforeend',`<div class="dumb" role="status">you're so dumb dumb</div>${note?`<span class="bad">${esc(note)}</span>`:''}`);
+}
+async function answerRow(v){
+  const res=await predictCheck({answer:v}); if(!res) return;
+  document.querySelectorAll('#note [data-yn]').forEach(b=>b.classList.toggle('chosen',b.dataset.yn===v));
+  revealResult(); predictOutcome(res.ok,res.explain);
+}
+async function submitPick(){
+  const res=await predictCheck({picked:[...pickState]}); if(!res) return;
+  lastExplain=res.explain;
+  if(res.ok){ revealResult(); predictOutcome(true,res.explain); return; }
+  showMsg('ok','');
+  $('msg').insertAdjacentHTML('beforeend',`<div class="dumb" role="status">you're so dumb dumb</div><span class="bad">${esc(L.pickWrong(res.wrong))}</span>`);
+  $('pfeed').innerHTML=`<button class="btn" type="button" id="pick-reveal">${esc(L.showAnswer)}</button>`;
+}
+function revealPick(){
+  revealResult();
+  $('pfeed').innerHTML=`<div class="pexplain bad"><b>${esc(L.answerShown)}</b> ${lastExplain?lastExplain[lang]:''}</div>`;
+}
 async function checkTask(r){
   if(!COURSE_LESSON||activeLesson<0) return;
+  if(COURSE_LESSON.tasks[activeLesson].kind) return;   // prediction tasks are checked by their own buttons
   const k=activeLesson, myRun=runCount;
   let res;
   try{
@@ -856,10 +967,11 @@ function saveCode(src){
 }
 function savedCode(i){ try{return localStorage.getItem(codeKey(i))||''}catch(e){return ''} }
 function loadLesson(i){
-  const l=lessonList()[i];
   activeLesson=i;                                   // so the code below is saved under this task
+  resetPredict();
+  const l=lessonList()[i];
   ta.value=COURSE_LESSON?savedCode(i):l.q; highlight(); $('note').innerHTML=l.n; renderLessons(i);
-  renderSchema(); clearResult();
+  renderSchema(); clearResult(); setPredictMode(i);
 }
 function clearResult(){
   lastResult=null; tab='__result';
@@ -872,6 +984,12 @@ function clearResult(){
 function resetDb(){db&&db.close();db=new SQL.Database();db.run(seedSQL());for(const k in marksByTable)delete marksByTable[k];lastResult=null;tab='__result'}
 $('run').onclick=()=>run();
 ['msg','note'].forEach(id=>$(id).addEventListener('click',e=>{const b=e.target.closest('[data-lesson-go]');if(b&&!b.disabled)loadLesson(+b.dataset.lessonGo)}));
+$('note').addEventListener('click',e=>{
+  const r=e.target.closest('[data-emp]'); if(r){ togglePick(+r.dataset.emp); return; }
+  const y=e.target.closest('[data-yn]'); if(y){ answerRow(y.dataset.yn); return; }
+  if(e.target.closest('#pick-check')) submitPick(); else if(e.target.closest('#pick-reveal')) revealPick();
+});
+$('note').addEventListener('keydown',e=>{ const r=e.target.closest('[data-emp]'); if(r&&(e.key===' '||e.key==='Enter')){ e.preventDefault(); r.click(); } });
 $('lessons-toggle').onclick=()=>{const box=$('lessons-box'),open=box.classList.toggle('open');$('lessons-toggle').setAttribute('aria-expanded',open);renderToggle()};
 function renderToggle(){const open=$('lessons-box').classList.contains('open');$('lessons-toggle').textContent=open?L.hideTasks:(COURSE_LESSON?L.showTasks(COURSE_LESSON.tasks.length):L.showLessons)}
 $('reset').onclick=()=>{resetDb();renderSchema();clearResult();showMsg('ok',L.resetDone+' '+L.ready)};
@@ -950,7 +1068,7 @@ function start(){
   }
   document.addEventListener('click',e=>{
     if(!live()) return;
-    const t=e.target.closest('#run,#reset,.lang button,.seg button,#tabs button,.tname,#lessons button,[data-lesson-go]');
+    const t=e.target.closest('#run,#reset,.lang button,.seg button,#tabs button,.tname,#lessons button,[data-lesson-go],#note [data-emp],#note [data-yn],#pick-check,#pick-reveal');
     if(!t) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if(t.id==='run') emit({kind:'run',src:ta.value});
@@ -958,6 +1076,10 @@ function start(){
     else if(t.dataset.lang) emit({kind:'lang',lang:t.dataset.lang});
     else if(t.closest('#tabs')) emit({kind:'tab',id:t.dataset.id});
     else if(t.classList.contains('tname')) emit({kind:'tab',id:t.childNodes[0].textContent.trim()});
+    else if(t.dataset.emp||t.dataset.yn||t.id==='pick-check'||t.id==='pick-reveal'){
+      const id=COURSE_LESSON&&COURSE_LESSON.tasks[activeLesson]?COURSE_LESSON.tasks[activeLesson].id:null;
+      emit({kind:'predict',id,op:t.dataset.emp?'toggle':t.dataset.yn?t.dataset.yn:t.id==='pick-check'?'check':'reveal',emp:t.dataset.emp?+t.dataset.emp:undefined});
+    }
     else if(t.dataset.lessonGo) emitTask(+t.dataset.lessonGo);
     else emitTask(t.dataset.i!=null?+t.dataset.i:[...t.parentElement.children].indexOf(t));
   },true);
@@ -988,7 +1110,15 @@ function start(){
         if(a.id&&COURSE_LESSON){ i=COURSE_LESSON.tasks.findIndex(t=>t.id===a.id); if(i<0){ showUpdateBanner(); return; } }
         if(!lessonList()[i]) return;
         if(mine){ loadLesson(i); return; }          // the author also puts the query in the editor
-        $('note').innerHTML=lessonList()[i].n; renderLessons(i); renderSchema(); clearResult();
+        activeLesson=i; resetPredict();
+        $('note').innerHTML=lessonList()[i].n; renderLessons(i); renderSchema(); clearResult(); setPredictMode(i);
+        return;
+      }
+      case 'predict': {                            // someone answered or marked a row in a prediction task
+        if(!COURSE_LESSON) return;
+        const i=COURSE_LESSON.tasks.findIndex(t=>t.id===a.id); if(i!==activeLesson) return;
+        if(a.op==='toggle') togglePick(a.emp); else if(a.op==='yes'||a.op==='no') answerRow(a.op);
+        else if(a.op==='check') submitPick(); else if(a.op==='reveal') revealPick();
         return;
       }
     }

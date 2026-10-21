@@ -47,7 +47,26 @@ for lesson in COURSE["lessons"]:
     if None in ids or len(set(ids)) != len(ids):
         bad += 1
         fail(f"lesson {lid}: every task needs its own unique \"id\" (progress is saved by it)")
+    table = (lesson.get("tables") or [None])[0]
     for i, task in enumerate(tasks, 1):
+        if task.get("kind") in ("row", "pick"):           # prediction tasks: a condition instead of an answer
+            tname = task.get("table", table)
+            try:
+                rows = con.execute('SELECT * FROM "%s" WHERE %s' % (tname, task["condition"])).fetchall()
+                if task["kind"] == "row":
+                    key = con.execute('PRAGMA table_info("%s")' % tname).fetchone()[1]   # first column, e.g. emp_id
+                    if not con.execute('SELECT 1 FROM "%s" WHERE %s = ?' % (tname, key), (task["row"],)).fetchone():
+                        bad += 1
+                        fail(f"lesson {lid}, task {i}: row {task['row']} does not exist")
+            except (sqlite3.Error, KeyError) as e:
+                bad += 1
+                fail(f"lesson {lid}, task {i}: condition fails: {e}")
+            if not all(k in task.get("explain", {}) for k in ("en", "ru")):
+                bad += 1
+                fail(f"lesson {lid}, task {i}: prediction task needs an en and ru explanation")
+        elif "answer" not in task:
+            bad += 1
+            fail(f"lesson {lid}, task {i}: no answer")
         for field in ("answer", "example"):
             if field in task:
                 try:
@@ -68,10 +87,10 @@ start, end = source.index("def public_course"), source.index("def find_lesson")
 namespace = {"COURSE": COURSE}
 exec(source[start:end], namespace)
 public = json.dumps(namespace["public_course"]())
-if '"answer"' in public or '"tips"' in public:
-    fail("/course.js would contain answers or tips")
+if '"answer"' in public or '"tips"' in public or '"explain"' in public:
+    fail("/course.js would contain answers, explanations or tips")
 else:
-    print("  ✓ /course.js has no answers or tips")
+    print("  ✓ /course.js has no answers, explanations or tips")
 
 if errors:
     print(f"\n{len(errors)} problem(s) found.")

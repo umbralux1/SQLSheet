@@ -196,6 +196,7 @@ WHERE condition;</pre>
                     "Watch for common mistakes: <code>= NULL</code> instead of <code>IS NULL</code>, and missing parentheses when mixing <code>AND</code> and <code>OR</code>.",
                     "Ask the student to <b>predict the row count</b> before running a query. It builds intuition.",
                     "Have them <b>modify</b> queries, for example change <code>&gt;</code> to <code>&gt;=</code>: what changes?",
+                    "<b>B+++</b> and <b>B++++</b>: the first 12 tasks are predictions. The student answers Yes/No about one person, or marks everyone who will pass, and only then sees the real result and an explanation. Ask her to explain her answer out loud before pressing the button. In the De Morgan tasks, the most common mistake is forgetting to swap <code>AND</code> and <code>OR</code>: the trainer catches it.",
                     "<b>B++</b> (brackets with <code>AND</code> + <code>OR</code>) was added after <code>city = 'Paris' OR 'Berlin' AND salary &gt; 50000</code>. In every task the version without brackets returns different rows, so the trainer catches it. Ask the student to run the wrong version first and say who should not be in the result.",
                     "If task 10 is hard, use section <b>B+</b>: ten more <code>OR</code> tasks. Show both wrong versions from its theory and ask the student to predict their row counts first.",
                     "<b>Extra practice</b> (50 tasks) repeats the lesson's topics and is optional. Good for homework or for a student who finished early.",
@@ -207,6 +208,7 @@ WHERE condition;</pre>
                     "Следи за типичными ошибками: <code>= NULL</code> вместо <code>IS NULL</code> и забытые скобки, когда смешиваются <code>AND</code> и <code>OR</code>.",
                     "Проси ученика <b>предсказать число строк</b> до запуска запроса. Это развивает интуицию.",
                     "Предлагай <b>менять</b> запросы, например заменить <code>&gt;</code> на <code>&gt;=</code>: что изменится?",
+                    "<b>B+++</b> и <b>B++++</b>: первые 12 заданий — на предсказание. Ученик отвечает «да / нет» про одного человека или отмечает всех, кто попадёт в результат, и только потом видит настоящий результат и объяснение. Проси объяснить ответ вслух до нажатия кнопки. В заданиях на де Моргана самая частая ошибка — забыть поменять <code>AND</code> и <code>OR</code>: тренажёр её поймает.",
                     "<b>B++</b> (скобки при <code>AND</code> + <code>OR</code>) добавлен после запроса <code>city = 'Paris' OR 'Berlin' AND salary &gt; 50000</code>. В каждом задании вариант без скобок возвращает другие строки, и тренажёр его не засчитает. Попроси ученика сначала запустить неверный вариант и сказать, кого в результате быть не должно.",
                     "Если задание 10 даётся тяжело, переходи к разделу <b>B+</b>: ещё десять заданий на <code>OR</code>. Покажи обе ошибки из его теории и попроси сначала предсказать, сколько строк они вернут.",
                     "<b>Дополнительная практика</b> (50 заданий) повторяет темы урока и не обязательна. Подходит для домашней работы или для ученика, который закончил раньше.",
@@ -408,6 +410,171 @@ INSERT INTO products VALUES
                 {"id": "2.p10",
                  "text": {"en": "Fix the bug. This query should return IT and Sales employees who earn more than 60000, but it returns every IT employee whatever the salary: <code>SELECT * FROM employees WHERE department = 'IT' OR department = 'Sales' AND salary &gt; 60000;</code> Write the correct query.", "ru": "Найди ошибку. Этот запрос должен вернуть сотрудников IT и Sales с зарплатой больше 60000, но возвращает всех сотрудников IT с любой зарплатой: <code>SELECT * FROM employees WHERE department = 'IT' OR department = 'Sales' AND salary &gt; 60000;</code> Напиши правильный запрос."},
                  "answer": "SELECT * FROM employees\nWHERE (department = 'IT' OR department = 'Sales') AND salary > 60000;"},
+                # Section B+++ (operator order: NOT, then AND, then OR)
+                {"id": "2.o1",
+                 "kind": "row",
+                 "row": 2,
+                 "section": {"en": "B+++ · Who goes first: NOT, AND, OR", "ru": "B+++ · Кто первый: NOT, AND, OR"},
+                 "intro": {"en": '''<p>When a condition mixes <code>NOT</code>, <code>AND</code> and <code>OR</code>, SQL works them out in a fixed order, the way × comes before + in maths:</p>
+<table class="ops"><thead><tr><th>Order</th><th>Operator</th><th>What it takes</th></tr></thead><tbody>
+<tr><td>1</td><td><code>NOT</code></td><td>only the one condition right after it</td></tr>
+<tr><td>2</td><td><code>AND</code></td><td>the condition on its left and the one on its right</td></tr>
+<tr><td>3</td><td><code>OR</code></td><td>whatever is left, last of all</td></tr>
+</tbody></table>
+<p>So <code>A OR B AND C</code> means <code>A OR (B AND C)</code>, and <code>NOT A AND B</code> means <code>(NOT A) AND B</code>. Brackets change the order: whatever is inside them is worked out first, as in maths.</p>
+<p><b>Reminder:</b> <code>AND</code> is true only when both sides are true. <code>OR</code> is true when at least one side is true. <code>NOT</code> turns true into false and false into true.</p>
+<table class="ops"><thead><tr><th>A</th><th>B</th><th>A AND B</th><th>A OR B</th><th>NOT A</th></tr></thead><tbody>
+<tr><td>true</td><td>true</td><td>true</td><td>true</td><td>false</td></tr>
+<tr><td>true</td><td>false</td><td>false</td><td>true</td><td>false</td></tr>
+<tr><td>false</td><td>true</td><td>false</td><td>true</td><td>true</td></tr>
+<tr><td>false</td><td>false</td><td>false</td><td>false</td><td>true</td></tr>
+</tbody></table>
+<p><b>Two traps:</b></p>
+<ol>
+  <li><b><code>OR</code> takes too much.</b> <code>city = 'Paris' OR city = 'Berlin' AND salary &gt; 50000</code> is read as <code>city = 'Paris' OR (city = 'Berlin' AND salary &gt; 50000)</code>: everyone from Paris passes, and the salary is checked only for Berlin.</li>
+  <li><b><code>NOT</code> takes too little.</b> <code>NOT city = 'Paris' OR city = 'Berlin'</code> is read as <code>(NOT city = 'Paris') OR city = 'Berlin'</code>: everyone who is not from Paris, Berlin included. To turn the whole group around, put it in brackets: <code>NOT (city = 'Paris' OR city = 'Berlin')</code>.</li>
+</ol>
+<p><b>Rules:</b> if a condition has both <code>AND</code> and <code>OR</code>, put the <code>OR</code> part in brackets. If <code>NOT</code> is meant for more than one condition, put brackets right after <code>NOT</code>.</p>
+<p><b>The tasks:</b> first decide whether one person passes a condition, then mark everyone who passes a query, then write the queries yourself.</p>
+<p><b>Example:</b> <code>NOT</code> here takes only <code>department = 'IT'</code>, so this means "not in IT, and salary above 50000".</p>''', "ru": '''<p>Когда в условии встречаются <code>NOT</code>, <code>AND</code> и <code>OR</code>, SQL выполняет их в постоянном порядке, как умножение раньше сложения:</p>
+<table class="ops"><thead><tr><th>Порядок</th><th>Оператор</th><th>Что он берёт</th></tr></thead><tbody>
+<tr><td>1</td><td><code>NOT</code></td><td>только одно условие сразу после себя</td></tr>
+<tr><td>2</td><td><code>AND</code></td><td>условие слева и условие справа</td></tr>
+<tr><td>3</td><td><code>OR</code></td><td>всё, что осталось, в самом конце</td></tr>
+</tbody></table>
+<p>Поэтому <code>A OR B AND C</code> значит <code>A OR (B AND C)</code>, а <code>NOT A AND B</code> значит <code>(NOT A) AND B</code>. Скобки меняют порядок: то, что внутри, выполняется первым, как в математике.</p>
+<p><b>Напоминание:</b> <code>AND</code> верно, только когда верны обе стороны. <code>OR</code> верно, когда верна хотя бы одна. <code>NOT</code> меняет «верно» на «неверно» и наоборот.</p>
+<table class="ops"><thead><tr><th>A</th><th>B</th><th>A AND B</th><th>A OR B</th><th>NOT A</th></tr></thead><tbody>
+<tr><td>верно</td><td>верно</td><td>верно</td><td>верно</td><td>неверно</td></tr>
+<tr><td>верно</td><td>неверно</td><td>неверно</td><td>верно</td><td>неверно</td></tr>
+<tr><td>неверно</td><td>верно</td><td>неверно</td><td>верно</td><td>верно</td></tr>
+<tr><td>неверно</td><td>неверно</td><td>неверно</td><td>неверно</td><td>верно</td></tr>
+</tbody></table>
+<p><b>Две ловушки:</b></p>
+<ol>
+  <li><b><code>OR</code> забирает слишком много.</b> <code>city = 'Paris' OR city = 'Berlin' AND salary &gt; 50000</code> читается как <code>city = 'Paris' OR (city = 'Berlin' AND salary &gt; 50000)</code>: проходят все из Парижа, а зарплата проверяется только у берлинцев.</li>
+  <li><b><code>NOT</code> забирает слишком мало.</b> <code>NOT city = 'Paris' OR city = 'Berlin'</code> читается как <code>(NOT city = 'Paris') OR city = 'Berlin'</code>: все, кто не из Парижа, включая Берлин. Чтобы перевернуть всю группу, возьми её в скобки: <code>NOT (city = 'Paris' OR city = 'Berlin')</code>.</li>
+</ol>
+<p><b>Правила:</b> если в условии есть и <code>AND</code>, и <code>OR</code>, бери часть с <code>OR</code> в скобки. Если <code>NOT</code> относится к нескольким условиям, ставь скобки сразу после <code>NOT</code>.</p>
+<p><b>Задания:</b> сначала реши, пройдёт ли условие один конкретный человек, потом отметь всех, кто попадёт в результат запроса, и в конце напиши запросы сам.</p>
+<p><b>Пример:</b> здесь <code>NOT</code> берёт только <code>department = 'IT'</code>, то есть «не из IT, и зарплата выше 50000».</p>'''},
+                 "example": "SELECT first_name, department, salary\nFROM employees\nWHERE NOT department = 'IT' AND salary > 50000;",
+                 "condition": "city = 'Paris' OR city = 'Berlin' AND salary > 50000",
+                 "text": {"en": "Will <b>Bob</b> be in the result of this condition?", "ru": "Попадёт ли <b>Bob</b> в результат этого условия?"},
+                 "explain": {"en": "Yes. <code>AND</code> goes first, so this is <code>city = 'Paris' OR (city = 'Berlin' AND salary &gt; 50000)</code>. Bob is from Paris, so the left side is already true, and his salary is never checked.", "ru": "Да. <code>AND</code> выполняется первым, поэтому это <code>city = 'Paris' OR (city = 'Berlin' AND salary &gt; 50000)</code>. Боб из Парижа, левая часть уже верна, и его зарплату никто не проверяет."}},
+                {"id": "2.o2",
+                 "kind": "row",
+                 "row": 8,
+                 "condition": "department = 'IT' AND (city = 'London' OR salary > 60000)",
+                 "text": {"en": "Will <b>Hannah</b> be in the result of this condition?", "ru": "Попадёт ли <b>Hannah</b> в результат этого условия?"},
+                 "explain": {"en": "No. The brackets go first: <code>(city = 'London' OR salary &gt; 60000)</code> is true for Hannah. But she is in Sales, so <code>department = 'IT'</code> is false, and false <code>AND</code> anything is false. Without the brackets the answer would be Yes: <code>(department = 'IT' AND city = 'London') OR salary &gt; 60000</code>.", "ru": "Нет. Скобки выполняются первыми: <code>(city = 'London' OR salary &gt; 60000)</code> для Ханны верно. Но она в Sales, поэтому <code>department = 'IT'</code> неверно, а «неверно <code>AND</code> что угодно» — неверно. Без скобок ответ был бы «Да»: <code>(department = 'IT' AND city = 'London') OR salary &gt; 60000</code>."}},
+                {"id": "2.o3",
+                 "kind": "row",
+                 "row": 5,
+                 "condition": "NOT department = 'HR' AND salary > 60000",
+                 "text": {"en": "Will <b>Ethan</b> be in the result of this condition?", "ru": "Попадёт ли <b>Ethan</b> в результат этого условия?"},
+                 "explain": {"en": "Yes. <code>NOT</code> takes only the condition right after it: <code>(NOT department = 'HR') AND salary &gt; 60000</code>. Ethan is in IT, so <code>NOT department = 'HR'</code> is true, and 68000 is more than 60000.", "ru": "Да. <code>NOT</code> берёт только условие сразу после себя: <code>(NOT department = 'HR') AND salary &gt; 60000</code>. Итан в IT, поэтому <code>NOT department = 'HR'</code> верно, и 68000 больше 60000."}},
+                {"id": "2.o4",
+                 "kind": "row",
+                 "row": 2,
+                 "condition": "NOT (department = 'HR' AND salary > 60000)",
+                 "text": {"en": "Will <b>Bob</b> be in the result of this condition?", "ru": "Попадёт ли <b>Bob</b> в результат этого условия?"},
+                 "explain": {"en": "Yes, and that surprises many people. Here <code>NOT</code> takes the whole group. Inside it, Bob is in HR (true) but earns 45000, so <code>salary &gt; 60000</code> is false, and true <code>AND</code> false is false. <code>NOT</code> false is true, so Bob is in the result. This condition removes only HR people who earn more than 60000, and there are none.", "ru": "Да, и это многих удивляет. Здесь <code>NOT</code> берёт всю группу. Внутри: Боб в HR (верно), но получает 45000, поэтому <code>salary &gt; 60000</code> неверно, а «верно <code>AND</code> неверно» — неверно. <code>NOT</code> от «неверно» — «верно», и Боб попадает в результат. Это условие убирает только сотрудников HR с зарплатой больше 60000, а таких нет."}},
+                {"id": "2.o5",
+                 "kind": "row",
+                 "row": 5,
+                 "condition": "NOT (city = 'Paris' OR department = 'HR')",
+                 "text": {"en": "Will <b>Ethan</b> be in the result of this condition?", "ru": "Попадёт ли <b>Ethan</b> в результат этого условия?"},
+                 "explain": {"en": "No. Inside the brackets: Ethan is from Paris, so <code>city = 'Paris' OR department = 'HR'</code> is true. <code>NOT</code> true is false, so Ethan is not in the result.", "ru": "Нет. Внутри скобок: Итан из Парижа, поэтому <code>city = 'Paris' OR department = 'HR'</code> верно. <code>NOT</code> от «верно» — «неверно», и Итана в результате нет."}},
+                {"id": "2.o6",
+                 "kind": "pick",
+                 "condition": "city = 'Berlin' OR city = 'Paris' AND salary > 55000",
+                 "text": {"en": "Mark everyone who will be in the result of this query, then press <b>Check</b>.", "ru": "Отметь всех, кто попадёт в результат этого запроса, и нажми <b>Проверить</b>."},
+                 "explain": {"en": "<code>AND</code> goes first: <code>city = 'Berlin' OR (city = 'Paris' AND salary &gt; 55000)</code>. Both people from Berlin pass, Diana and George, whatever their salary. From Paris only Ethan earns more than 55000.", "ru": "<code>AND</code> выполняется первым: <code>city = 'Berlin' OR (city = 'Paris' AND salary &gt; 55000)</code>. Проходят оба берлинца, Диана и Джордж, с любой зарплатой. Из Парижа только Итан получает больше 55000."}},
+                {"id": "2.o7",
+                 "kind": "pick",
+                 "condition": "(city = 'Berlin' OR city = 'Paris') AND salary > 55000",
+                 "text": {"en": "Mark everyone who will be in the result of this query, then press <b>Check</b>. Compare with the previous task.", "ru": "Отметь всех, кто попадёт в результат этого запроса, и нажми <b>Проверить</b>. Сравни с предыдущим заданием."},
+                 "explain": {"en": "The brackets go first: from Berlin or Paris, <b>and</b> salary above 55000. Diana earns 52000 and George exactly 55000, which is not more than 55000. Only Ethan is left. The same words as in the previous task, a different result.", "ru": "Скобки выполняются первыми: из Берлина или Парижа, <b>и</b> зарплата выше 55000. Диана получает 52000, а Джордж ровно 55000, это не больше 55000. Остаётся только Итан. Те же слова, что в прошлом задании, а результат другой."}},
+                {"id": "2.o8",
+                 "kind": "pick",
+                 "condition": "department = 'IT' OR department = 'Sales' AND bonus > 5000",
+                 "text": {"en": "Mark everyone who will be in the result of this query, then press <b>Check</b>.", "ru": "Отметь всех, кто попадёт в результат этого запроса, и нажми <b>Проверить</b>."},
+                 "explain": {"en": "<code>AND</code> goes first: <code>department = 'IT' OR (department = 'Sales' AND bonus &gt; 5000)</code>. All four IT people pass: Alice, Charlie, Ethan, Ivan. From Sales only Hannah has a bonus above 5000.", "ru": "<code>AND</code> выполняется первым: <code>department = 'IT' OR (department = 'Sales' AND bonus &gt; 5000)</code>. Проходят все четверо из IT: Элис, Чарли, Итан, Иван. Из Sales бонус больше 5000 только у Ханны."}},
+                {"id": "2.o9",
+                 "kind": "pick",
+                 "condition": "department = 'IT' OR (department = 'Sales' AND bonus > 5000)",
+                 "text": {"en": "Mark everyone who will be in the result of this query, then press <b>Check</b>. Compare with the previous task.", "ru": "Отметь всех, кто попадёт в результат этого запроса, и нажми <b>Проверить</b>. Сравни с предыдущим заданием."},
+                 "explain": {"en": "These brackets put <code>AND</code> first, exactly as SQL does anyway, so the result is the same as in the previous task: Alice, Charlie, Ethan, Hannah, Ivan. Brackets that repeat the normal order change nothing, but they make the query easier to read.", "ru": "Эти скобки ставят <code>AND</code> первым, как SQL и так делает, поэтому результат тот же, что в прошлом задании: Элис, Чарли, Итан, Ханна, Иван. Скобки, повторяющие обычный порядок, ничего не меняют, но делают запрос понятнее."}},
+                {"id": "2.o10",
+                 "kind": "pick",
+                 "condition": "NOT department = 'HR' AND salary > 60000",
+                 "text": {"en": "Mark everyone who will be in the result of this query, then press <b>Check</b>.", "ru": "Отметь всех, кто попадёт в результат этого запроса, и нажми <b>Проверить</b>."},
+                 "explain": {"en": "<code>NOT</code> takes only <code>department = 'HR'</code>: <code>(NOT department = 'HR') AND salary &gt; 60000</code>. These are people outside HR who earn more than 60000: Charlie, Ethan, Hannah, Ivan. Alice earns exactly 60000, which is not more.", "ru": "<code>NOT</code> берёт только <code>department = 'HR'</code>: <code>(NOT department = 'HR') AND salary &gt; 60000</code>. Это люди не из HR с зарплатой больше 60000: Чарли, Итан, Ханна, Иван. Элис получает ровно 60000, это не больше."}},
+                {"id": "2.o11",
+                 "kind": "pick",
+                 "condition": "NOT (department = 'HR' AND salary > 60000)",
+                 "text": {"en": "Mark everyone who will be in the result of this query, then press <b>Check</b>. Compare with the previous task.", "ru": "Отметь всех, кто попадёт в результат этого запроса, и нажми <b>Проверить</b>. Сравни с предыдущим заданием."},
+                 "explain": {"en": "<code>NOT</code> takes the whole group. The group is true only for HR people who earn more than 60000, and there are none. So the group is false for everyone, <code>NOT</code> makes it true, and all 10 employees are in the result.", "ru": "<code>NOT</code> берёт всю группу. Группа верна только для сотрудников HR с зарплатой больше 60000, а таких нет. Значит, для всех она неверна, <code>NOT</code> делает её верной, и в результате все 10 сотрудников."}},
+                {"id": "2.o12",
+                 "kind": "pick",
+                 "condition": "NOT department = 'HR' OR salary > 60000",
+                 "text": {"en": "Mark everyone who will be in the result of this query, then press <b>Check</b>.", "ru": "Отметь всех, кто попадёт в результат этого запроса, и нажми <b>Проверить</b>."},
+                 "explain": {"en": "<code>(NOT department = 'HR') OR salary &gt; 60000</code>: everyone outside HR passes (Alice, Charlie, Diana, Ethan, Fiona, Hannah, Ivan), plus anyone in HR who earns more than 60000, and there is nobody like that. Bob, George and Julia are left out.", "ru": "<code>(NOT department = 'HR') OR salary &gt; 60000</code>: проходят все не из HR (Элис, Чарли, Диана, Итан, Фиона, Ханна, Иван) плюс сотрудники HR с зарплатой больше 60000, а таких нет. Боб, Джордж и Джулия не попадают."}},
+                {"id": "2.o13",
+                 "text": {"en": "Get all employees who are from neither <code>'London'</code> nor <code>'Madrid'</code>. Put <code>NOT</code> in front of a group in brackets.", "ru": "Выведи всех сотрудников, которые не из <code>'London'</code> и не из <code>'Madrid'</code>. Поставь <code>NOT</code> перед группой в скобках."},
+                 "answer": "SELECT * FROM employees\nWHERE NOT (city = 'London' OR city = 'Madrid');"},
+                {"id": "2.o14",
+                 "text": {"en": "Fix the query. It should return the employees who are <b>not in IT</b> and earn more than 60000, but it returns 7 people: <code>SELECT * FROM employees WHERE NOT (department = 'IT' AND salary &gt; 60000);</code>", "ru": "Исправь запрос. Он должен вернуть сотрудников <b>не из IT</b> с зарплатой больше 60000, а возвращает 7 человек: <code>SELECT * FROM employees WHERE NOT (department = 'IT' AND salary &gt; 60000);</code>"},
+                 "answer": "SELECT * FROM employees\nWHERE department <> 'IT' AND salary > 60000;"},
+                {"id": "2.o15",
+                 "text": {"en": "Fix the query. It should return <b>Sales</b> employees whose bonus is missing or below 3000, but it also returns people from other departments: <code>SELECT * FROM employees WHERE bonus IS NULL OR bonus &lt; 3000 AND department = 'Sales';</code>", "ru": "Исправь запрос. Он должен вернуть сотрудников <b>Sales</b>, у которых бонуса нет или он меньше 3000, а возвращает и людей из других отделов: <code>SELECT * FROM employees WHERE bonus IS NULL OR bonus &lt; 3000 AND department = 'Sales';</code>"},
+                 "answer": "SELECT * FROM employees\nWHERE department = 'Sales' AND (bonus IS NULL OR bonus < 3000);"},
+                {"id": "2.o16",
+                 "text": {"en": "Get the employees who are either in IT with salary above 70000, or in Sales, but only those hired after 2015. You need brackets inside brackets.", "ru": "Выведи сотрудников, которые либо из IT с зарплатой выше 70000, либо из Sales, но только нанятых после 2015 года. Понадобятся скобки внутри скобок."},
+                 "answer": "SELECT * FROM employees\nWHERE ((department = 'IT' AND salary > 70000) OR department = 'Sales')\n  AND hire_year > 2015;"},
+                # Section B++++ (De Morgan's laws)
+                {"id": "2.d1",
+                 "section": {"en": "B++++ · De Morgan's laws", "ru": "B++++ · Законы де Моргана"},
+                 "intro": {"en": '''<p>De Morgan's laws show how to remove the brackets after <code>NOT</code>:</p>
+<pre class="code">NOT (A OR B)   =   NOT A AND NOT B
+NOT (A AND B)  =   NOT A OR  NOT B</pre>
+<p><b>Recipe:</b> put <code>NOT</code> on each condition <b>and swap</b> <code>AND</code> ↔ <code>OR</code>.</p>
+<p>In everyday words: "not (from Paris or from Berlin)" is "not from Paris <b>and</b> not from Berlin". "Not (from Paris and in HR)" is "not from Paris <b>or</b> not in HR".</p>
+<p><code>NOT</code> in front of one comparison is usually written with the opposite operator: <code>NOT city = 'Paris'</code> is <code>city &lt;&gt; 'Paris'</code>, <code>NOT salary &gt; 50000</code> is <code>salary &lt;= 50000</code>, <code>NOT hire_year &lt; 2016</code> is <code>hire_year &gt;= 2016</code>.</p>
+<p><b>The classic mistake is to forget the swap:</b></p>
+<table class="ops"><thead><tr><th>Condition</th><th>Rows</th></tr></thead><tbody>
+<tr><td><code>NOT (city = 'Paris' OR city = 'Berlin')</code></td><td>5</td></tr>
+<tr><td><code>city &lt;&gt; 'Paris' AND city &lt;&gt; 'Berlin'</code></td><td>5 ✓ the same</td></tr>
+<tr><td><code>city &lt;&gt; 'Paris' OR city &lt;&gt; 'Berlin'</code></td><td>10: everyone! Each person is either not in Paris or not in Berlin.</td></tr>
+</tbody></table>
+<p><code>NOT IN</code> is the same law in short form: <code>city NOT IN ('Paris', 'Berlin')</code> also returns those 5 people.</p>
+<p><b>Example:</b> the second row of the table.</p>''', "ru": '''<p>Законы де Моргана показывают, как убрать скобки после <code>NOT</code>:</p>
+<pre class="code">NOT (A OR B)   =   NOT A AND NOT B
+NOT (A AND B)  =   NOT A OR  NOT B</pre>
+<p><b>Рецепт:</b> поставь <code>NOT</code> перед каждым условием <b>и поменяй</b> <code>AND</code> ↔ <code>OR</code>.</p>
+<p>Обычными словами: «не (из Парижа или из Берлина)» — это «не из Парижа <b>и</b> не из Берлина». «Не (из Парижа и в HR)» — это «не из Парижа <b>или</b> не в HR».</p>
+<p><code>NOT</code> перед одним сравнением обычно записывают противоположным оператором: <code>NOT city = 'Paris'</code> — это <code>city &lt;&gt; 'Paris'</code>, <code>NOT salary &gt; 50000</code> — это <code>salary &lt;= 50000</code>, <code>NOT hire_year &lt; 2016</code> — это <code>hire_year &gt;= 2016</code>.</p>
+<p><b>Классическая ошибка — забыть поменять AND и OR:</b></p>
+<table class="ops"><thead><tr><th>Условие</th><th>Строк</th></tr></thead><tbody>
+<tr><td><code>NOT (city = 'Paris' OR city = 'Berlin')</code></td><td>5</td></tr>
+<tr><td><code>city &lt;&gt; 'Paris' AND city &lt;&gt; 'Berlin'</code></td><td>5 ✓ то же самое</td></tr>
+<tr><td><code>city &lt;&gt; 'Paris' OR city &lt;&gt; 'Berlin'</code></td><td>10: все! Любой человек либо не в Париже, либо не в Берлине.</td></tr>
+</tbody></table>
+<p><code>NOT IN</code> — тот же закон в короткой записи: <code>city NOT IN ('Paris', 'Berlin')</code> тоже возвращает этих 5 человек.</p>
+<p><b>Пример:</b> вторая строка таблицы.</p>'''},
+                 "example": "SELECT first_name, city\nFROM employees\nWHERE city <> 'Paris' AND city <> 'Berlin';",
+                 "text": {"en": "Get all employees who are in neither <code>'HR'</code> nor <code>'Sales'</code>. Write it <b>without</b> <code>NOT</code>, with <code>&lt;&gt;</code> twice. Which word goes between them?", "ru": "Выведи всех сотрудников, которые не в <code>'HR'</code> и не в <code>'Sales'</code>. Напиши <b>без</b> <code>NOT</code>, дважды через <code>&lt;&gt;</code>. Какое слово поставить между ними?"},
+                 "answer": "SELECT * FROM employees\nWHERE department <> 'HR' AND department <> 'Sales';"},
+                {"id": "2.d2",
+                 "text": {"en": "Get all employees except those who are both from <code>'Paris'</code> and in <code>'HR'</code>. Use <code>NOT ( … AND … )</code>.", "ru": "Выведи всех сотрудников, кроме тех, кто одновременно из <code>'Paris'</code> и в <code>'HR'</code>. Используй <code>NOT ( … AND … )</code>."},
+                 "answer": "SELECT * FROM employees\nWHERE NOT (city = 'Paris' AND department = 'HR');"},
+                {"id": "2.d3",
+                 "text": {"en": "The same as the previous task, but without brackets: rewrite it with De Morgan's law and <code>&lt;&gt;</code>.", "ru": "То же, что в прошлом задании, но без скобок: перепиши по закону де Моргана через <code>&lt;&gt;</code>."},
+                 "answer": "SELECT * FROM employees\nWHERE city <> 'Paris' OR department <> 'HR';"},
+                {"id": "2.d4",
+                 "text": {"en": "Get all employees who were hired neither before 2016 nor after 2020. Start from <code>NOT (hire_year &lt; 2016 OR hire_year &gt; 2020)</code> and write it without <code>NOT</code>.", "ru": "Выведи всех сотрудников, которых наняли не раньше 2016 и не позже 2020 года. Начни с <code>NOT (hire_year &lt; 2016 OR hire_year &gt; 2020)</code> и запиши без <code>NOT</code>."},
+                 "answer": "SELECT * FROM employees\nWHERE hire_year >= 2016 AND hire_year <= 2020;"},
                 # Section C
                 {"id": "2.15", "section": {"en": "C · BETWEEN", "ru": "C · BETWEEN"},
                  "intro": {

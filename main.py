@@ -76,12 +76,12 @@ window.COURSE_PROGRESS = {
 
 
 def public_course() -> dict:
-    """The course without the answers and the teacher's tips."""
+    """The course without the answers, the explanations of prediction tasks and the teacher's tips."""
     lessons = []
     for lesson in COURSE["lessons"]:
         item = {k: v for k, v in lesson.items() if k not in ("tasks", "tips")}
         if "tasks" in lesson:
-            item["tasks"] = [{k: v for k, v in t.items() if k != "answer"} for t in lesson["tasks"]]
+            item["tasks"] = [{k: v for k, v in t.items() if k not in ("answer", "explain")} for t in lesson["tasks"]]
         lessons.append(item)
     return {"lessons": lessons}
 
@@ -138,7 +138,40 @@ async def answers(lesson_id: int, request: Request):
     if not is_teacher(request):
         raise HTTPException(status_code=403, detail="Teachers only")
     lesson = find_lesson(lesson_id)
-    return {"answers": [t["answer"] for t in lesson["tasks"]], "tips": lesson.get("tips")}
+    return {"answers": [teacher_answer(lesson_id, i) for i in range(len(lesson["tasks"]))], "tips": lesson.get("tips")}
+
+
+# ---------------------------------------------------------------------------
+# Prediction tasks
+#   "kind": "row"  - will employee <row> pass <condition>? The student answers yes or no.
+#   "kind": "pick" - the student marks every row that passes <condition>.
+# Rows are identified by the first column of the lesson's first table (emp_id).
+# ---------------------------------------------------------------------------
+
+
+@lru_cache(maxsize=256)
+def passing_rows(lesson_id: int, task: int) -> tuple[tuple, ...]:
+    """(id, name) of every row that passes the task's condition, on the original data."""
+    lesson = find_lesson(lesson_id)
+    t = lesson["tasks"][task]
+    table = t.get("table", lesson["tables"][0])
+    con = sqlite3.connect(":memory:")
+    try:
+        con.executescript(lesson["seed"])
+        rows = con.execute(f'SELECT * FROM "{table}" WHERE {t["condition"]}').fetchall()
+    finally:
+        con.close()
+    return tuple((r[0], r[1]) for r in rows)
+
+
+def teacher_answer(lesson_id: int, task: int) -> str:
+    t = find_lesson(lesson_id)["tasks"][task]
+    if t.get("kind") == "row":
+        return "Yes" if t["row"] in [r[0] for r in passing_rows(lesson_id, task)] else "No"
+    if t.get("kind") == "pick":
+        rows = passing_rows(lesson_id, task)
+        return ", ".join(f"{name} ({rid})" for rid, name in rows) or "nobody"
+    return t["answer"]
 
 
 def _normalize(value):
@@ -164,8 +197,10 @@ def expected_result(lesson_id: int, task: int) -> tuple[list[str], list[list]]:
 class CheckData(BaseModel):
     lesson: int
     task: int
-    columns: list[str]
-    rows: list[list]
+    columns: list[str] = []
+    rows: list[list] = []
+    answer: str | None = None        # prediction "row" tasks: "yes" or "no"
+    picked: list[int] | None = None  # prediction "pick" tasks: the ids the student marked
 
 
 @app.post("/api/check")
@@ -173,6 +208,14 @@ async def check(data: CheckData):
     lesson = find_lesson(data.lesson)
     if not 0 <= data.task < len(lesson["tasks"]):
         raise HTTPException(status_code=404, detail="Task not found")
+    task = lesson["tasks"][data.task]
+    if task.get("kind") == "row":
+        passes = task["row"] in [r[0] for r in passing_rows(data.lesson, data.task)]
+        return {"ok": (data.answer == "yes") == passes, "explain": task.get("explain")}
+    if task.get("kind") == "pick":
+        want = {r[0] for r in passing_rows(data.lesson, data.task)}
+        got = set(data.picked or [])
+        return {"ok": got == want, "wrong": len(want ^ got), "explain": task.get("explain")}
     columns, rows = expected_result(data.lesson, data.task)
     if [c.lower() for c in columns] != [c.lower() for c in data.columns]:
         return {"ok": False, "reason": "columns", "expected": columns}
