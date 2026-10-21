@@ -158,12 +158,15 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
 .main>*,.lesson-note{min-width:0}   /* wide tables scroll inside their box instead of stretching the card */
 .predict-mode .ribbon,.predict-mode .editor,.predict-mode .fbar{display:none}
 .lesson-note pre.cond{margin:8px 0;padding:8px 12px;max-width:72ch;font-family:var(--f-mono);font-size:13.5px;line-height:1.5;background:var(--panel);border:1px solid var(--line-strong);border-radius:6px;white-space:pre-wrap;word-break:break-word}
-.lesson-note .pwrap{overflow-x:auto;margin:6px 0 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
-.ptable{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
-.ptable th{background:var(--head);color:var(--muted);font-weight:600;font-size:11.5px;text-align:left;padding:5px 8px;white-space:nowrap}
-.ptable td{padding:6px 8px;border-top:1px solid var(--line);white-space:nowrap}
+.lesson-note .pwrap{width:fit-content;max-width:100%;overflow-x:auto;margin:6px 0 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.ptable{border-collapse:separate;border-spacing:0;width:auto;font-size:13px;font-variant-numeric:tabular-nums}
+.ptable tr>:last-child{border-right:0}.ptable tbody tr:last-child td{border-bottom:0}
+.ptable th,.ptable td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:3px 10px;height:26px;white-space:nowrap}
+.ptable th{text-align:left;font-weight:600;background:var(--head);color:var(--muted)}
+.ptable th small{display:block;font-weight:400;font-size:10.5px;color:var(--muted);font-family:var(--f-mono);line-height:1;margin-top:2px}
+.ptable .g{background:var(--head);color:var(--muted);font-weight:500;font-size:12px;text-align:center;min-width:36px;padding:3px 6px}
 .ptable td.n{text-align:right}
-.ptable td.null{color:var(--muted);font-style:italic}
+.ptable td.null{color:var(--null);font-style:italic}
 .ptable tr[data-emp]{cursor:pointer}
 .ptable tr[data-emp]:hover td{background:var(--head)}
 .ptable tr[data-emp].on td{background:var(--sel)}
@@ -528,12 +531,12 @@ function seedDB(){                       // the lesson's original data, untouche
   return SEED_DB;
 }
 function predictTableName(t){ return t.table||COURSE_LESSON.tables[0] }
-function predictTable(cols,rows,pickable,active){
+function predictTable(cols,rows,pickable,active,types){
   const cell=v=>v===null?'<td class="null">NULL</td>':typeof v==='number'?`<td class="n">${v}</td>`:`<td>${esc(String(v))}</td>`;
-  let h=`<table class="ptable"><thead><tr>${pickable?'<th></th>':''}${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>`;
+  let h=`<table class="ptable"><thead><tr>${pickable?'<th class="g"></th>':''}${cols.map((c,j)=>`<th>${esc(c)}<small>${esc((types&&types[j])||'')}</small></th>`).join('')}</tr></thead><tbody>`;
   rows.forEach(r=>{
     const on=pickable&&active&&pickState.has(r[0]);
-    h+=pickable?`<tr data-emp="${r[0]}" class="${on?'on':''}" role="checkbox" aria-checked="${on}" tabindex="0"><td><span class="tick"></span></td>${r.map(cell).join('')}</tr>`
+    h+=pickable?`<tr data-emp="${r[0]}" class="${on?'on':''}" role="checkbox" aria-checked="${on}" tabindex="0"><td class="g"><span class="tick"></span></td>${r.map(cell).join('')}</tr>`
                :`<tr>${r.map(cell).join('')}</tr>`;
   });
   return h+'</tbody></table>';
@@ -544,12 +547,13 @@ function predictBlock(k){
   const cond=t.kind==='pick'?`<pre class="cond">SELECT * FROM ${esc(table)}\nWHERE ${esc(t.condition)};</pre>`:`<pre class="cond">WHERE ${esc(t.condition)}</pre>`;
   const db=seedDB(); if(!db) return cond;
   const res=db.exec(`SELECT * FROM "${table}"`)[0];
+  const types=(db.exec(`PRAGMA table_info("${table}")`)[0]||{values:[]}).values.map(v=>String(v[2]).toLowerCase());
   if(t.kind==='row'){
     const r=res.values.find(v=>v[0]===t.row);
-    return cond+`<div class="pwrap">${predictTable(res.columns,r?[r]:[],false,active)}</div>
+    return cond+`<div class="pwrap">${predictTable(res.columns,r?[r]:[],false,active,types)}</div>
       <div class="yn"><button class="btn" type="button" data-yn="yes">${esc(L.yes)}</button><button class="btn" type="button" data-yn="no">${esc(L.no)}</button></div><div class="pfeed" id="pfeed"></div>`;
   }
-  return cond+`<div class="pwrap">${predictTable(res.columns,res.values,true,active)}</div>
+  return cond+`<div class="pwrap">${predictTable(res.columns,res.values,true,active,types)}</div>
     <div class="yn"><button class="btn primary" type="button" id="pick-check">${esc(L.checkPick)}</button><span class="pcount" id="pcount">${esc(L.marked(active?pickState.size:0))}</span></div><div class="pfeed" id="pfeed"></div>`;
 }
 function setPredictMode(i){
