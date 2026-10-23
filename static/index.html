@@ -127,6 +127,22 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
 .sheet td.cur{box-shadow:inset 0 0 0 2px var(--accent)}
 .sheet th.on{background:var(--head-active);color:var(--fg)}
 .sheet td.empty,.sheet th.empty{background:transparent}
+.sheet tr.pass td:not(.empty){background:var(--new)}
+.sheet tr.fail td:not(.empty):not(.wt):not(.wf){color:var(--muted)}
+.sheet td.wt,.sheet td.wf{text-align:center;font-weight:700;font-size:14px}
+.sheet td.wt{color:var(--accent)} .sheet td.wf{color:var(--err)}
+.sheet td.w0{border-left:2px solid var(--line-strong)}
+.sheet td.wfin{border-left:2px solid var(--accent);border-right:2px solid var(--accent)}
+.sheet tr.hdr td.wfin{background:var(--head-active)}
+.msg.why-msg{color:var(--fg)}
+.msg .wt{color:var(--accent)} .msg .wf{color:var(--err)}
+.why-key{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px}
+.why-key code{font-family:var(--f-mono);font-size:12px}
+.why-note{margin-top:6px;color:var(--muted)}
+.why-row{margin-top:8px}
+.why-btn[aria-pressed="true"]{background:var(--head-active);border-color:var(--accent)}
+.why-btn:disabled{opacity:.5;cursor:default}
+
 
 /* tabs + status */
 .tabs{display:flex;gap:0;border-top:1px solid var(--line);background:var(--head);overflow-x:auto}
@@ -313,6 +329,7 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:n
       <div class="ribbon">
         <button class="btn primary" id="run" data-i18n="run"></button>
         <button class="btn" id="reset" data-i18n="reset"></button>
+        <button class="btn why-btn" id="why" type="button" disabled></button>
         <span class="hint" data-i18n="hint"></span>
       </div>
       <div class="collab" id="collab" hidden>
@@ -348,6 +365,12 @@ const T = {
  en:{
   brand1:'SQL', brand2:'Sheet', title:'SQL Sheet',
   tagline:'Write a query and see the result as a spreadsheet. The database lives in your browser, so feel free to break it.',
+  why:'Explain condition', whyBack:'Back to result', whyTitle:'Show every part of WHERE as a ✓/✗ column',
+  whyNeed:'Run a SELECT with WHERE first', whyFail:"Can't take this condition apart. Try a simpler query: SELECT … FROM table WHERE …;",
+  whyAnd:'AND: ✓ only if all are ✓', whyOr:'OR: ✓ if at least one is ✓', whyNot:'NOT: turns ✓ into ✗ and back',
+  whyPassed:(p,n)=>`${p} of ${n} rows pass the condition.`, whyLegPass:'goes to the result', whyYes:'yes', whyNo:'no',
+  whyNull:'NULL means "unknown": the row does not pass.',
+  whyImplicit:'Some brackets in the column names are not in your query. SQL puts them there itself: AND goes before OR, and NOT applies only to the next part.',
   tables:'Database tables', lessons:'Lessons', run:'▶ Run', reset:'Reset database', resetTitle:'Restore the original data',
   semiLabel:'Semicolon:', semiStrict:'Strict', semiHint:'Hint', semiStrictTitle:'Queries without ; at the end are not run', semiHintTitle:'Queries run, with a reminder to add ;',
   caseTip:'Style: SQL keywords are usually written in UPPERCASE:', caseFix:'Make uppercase',
@@ -386,6 +409,12 @@ const T = {
  ru:{
   brand1:'SQL', brand2:'Табличка', title:'SQL Табличка',
   tagline:'Пиши запрос — результат появится как лист Excel. База живёт в браузере, ломать можно смело.',
+  why:'Разобрать условие', whyBack:'Обычный результат', whyTitle:'Показать каждую часть WHERE отдельной колонкой ✓/✗',
+  whyNeed:'Сначала выполни SELECT с WHERE', whyFail:'Не получилось разобрать это условие. Попробуй запрос попроще: SELECT … FROM таблица WHERE …;',
+  whyAnd:'AND: ✓, только если все ✓', whyOr:'OR: ✓, если хоть одна ✓', whyNot:'NOT: меняет ✓ на ✗ и обратно',
+  whyPassed:(p,n)=>`${p} из ${n} строк проходят условие.`, whyLegPass:'попадёт в результат', whyYes:'да', whyNo:'нет',
+  whyNull:'NULL значит «неизвестно»: такая строка не проходит.',
+  whyImplicit:'Некоторых скобок из названий колонок нет в твоём запросе. SQL ставит их сам: AND выполняется раньше OR, а NOT действует только на ближайшую часть.',
   tables:'Таблицы базы', lessons:'Уроки', run:'▶ Выполнить', reset:'Сбросить базу', resetTitle:'Вернуть исходные данные',
   semiLabel:'Точка с запятой:', semiStrict:'Строго', semiHint:'Подсказка', semiStrictTitle:'Запросы без ; в конце не выполняются', semiHintTitle:'Запросы выполняются, но с напоминанием поставить ;',
   caseTip:'Стиль: ключевые слова SQL принято писать ЗАГЛАВНЫМИ:', caseFix:'Исправить регистр',
@@ -582,7 +611,7 @@ function revealResult(){                 // run the task's query so the real res
 }
 function predictOutcome(ok,explain,note){
   const k=activeLesson;
-  $('pfeed').innerHTML=`<div class="pexplain ${ok?'good':'bad'}"><b>${esc(ok?L.predictRight:L.predictWrong)}</b> ${explain?explain[lang]:''}</div>`;
+  $('pfeed').innerHTML=`<div class="pexplain ${ok?'good':'bad'}"><b>${esc(ok?L.predictRight:L.predictWrong)}</b> ${explain?explain[lang]:''}<div class="why-row"><button class="btn why-btn" type="button"></button></div></div>`; updateWhyBtn();
   if(ok){ COURSE_PROGRESS.add(COURSE_LESSON.id,COURSE_LESSON.tasks[k].id); celebrate(k); renderLessons(k); }
   else $('msg').insertAdjacentHTML('beforeend',`<div class="dumb" role="status">you're so dumb dumb</div>${note?`<span class="bad">${esc(note)}</span>`:''}`);
 }
@@ -601,7 +630,7 @@ async function submitPick(){
 }
 function revealPick(){
   revealResult();
-  $('pfeed').innerHTML=`<div class="pexplain bad"><b>${esc(L.answerShown)}</b> ${lastExplain?lastExplain[lang]:''}</div>`;
+  $('pfeed').innerHTML=`<div class="pexplain bad"><b>${esc(L.answerShown)}</b> ${lastExplain?lastExplain[lang]:''}<div class="why-row"><button class="btn why-btn" type="button"></button></div></div>`; updateWhyBtn();
 }
 async function checkTask(r){
   if(!COURSE_LESSON||activeLesson<0) return;
@@ -682,6 +711,7 @@ function applyLang(){
   applySemi();
   if(COURSE_LESSON&&$('lessons').children.length) renderLessons(activeLesson);
   if(window.renderToggle) renderToggle();
+  if(window.updateWhyBtn) updateWhyBtn();
 }
 /* ---------- semicolon mode ----------
    Always strict: a query without ; at the end is not run. (There used to be a
@@ -765,6 +795,7 @@ function fmtNum(v){return v.toLocaleString(L.locale,{useGrouping:false,maximumFr
 const marksByTable={};
 function run(given){
   runCount++;
+  whyOn=false; whyResult=null; whySrc=null; updateWhyBtn();
   const src=(typeof given==='string'?given:ta.value).trim(); if(!src) return;
   const noSemi=missingSemi(src);
   if(noSemi&&semiMode==='strict'){showMsg('err',L.semiErr);$('st-time').textContent='';return}
@@ -786,7 +817,7 @@ function run(given){
   renderSchema();
   if(res.length){
     const r=res[res.length-1];
-    lastResult={cols:r.columns,rows:r.values,types:guessTypes(r.values,r.columns.length)};
+    lastResult={cols:r.columns,rows:r.values,types:guessTypes(r.values,r.columns.length)}; whySrc=src;
     renderTabs(); openTab('__result');
     showMsg('ok',L.ok(r.values.length));
     checkTask(r);   // in a lesson every Run also checks the answer
@@ -800,7 +831,7 @@ function run(given){
     try{for(const st of db.iterateStatements(src)){cols=st.getColumnNames();st.free()}}catch(e){cols=[]}
     if(cols.length){
       const r={columns:cols,values:[]};
-      lastResult={cols,rows:[],types:guessTypes([],cols.length)};
+      lastResult={cols,rows:[],types:guessTypes([],cols.length)}; whySrc=src;
       renderTabs(); openTab('__result');
       showMsg('ok',L.ok(0));
       checkTask(r);
@@ -811,6 +842,7 @@ function run(given){
   }
   if(noSemi) addSemiTip();
   addCaseTip(src);
+  updateWhyBtn();
 }
 function hintFor(m){
   if(/no such table/.test(m)) return L.hNoTable;
@@ -836,7 +868,7 @@ function openTab(id){
   tab=id;
   [...$('tabs').children].forEach(b=>b.setAttribute('aria-selected',b.dataset.id===id));
   if(id==='__result'){
-    view=lastResult?{...lastResult,marks:{},rowids:null}:{cols:[],rows:[],types:[],marks:{}};
+    view=whyOn&&whyResult?{...whyResult}:lastResult?{...lastResult,marks:{},rowids:null}:{cols:[],rows:[],types:[],marks:{}};
   }else{
     const info=tableInfo(id), r=db.exec(`SELECT rowid,* FROM "${id}"`);
     const vals=r.length?r[0].values:[];
@@ -859,13 +891,15 @@ function renderGrid(){
     h+=`<tr class="${cls}"><th data-row="${r}">${r+1}</th>`;
     for(let c=0;c<nc;c++){
       if(r===0){
-        if(c<view.cols.length) h+=`<td data-r="0" data-c="${c}" title="${esc(view.cols[c])}">${esc(view.cols[c])}<small>${esc(typeLabel(view.types[c]||''))}</small></td>`;
+        if(c<view.cols.length) h+=`<td data-r="0" data-c="${c}" class="${whyCls(c)}" title="${esc(view.cols[c])}${view.why&&c>=view.why.from?' · '+esc(view.types[c]||''):''}">${esc(view.cols[c])}<small>${esc(typeLabel(view.types[c]||''))}</small></td>`;
         else h+=`<td class="empty" data-r="0" data-c="${c}"></td>`;
         continue;
       }
       const row=shown[r-1];
       if(!row||c>=view.cols.length){h+=`<td class="empty" data-r="${r}" data-c="${c}"></td>`;continue}
       const v=row[c];
+      if(view.why&&c>=view.why.from&&v!==null){ h+=`<td class="${v?'wt':'wf'} ${whyCls(c)}" data-r="${r}" data-c="${c}">${v?'✓':'✗'}</td>`; continue }
+      if(v===null&&view.why&&c>=view.why.from){ h+=`<td class="null ${whyCls(c)}" data-r="${r}" data-c="${c}">NULL</td>`; continue }
       if(v===null) h+=`<td class="null" data-r="${r}" data-c="${c}">NULL</td>`;
       else if(typeof v==='number') h+=`<td class="n" data-r="${r}" data-c="${c}">${fmtNum(v)}</td>`;
       else if(v instanceof Uint8Array) h+=`<td data-r="${r}" data-c="${c}">[BLOB ${v.length} ${L.blob}]</td>`;
@@ -879,6 +913,7 @@ function renderGrid(){
   $('st-rows').innerHTML=view.cols.length?`${L.rows}: <b>${total}</b>${total>MAX_ROWS?L.shown(MAX_ROWS):''} · ${L.cols}: <b>${view.cols.length}</b>`:L.empty;
   paintSel();
 }
+function whyCls(c){ return !view.why||c<view.why.from?'':(c===view.why.from?'w0 ':'')+(c===view.why.fin?'wfin':'') }
 function cellVal(r,c){if(r===0)return view.cols[c];const row=view.rows[r-1];return row?row[c]:undefined}
 function paintSel(){
   grid.querySelectorAll('.insel,.cur').forEach(e=>e.classList.remove('insel','cur'));
@@ -978,15 +1013,191 @@ function loadLesson(i){
   renderSchema(); clearResult(); setPredictMode(i);
 }
 function clearResult(){
-  lastResult=null; tab='__result';
+  lastResult=null; tab='__result'; whyOn=false; whyResult=null; whySrc=null; updateWhyBtn();
   renderTabs(); openTab('__result');
   $('st-time').textContent='';
   showMsg('ok',L.ready);
 }
 
+/* ---------- "Explain the condition": every part of WHERE becomes a ✓/✗ column ----------
+   The last SELECT that ran is split into its comparisons (A, B, C…) and the AND / OR / NOT
+   that join them. All rows of the table are shown (no WHERE), one column per part, the
+   inner parts first, the whole condition last. Rows that pass are green. Headers spell
+   out the brackets SQL puts in by itself: A OR B AND C is shown as A OR (B AND C). */
+let whySrc=null, whyOn=false, whyResult=null;
+function sqlTokens(src){
+  const out=[], re=/\s+|--[^\n]*|\/\*[\s\S]*?(?:\*\/|$)|'(?:[^']|'')*'?|"(?:[^"]|"")*"?|`[^`]*`?|\[[^\]]*\]?|\d+(?:\.\d+)?(?:e[+-]?\d+)?|\.\d+|[A-Za-z_][\w$]*|<=|>=|<>|!=|==|\|\||<<|>>|./gi;
+  let m;
+  while((m=re.exec(src))){
+    const v=m[0], s=m.index, e=s+v.length;
+    if(/^\s|^--|^\/\*/.test(v)) continue;
+    const t=/^'/.test(v)?'str':/^["`[]/.test(v)?'qid':/^[\d.]/.test(v)&&v!=='.'?'num':/^[A-Za-z_]/.test(v)?'word':'op';
+    out.push({t,v,u:v.toUpperCase(),s,e});
+  }
+  return out;
+}
+function lastSelect(src){                 // tokens of the last SELECT statement in the editor text
+  const tk=sqlTokens(src), stmts=[[]];
+  tk.forEach(x=>{ if(x.v===';') stmts.push([]); else stmts[stmts.length-1].push(x) });
+  for(let i=stmts.length-1;i>=0;i--) if(stmts[i].length) return stmts[i][0].u==='SELECT'?stmts[i]:null;
+  return null;
+}
+function parseCond(tk,src){
+  let p=0;
+  const at=u=>p<tk.length&&tk[p].t==='word'&&tk[p].u===u;
+  const span=(s,e)=>src.slice(s,e).replace(/\s+/g,' ').trim();
+  function leaf(){
+    const s0=p; let depth=0, between=false;
+    for(;p<tk.length;p++){
+      const x=tk[p];
+      if(x.v==='('||(x.t==='word'&&x.u==='CASE')){depth++;continue}
+      if(x.v===')'||(x.t==='word'&&x.u==='END')){ if(depth===0) break; depth--; continue }
+      if(depth) continue;
+      if(x.t==='word'&&x.u==='BETWEEN'){between=true;continue}
+      if(x.t==='word'&&x.u==='AND'&&between){between=false;continue}
+      if(x.t==='word'&&(x.u==='AND'||x.u==='OR')) break;
+    }
+    if(p===s0) throw 0;
+    return {op:'leaf',s:tk[s0].s,e:tk[p-1].e};
+  }
+  function primary(){
+    if(p<tk.length&&tk[p].v==='('){
+      const save=p, s=tk[p].s; p++;
+      try{
+        const kid=or();
+        if(p<tk.length&&tk[p].v===')'){
+          p++;
+          const nx=tk[p];
+          if(!nx||nx.v===')'||(nx.t==='word'&&(nx.u==='AND'||nx.u==='OR'))) return {op:'()',kid,s,e:tk[p-1].e};
+        }
+      }catch(e){}
+      p=save;                              // "(salary + bonus) > 60000": the bracket is part of a comparison
+    }
+    return leaf();
+  }
+  function not(){
+    if(at('NOT')){ const s=tk[p].s; p++; const kid=not(); return {op:'NOT',kid,s,e:kid.e} }
+    return primary();
+  }
+  function chain(op,next){
+    const kids=[next()];
+    while(at(op)){ p++; kids.push(next()) }
+    return kids.length===1?kids[0]:{op,kids,s:kids[0].s,e:kids[kids.length-1].e};
+  }
+  function and(){ return chain('AND',not) }
+  function or(){ return chain('OR',and) }
+  const tree=or();
+  if(p!==tk.length) throw 0;
+  (function text(n){ n.sql=src.slice(n.s,n.e); n.txt=span(n.s,n.e); (n.kids||[]).forEach(text); if(n.kid) text(n.kid) })(tree);
+  return tree;
+}
+function splitSelect(st){                 // top-level clauses of one SELECT
+  const at={}; let depth=0;
+  st.forEach((x,i)=>{
+    if(x.v==='(') depth++; else if(x.v===')') depth--;
+    else if(!depth&&x.t==='word'&&['FROM','WHERE','GROUP','HAVING','ORDER','LIMIT','WINDOW','UNION','EXCEPT','INTERSECT'].includes(x.u)&&at[x.u]==null) at[x.u]=i;
+  });
+  if(at.FROM==null||at.WHERE==null||at.WHERE<at.FROM) return null;
+  if(at.GROUP!=null||at.HAVING!=null||at.UNION!=null||at.EXCEPT!=null||at.INTERSECT!=null||at.WINDOW!=null) return null;
+  const end=Math.min(...['ORDER','LIMIT'].map(k=>at[k]!=null&&at[k]>at.WHERE?at[k]:st.length));
+  return {sel:st.slice(1,at.FROM), from:st.slice(at.FROM+1,at.WHERE), where:st.slice(at.WHERE+1,end),
+          order:at.ORDER!=null?st.slice(at.ORDER,at.LIMIT!=null&&at.LIMIT>at.ORDER?at.LIMIT:st.length):[]};
+}
+function whyPlan(src){
+  const st=lastSelect(src||''); if(!st) return null;
+  const q=splitSelect(st); if(!q||!q.where.length||!q.from.length) return null;
+  const S=(a)=>a.length?src.slice(a[0].s,a[a.length-1].e):'';
+  let tree; try{ tree=parseCond(q.where,src) }catch(e){ return null }
+  return {q,tree,S};
+}
+function whyBuild(src){
+  const plan=whyPlan(src); if(!plan) return null;
+  const {q,tree,S}=plan;
+  // letters for the comparisons, in the order they are written
+  const leaves=[]; (function walk(n){ if(n.op==='leaf') leaves.push(n); else if(n.kid) walk(n.kid); else n.kids.forEach(walk) })(tree);
+  leaves.forEach((n,i)=>n.letter=colLetter(i));
+  // a header with every bracket shown; the ones SQL adds by itself are marked "implicit"
+  let implicit=false;
+  const real=n=>n.op==='()'?real(n.kid):n;
+  function label(n,parent){
+    if(n.op==='leaf') return n.letter;
+    if(n.op==='()'){ const k=real(n); return k.op==='AND'||k.op==='OR'?'('+label(k,null)+')':label(k,null) }
+    const s=n.op==='NOT'?'NOT '+label(n.kid,n):n.kids.map(k=>label(k,n)).join(' '+n.op+' ');
+    if(parent&&(parent.op==='AND'||parent.op==='OR')){ implicit=true; return '('+s+')' }
+    return s;
+  }
+  const cols=[];
+  leaves.forEach(n=>cols.push({n,head:n.letter,sub:n.txt}));
+  (function post(n){
+    if(n.op==='leaf') return;
+    if(n.op==='()'){ post(n.kid); return }
+    if(n.kid) post(n.kid); else n.kids.forEach(post);
+    cols.push({n,head:label(n,null),sub:n.op==='AND'?L.whyAnd:n.op==='OR'?L.whyOr:L.whyNot});
+  })(tree);
+  const last=cols[cols.length-1]; last.fin=true;
+  label(tree,null);                        // sets "implicit" for the whole condition
+  // which data columns to show
+  const ft=q.from.filter(x=>!(x.t==='word'&&x.u==='AS'));
+  const simple=(ft.length===1||ft.length===2)&&ft.every(x=>x.t==='word'||x.t==='qid')&&!ft.some(x=>['JOIN','ON','USING'].includes(x.u));
+  const tname=simple?ft[0].v.replace(/^["`[]|["`\]]$/g,''):null;
+  let dataSql, dataCols=[], dataTypes=[];
+  const info=tname&&tables().includes(tname)?tableInfo(tname):null;
+  if(info&&info.length){
+    const ref=new Set(q.where.filter(x=>x.t==='word'||x.t==='qid').map(x=>x.v.replace(/^["`[]|["`\]]$/g,'').toLowerCase()));
+    const pick=info.filter((c,i)=>c.pk||i===0);
+    const nm=info.find(c=>/name/i.test(c.name)&&!pick.includes(c)); if(nm) pick.push(nm);
+    info.forEach(c=>{ if(ref.has(c.name.toLowerCase())&&!pick.includes(c)) pick.push(c) });
+    const keep=info.filter(c=>pick.includes(c));          // in table order
+    dataSql=keep.map(c=>`"${c.name}"`).join(', ');
+    dataCols=keep.map(c=>c.name); dataTypes=keep.map(c=>c.type.toLowerCase());
+  }else{
+    dataSql=S(q.sel);
+  }
+  const logic=cols.map((c,i)=>`CASE WHEN (${c.n.sql}) THEN 1 WHEN NOT (${c.n.sql}) THEN 0 END AS "__w${i}"`).join(', ');
+  const base=`SELECT ${dataSql}, ${logic} FROM ${S(q.from)}`;
+  let r=null;
+  for(const sql of q.order.length?[base+' '+S(q.order),base]:[base]){ try{ r=db.exec(sql)[0]; break }catch(e){ r=undefined } }
+  if(r===undefined) return null;
+  const vals=r?r.values:[], nData=(r?r.columns.length:0)-cols.length;
+  if(!info){ dataCols=r?r.columns.slice(0,nData):[]; dataTypes=guessTypes(vals.map(v=>v.slice(0,nData)),nData) }
+  const pass=vals.map(v=>v[v.length-1]===1);
+  return {
+    cols:[...dataCols,...cols.map(c=>c.head)],
+    types:[...dataTypes,...cols.map(c=>c.sub)],
+    rows:vals,
+    why:{from:nData,fin:nData+cols.length-1},
+    rowids:vals.map((_,i)=>i),
+    marks:Object.fromEntries(pass.map((ok,i)=>[i,ok?'pass':'fail'])),
+    passed:pass.filter(Boolean).length, implicit, hasNull:vals.some(v=>v.slice(nData).some(x=>x===null)), legend:leaves.map(n=>`${n.letter}: ${n.txt}`)
+  };
+}
+function updateWhyBtn(){
+  const ok=!!whyPlan(whySrc);
+  document.querySelectorAll('.why-btn').forEach(b=>{
+    b.disabled=!ok&&!whyOn;
+    b.textContent=whyOn?L.whyBack:L.why;
+    b.title=ok||whyOn?L.whyTitle:L.whyNeed;
+    b.setAttribute('aria-pressed',whyOn);
+  });
+}
+function toggleWhy(){
+  if(whyOn){ whyOn=false; whyResult=null; openTab('__result'); showMsg('ok',L.ok(lastResult?lastResult.rows.length:0)); updateWhyBtn(); return }
+  const w=whyBuild(whySrc);
+  if(!w){ showMsg('err',L.whyFail); updateWhyBtn(); return }
+  whyOn=true; whyResult=w; renderTabs(); openTab('__result');
+  const el=$('msg'); el.className='msg ok why-msg';
+  el.innerHTML=`<b>${esc(L.whyPassed(w.passed,w.rows.length))}</b> <span class="lg"><i class="sw" style="background:var(--new)"></i>${esc(L.whyLegPass)}</span>`+
+    `<span class="lg"><b class="wt">✓</b>&nbsp;${esc(L.whyYes)}</span><span class="lg"><b class="wf">✗</b>&nbsp;${esc(L.whyNo)}</span>`+
+    `<div class="why-key">${w.legend.map(s=>`<code>${esc(s)}</code>`).join('')}</div>`+
+    (w.hasNull?`<div class="why-note">${esc(L.whyNull)}</div>`:'')+
+    (w.implicit?`<div class="why-note">${esc(L.whyImplicit)}</div>`:'');
+  updateWhyBtn();
+}
+
 /* ---------- boot ---------- */
-function resetDb(){db&&db.close();db=new SQL.Database();db.run(seedSQL());for(const k in marksByTable)delete marksByTable[k];lastResult=null;tab='__result'}
+function resetDb(){db&&db.close();db=new SQL.Database();db.run(seedSQL());for(const k in marksByTable)delete marksByTable[k];lastResult=null;tab='__result';whyOn=false;whyResult=null;whySrc=null}
 $('run').onclick=()=>run();
+document.addEventListener('click',e=>{ const b=e.target.closest('.why-btn'); if(b&&!b.disabled) toggleWhy() });
 ['msg','note'].forEach(id=>$(id).addEventListener('click',e=>{const b=e.target.closest('[data-lesson-go]');if(b&&!b.disabled)loadLesson(+b.dataset.lessonGo)}));
 $('note').addEventListener('click',e=>{
   const r=e.target.closest('[data-emp]'); if(r){ togglePick(+r.dataset.emp); return; }
@@ -1072,10 +1283,11 @@ function start(){
   }
   document.addEventListener('click',e=>{
     if(!live()) return;
-    const t=e.target.closest('#run,#reset,.lang button,.seg button,#tabs button,.tname,#lessons button,[data-lesson-go],#note [data-emp],#note [data-yn],#pick-check,#pick-reveal');
+    const t=e.target.closest('.why-btn,#run,#reset,.lang button,.seg button,#tabs button,.tname,#lessons button,[data-lesson-go],#note [data-emp],#note [data-yn],#pick-check,#pick-reveal');
     if(!t) return;
     e.preventDefault(); e.stopImmediatePropagation();
-    if(t.id==='run') emit({kind:'run',src:ta.value});
+    if(t.classList.contains('why-btn')){ if(!t.disabled) emit({kind:'why'}); }
+    else if(t.id==='run') emit({kind:'run',src:ta.value});
     else if(t.id==='reset') emit({kind:'reset'});
     else if(t.dataset.lang) emit({kind:'lang',lang:t.dataset.lang});
     else if(t.closest('#tabs')) emit({kind:'tab',id:t.dataset.id});
@@ -1100,6 +1312,7 @@ function start(){
         if(a.lang&&a.lang!==lang){ adoptLang(a.lang); renderLessons(-1); $('note').innerHTML=''; clearResult(); }
         return;
       case 'run': run(a.src); return;
+      case 'why': toggleWhy(); return;
       case 'reset': resetDb(); renderSchema(); clearResult(); showMsg('ok',L.resetDone+' '+L.ready); return;
       case 'semi': setSemi(a.mode); return;
       case 'tab': openTab(a.id); return;
