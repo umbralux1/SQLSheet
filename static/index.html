@@ -155,15 +155,6 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
 .boot{padding:40px;text-align:center;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
-/* message for Rosa at the top of the page */
-.rosa{margin:6px 0 2px;text-align:center;font-family:var(--f-display);font-weight:800;
-  font-size:clamp(24px,4.4vw,46px);line-height:1.15;letter-spacing:-.015em;text-wrap:balance;
-  background:linear-gradient(90deg,#ff2e63,#ff7a00,#f5b700,#1fbf6a,#00a8e8,#7b5cff,#ff2e63);
-  background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;
-  animation:rosa-shine 9s linear infinite}
-.rosa span{display:inline-block}
-@keyframes rosa-shine{to{background-position:200% center}}
-@media (prefers-reduced-motion:reduce){.rosa{animation:none}}
 
 /* wrong answer in a lesson */
 .msg .dumb{margin-top:8px;font-family:var(--f-display);font-weight:800;font-size:clamp(20px,3vw,28px);line-height:1.2;color:var(--err);animation:dumb-shake .5s ease-in-out both}
@@ -302,7 +293,6 @@ canvas.confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:n
 </style>
 
 <div class="wrap">
-  <p class="rosa"><span>Rosa, Beardy made this site to teach u SQL.</span> <span>Why u don't believe him?</span></p>
   <header>
     <h1>SQL <span data-i18n="brand2">Sheet</span></h1>
     <p data-i18n="tagline"></p>
