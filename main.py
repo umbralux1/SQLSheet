@@ -203,6 +203,87 @@ class CheckData(BaseModel):
     picked: list[int] | None = None  # prediction "pick" tasks: the ids the student marked
 
 
+# ---------------------------------------------------------------------------
+# Checking sorted results
+#   Rows that are equal in every ORDER BY column may come in any order, so the
+#   student's rows are compared group by group. The answer's sort keys are read
+#   by running it again with the ORDER BY expressions as extra columns and
+#   without LIMIT/OFFSET; rows with the same keys form one group.
+# ---------------------------------------------------------------------------
+_ORDER_RE = re.compile(r"\border\s+by\s+(.+?)(?:\s+limit\s+(\d+)(?:\s+offset\s+(\d+))?)?\s*;?\s*$", re.I | re.S)
+
+
+def _split_top(text: str) -> list[str]:
+    """Split on commas that are not inside brackets or quotes."""
+    parts, depth, quote, cur = [], 0, None, ""
+    for ch in text:
+        if quote:
+            quote = None if ch == quote else quote
+        elif ch in "'\"":
+            quote = ch
+        elif ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        elif ch == "," and depth == 0:
+            parts.append(cur)
+            cur = ""
+            continue
+        cur += ch
+    return parts + [cur]
+
+
+@lru_cache(maxsize=256)
+def order_groups(lesson_id: int, task: int):
+    """(start, size, groups by position) for a task whose answer sorts, or None to compare exactly."""
+    lesson = find_lesson(lesson_id)
+    answer = lesson["tasks"][task]["answer"].strip()
+    m = _ORDER_RE.search(answer)
+    head = answer[:m.start()] if m else ""
+    sel = re.match(r"\s*select\s+(?!distinct\b)", head, re.I)
+    frm = re.search(r"\bfrom\b", head, re.I)
+    if not (m and sel and frm):
+        return None
+    keys = [re.sub(r"\s+(asc|desc)?\s*(nulls\s+(first|last))?\s*$", "", k.strip(), flags=re.I) for k in _split_top(m.group(1))]
+    sql = f"{head[:frm.start()].rstrip()}, {', '.join(keys)} {head[frm.start():]} ORDER BY {m.group(1)}"
+    columns, _ = expected_result(lesson_id, task)
+    con = sqlite3.connect(":memory:")
+    try:
+        con.executescript(lesson["seed"])
+        rows = con.execute(sql).fetchall()
+    except sqlite3.Error:
+        return None
+    finally:
+        con.close()
+    n = len(columns)
+    if any(len(r) != n + len(keys) for r in rows):
+        return None
+    groups, by_pos, last = [], [], object()
+    for r in rows:
+        key = r[n:]
+        if key != last:
+            groups.append([])
+            last = key
+        groups[-1].append(json.dumps([_normalize(v) for v in r[:n]]))
+        by_pos.append(len(groups) - 1)
+    start = int(m.group(3) or 0)
+    size = len(rows) - start if m.group(2) is None else max(0, min(int(m.group(2)), len(rows) - start))
+    return start, size, tuple(tuple(g) for g in groups), tuple(by_pos)
+
+
+def sorted_rows_match(order, got: list[str]) -> bool:
+    start, size, groups, by_pos = order
+    if len(got) != size:
+        return False
+    pools = [list(g) for g in groups]
+    for i, row in enumerate(got):
+        pool = pools[by_pos[start + i]]
+        if row not in pool:
+            return False
+        pool.remove(row)
+    return True
+
+
 @app.post("/api/check")
 async def check(data: CheckData):
     lesson = find_lesson(data.lesson)
@@ -223,7 +304,11 @@ async def check(data: CheckData):
         return {"ok": False, "reason": "rows", "expected": len(rows)}
     got = [json.dumps([_normalize(v) for v in row]) for row in data.rows]
     want = [json.dumps(row) for row in rows]
-    if not re.search(r"\border\s+by\b", lesson["tasks"][data.task]["answer"], re.I):
+    if re.search(r"\border\s+by\b", lesson["tasks"][data.task]["answer"], re.I):
+        order = order_groups(data.lesson, data.task)
+        if order is not None:                # rows that tie in the sort may come in any order
+            return {"ok": True} if sorted_rows_match(order, got) else {"ok": False, "reason": "values"}
+    else:
         got.sort()
         want.sort()
     if got != want:

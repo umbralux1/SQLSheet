@@ -903,9 +903,268 @@ NOT (A AND B)  =   NOT A OR  NOT B</pre>
         },
         {
             "id": 3,
-            "available": False,
+            "available": True,
             "title": {"en": "ORDER BY & LIMIT", "ru": "ORDER BY и LIMIT"},
             "topics": {"en": "Sorting, top-N queries", "ru": "Сортировка, первые N строк"},
+            "theory": {
+                "en": """<p><code>ORDER BY</code> sorts the result, like the sort button on an Excel column. <code>LIMIT</code> keeps only the first rows of it.</p>
+<pre class="code">SELECT column1, column2
+FROM table_name
+WHERE condition
+ORDER BY column1 [ASC|DESC], column2 [ASC|DESC]
+LIMIT n OFFSET m;</pre>
+<h4>Sorting</h4>
+<ul>
+  <li><code>ASC</code> — ascending: 1→9, A→Z, old dates → new. It is the default, so <code>ORDER BY price</code> = <code>ORDER BY price ASC</code>.</li>
+  <li><code>DESC</code> — descending: 9→1, Z→A, new dates → old.</li>
+  <li>Several columns: the first one is the main sort, the next ones only sort rows that are <b>equal</b> in the previous columns.</li>
+  <li>Each column has its own direction: in <code>ORDER BY a DESC, b</code> the column <code>b</code> is ascending.</li>
+</ul>
+<h4>NULL in sorting</h4>
+<ul>
+  <li>In our trainer (SQLite) <code>NULL</code> is smaller than any value: <b>first</b> with <code>ASC</code>, <b>last</b> with <code>DESC</code>. MySQL does the same, PostgreSQL and Oracle do the opposite.</li>
+  <li><code>NULLS FIRST</code> / <code>NULLS LAST</code> after the direction put <code>NULL</code> where you want.</li>
+</ul>
+<h4>LIMIT and OFFSET</h4>
+<ul>
+  <li><code>LIMIT n</code> — only the first <code>n</code> rows.</li>
+  <li><code>OFFSET m</code> — skip <code>m</code> rows first. <code>LIMIT 3 OFFSET 3</code> = rows 4, 5, 6.</li>
+  <li>Without <code>ORDER BY</code> “the first rows” are any rows. Use <code>LIMIT</code> together with <code>ORDER BY</code>.</li>
+</ul>
+<h4>The order of work</h4>
+<p><code>FROM</code> → <code>WHERE</code> → <code>ORDER BY</code> → <code>LIMIT</code>/<code>OFFSET</code>. <code>LIMIT</code> is always the last step.</p>""",
+                "ru": """<p><code>ORDER BY</code> сортирует результат, как кнопка сортировки на столбце в Excel. <code>LIMIT</code> оставляет только первые строки.</p>
+<pre class="code">SELECT column1, column2
+FROM table_name
+WHERE condition
+ORDER BY column1 [ASC|DESC], column2 [ASC|DESC]
+LIMIT n OFFSET m;</pre>
+<h4>Сортировка</h4>
+<ul>
+  <li><code>ASC</code> — по возрастанию: 1→9, A→Z, старые даты → новые. Это значение по умолчанию: <code>ORDER BY price</code> = <code>ORDER BY price ASC</code>.</li>
+  <li><code>DESC</code> — по убыванию: 9→1, Z→A, новые даты → старые.</li>
+  <li>Несколько столбцов: первый — главная сортировка, следующие сортируют только строки, у которых предыдущие столбцы <b>равны</b>.</li>
+  <li>У каждого столбца своё направление: в <code>ORDER BY a DESC, b</code> столбец <code>b</code> идёт по возрастанию.</li>
+</ul>
+<h4>NULL при сортировке</h4>
+<ul>
+  <li>В нашем тренажёре (SQLite) <code>NULL</code> меньше любого значения: <b>в начале</b> при <code>ASC</code> и <b>в конце</b> при <code>DESC</code>. В MySQL так же, в PostgreSQL и Oracle наоборот.</li>
+  <li><code>NULLS FIRST</code> / <code>NULLS LAST</code> после направления ставят <code>NULL</code> куда нужно.</li>
+</ul>
+<h4>LIMIT и OFFSET</h4>
+<ul>
+  <li><code>LIMIT n</code> — только первые <code>n</code> строк.</li>
+  <li><code>OFFSET m</code> — сначала пропустить <code>m</code> строк. <code>LIMIT 3 OFFSET 3</code> = строки 4, 5, 6.</li>
+  <li>Без <code>ORDER BY</code> «первые строки» — это какие попало строки. Пиши <code>LIMIT</code> вместе с <code>ORDER BY</code>.</li>
+</ul>
+<h4>Порядок работы</h4>
+<p><code>FROM</code> → <code>WHERE</code> → <code>ORDER BY</code> → <code>LIMIT</code>/<code>OFFSET</code>. <code>LIMIT</code> всегда последний шаг.</p>""",
+            },
+            "tips": {
+                "en": [
+                    "<b>Predict before running.</b> In section B ask where the <code>NULL</code> rows will be, then run and compare.",
+                    "<b>Swap the keys.</b> In tasks 9–10 swap the two <code>ORDER BY</code> columns and ask what changes before running.",
+                    "<b>LIMIT without ORDER BY.</b> In SQLite <code>SELECT * FROM products LIMIT 3;</code> usually returns the first rows of the table, so it looks fine. Explain that it is luck: another database, or the same one after changes, may return other rows.",
+                    "<b>OFFSET arithmetic.</b> “Skip 3, take 3” = rows 4, 5, 6. Students often read <code>LIMIT 3 OFFSET 3</code> as “rows 3 to 3”.",
+                    "<b>DESC scope.</b> Point at <code>ORDER BY a DESC, b</code> and ask: is <code>b</code> ascending or descending?",
+                    "The <b>Explain condition</b> button works only for <code>WHERE</code>; it does not explain sorting.",
+                ],
+                "ru": [
+                    "<b>Предсказание до запуска.</b> В разделе B спрашивай, где окажутся строки с <code>NULL</code>, потом запускай и сравнивайте.",
+                    "<b>Поменяй столбцы местами.</b> В задачах 9–10 поменяй два столбца в <code>ORDER BY</code> и спроси, что изменится, до запуска.",
+                    "<b>LIMIT без ORDER BY.</b> В SQLite <code>SELECT * FROM products LIMIT 3;</code> обычно возвращает первые строки таблицы, и кажется, что всё правильно. Объясни, что это везение: другая база или эта же после изменений вернёт другие строки.",
+                    "<b>Счёт с OFFSET.</b> «Пропусти 3, возьми 3» = строки 4, 5, 6. Часто <code>LIMIT 3 OFFSET 3</code> читают как «строки с 3 по 3».",
+                    "<b>DESC действует на один столбец.</b> Покажи <code>ORDER BY a DESC, b</code> и спроси: <code>b</code> по возрастанию или по убыванию?",
+                    "Кнопка <b>«Разобрать условие»</b> работает только для <code>WHERE</code>, сортировку она не объясняет.",
+                ],
+            },
+            "tables": ["products", "orders"],
+            "seed": """CREATE TABLE products (
+    product_id   INTEGER PRIMARY KEY,
+    product_name VARCHAR(60) NOT NULL,
+    category     VARCHAR(30) NOT NULL,
+    price        DECIMAL(8,2),
+    stock        INTEGER,
+    supplier     VARCHAR(40)
+);
+INSERT INTO products VALUES
+(1,  'Wireless Mouse',      'Electronics', 25.99,  120,  'TechSupply Co'),
+(2,  'Mechanical Keyboard', 'Electronics', 89.50,  45,   'TechSupply Co'),
+(3,  'USB-C Cable',         'Electronics', 12.00,  300,  'CableWorld'),
+(4,  'Monitor Stand',       'Furniture',   45.00,  NULL, 'DeskPro'),
+(5,  'Office Chair',        'Furniture',   199.99, 18,   'DeskPro'),
+(6,  'Standing Desk',       'Furniture',   349.00, 7,    NULL),
+(7,  'Notebook Set',        'Stationery',  8.75,   500,  'PaperPlus'),
+(8,  'Gel Pens (12)',       'Stationery',  6.50,   NULL, 'PaperPlus'),
+(9,  'Sticky Notes',        'Stationery',  3.25,   800,  'PaperPlus'),
+(10, 'Webcam HD',           'Electronics', 59.99,  60,   'TechSupply Co'),
+(11, 'Desk Lamp',           'Furniture',   32.50,  25,   'DeskPro'),
+(12, 'Highlighter Pack',    'Stationery',  4.99,   0,    NULL);
+
+CREATE TABLE orders (
+    order_id    INTEGER PRIMARY KEY,
+    product_id  INTEGER NOT NULL,
+    customer    VARCHAR(40) NOT NULL,
+    quantity    INTEGER NOT NULL,
+    order_date  DATE NOT NULL,
+    discount    DECIMAL(4,2),
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+INSERT INTO orders VALUES
+(1,  1,  'Alice', 2,  '2024-01-05', 0.10),
+(2,  5,  'Bob',   1,  '2024-01-07', NULL),
+(3,  3,  'Alice', 5,  '2024-01-09', 0.05),
+(4,  6,  'Carol', 1,  '2024-01-10', NULL),
+(5,  2,  'Bob',   2,  '2024-01-12', 0.15),
+(6,  9,  'Dave',  10, '2024-01-15', NULL),
+(7,  1,  'Carol', 1,  '2024-01-18', 0.00),
+(8,  10, 'Alice', 3,  '2024-01-20', 0.20),
+(9,  7,  'Dave',  4,  '2024-01-22', NULL),
+(10, 11, 'Bob',   2,  '2024-01-25', 0.10),
+(11, 3,  'Carol', 12, '2024-01-28', NULL),
+(12, 12, 'Dave',  6,  '2024-02-01', 0.25);""",
+            "tasks": [
+                # Section A
+                {"id": "3.1",
+                 "section": {"en": "A · Sorting by one column", "ru": "A · Сортировка по одному столбцу"},
+                 "intro": {"en": "<p><code>ORDER BY</code> sorts the result. <code>ASC</code> (the default) goes from small to large: 1→9, A→Z, old dates → new. <code>DESC</code> goes the other way. <code>ORDER BY</code> comes after <code>FROM</code> (and after <code>WHERE</code>, if there is one).</p>\n<p>Dates written as <code>'2024-01-05'</code> sort correctly, because the year comes first, then the month, then the day.</p>\n<p><b>Example:</b> orders from the biggest quantity to the smallest.</p>",
+                           "ru": "<p><code>ORDER BY</code> сортирует результат. <code>ASC</code> (по умолчанию) — от меньшего к большему: 1→9, A→Z, старые даты → новые. <code>DESC</code> — наоборот. <code>ORDER BY</code> пишется после <code>FROM</code> (и после <code>WHERE</code>, если он есть).</p>\n<p>Даты вида <code>'2024-01-05'</code> сортируются правильно: сначала идёт год, потом месяц, потом день.</p>\n<p><b>Пример:</b> заказы от самого большого количества к самому маленькому.</p>"},
+                 "example": "SELECT order_id, customer, quantity\nFROM orders\nORDER BY quantity DESC;",
+                 "text": {"en": "Get all products sorted by <code>price</code> from the cheapest to the most expensive.", "ru": "Выведи все товары, отсортированные по <code>price</code> от самого дешёвого к самому дорогому."},
+                 "answer": "SELECT * FROM products ORDER BY price ASC;"},
+                {"id": "3.2",
+                 "text": {"en": "Get all products sorted by <code>price</code> from the most expensive to the cheapest.", "ru": "Выведи все товары, отсортированные по <code>price</code> от самого дорогого к самому дешёвому."},
+                 "answer": "SELECT * FROM products ORDER BY price DESC;"},
+                {"id": "3.3",
+                 "text": {"en": "Get all products sorted alphabetically by <code>product_name</code>.", "ru": "Выведи все товары в алфавитном порядке по <code>product_name</code>."},
+                 "answer": "SELECT * FROM products ORDER BY product_name ASC;"},
+                {"id": "3.4",
+                 "text": {"en": "Get all orders from the newest to the oldest (<code>order_date</code>).", "ru": "Выведи все заказы от самого нового к самому старому (<code>order_date</code>)."},
+                 "answer": "SELECT * FROM orders ORDER BY order_date DESC;"},
+
+                # Section B
+                {"id": "3.5",
+                 "section": {"en": "B · NULL in sorting", "ru": "B · NULL при сортировке"},
+                 "intro": {"en": "<p>Where does <code>NULL</code> go? Every database decides for itself. In our trainer (SQLite) <code>NULL</code> counts as <b>smaller than any value</b>: it comes <b>first</b> with <code>ASC</code> and <b>last</b> with <code>DESC</code>. MySQL does the same, PostgreSQL and Oracle do the opposite.</p>\n<p>To choose the place yourself, write <code>NULLS FIRST</code> or <code>NULLS LAST</code> after the direction.</p>\n<p><b>Example:</b> orders from the biggest discount to the smallest, but orders without a discount first.</p>",
+                           "ru": "<p>Куда попадает <code>NULL</code>? Каждая база решает сама. В нашем тренажёре (SQLite) <code>NULL</code> считается <b>меньше любого значения</b>: он идёт <b>в начале</b> при <code>ASC</code> и <b>в конце</b> при <code>DESC</code>. В MySQL так же, в PostgreSQL и Oracle наоборот.</p>\n<p>Чтобы выбрать место самой, напиши <code>NULLS FIRST</code> или <code>NULLS LAST</code> после направления.</p>\n<p><b>Пример:</b> заказы от самой большой скидки к самой маленькой, но заказы без скидки — в начале.</p>"},
+                 "example": "SELECT order_id, customer, discount\nFROM orders\nORDER BY discount DESC NULLS FIRST;",
+                 "text": {"en": "Get all products sorted by <code>supplier</code> from A to Z. Where did the products without a supplier end up?", "ru": "Выведи все товары, отсортированные по <code>supplier</code> от A до Z. Где оказались товары без поставщика?"},
+                 "answer": "SELECT * FROM products ORDER BY supplier ASC;"},
+                {"id": "3.6",
+                 "text": {"en": "Get all products sorted by <code>stock</code> from the smallest to the largest. Which products have no stock data?", "ru": "Выведи все товары, отсортированные по <code>stock</code> от меньшего к большему. У каких товаров нет данных об остатке?"},
+                 "answer": "SELECT * FROM products ORDER BY stock ASC;"},
+                {"id": "3.7",
+                 "text": {"en": "Get all orders sorted by <code>discount</code> from the biggest to the smallest. Where are the orders without a discount now?", "ru": "Выведи все заказы, отсортированные по <code>discount</code> от самой большой скидки к самой маленькой. Где теперь заказы без скидки?"},
+                 "answer": "SELECT * FROM orders ORDER BY discount DESC;"},
+                {"id": "3.8",
+                 "text": {"en": "Get all products sorted by <code>stock</code> from the smallest to the largest, but with the products whose stock is unknown (<code>NULL</code>) at the end.", "ru": "Выведи все товары, отсортированные по <code>stock</code> от меньшего к большему, но товары с неизвестным остатком (<code>NULL</code>) — в конце."},
+                 "answer": "SELECT * FROM products ORDER BY stock ASC NULLS LAST;"},
+
+                # Section C
+                {"id": "3.9",
+                 "section": {"en": "C · Sorting by several columns", "ru": "C · Сортировка по нескольким столбцам"},
+                 "intro": {"en": "<p>You can sort by several columns separated by commas. The first column is the main sort. The second one only matters for rows where the first is <b>equal</b>: like a class list sorted by surname, and inside the same surname by first name.</p>\n<p>Each column has its <b>own</b> direction. <code>ORDER BY a DESC, b</code> means <code>a</code> descending but <code>b</code> <b>ascending</b>: <code>DESC</code> covers only the column right before it.</p>\n<p><b>Example:</b> orders by customer, and for each customer from the biggest quantity to the smallest.</p>",
+                           "ru": "<p>Сортировать можно по нескольким столбцам через запятую. Первый столбец — главная сортировка. Второй работает только для строк, у которых первый <b>одинаковый</b>: как список класса по фамилии, а при одинаковой фамилии — по имени.</p>\n<p>У каждого столбца <b>своё</b> направление. <code>ORDER BY a DESC, b</code> значит: <code>a</code> по убыванию, а <code>b</code> <b>по возрастанию</b>. <code>DESC</code> действует только на столбец прямо перед ним.</p>\n<p><b>Пример:</b> заказы по покупателю, а у каждого покупателя — от самого большого количества к самому маленькому.</p>"},
+                 "example": "SELECT customer, quantity, order_date\nFROM orders\nORDER BY customer ASC, quantity DESC;",
+                 "text": {"en": "Get all products sorted by <code>category</code> A→Z, and inside each category by <code>price</code> from the cheapest.", "ru": "Выведи все товары, отсортированные по <code>category</code> от A до Z, а внутри категории — по <code>price</code> от самого дешёвого."},
+                 "answer": "SELECT * FROM products ORDER BY category ASC, price ASC;"},
+                {"id": "3.10",
+                 "text": {"en": "Get all products sorted by <code>category</code> A→Z, and inside each category by <code>price</code> from the most expensive.", "ru": "Выведи все товары, отсортированные по <code>category</code> от A до Z, а внутри категории — по <code>price</code> от самого дорогого."},
+                 "answer": "SELECT * FROM products ORDER BY category ASC, price DESC;"},
+                {"id": "3.11",
+                 "text": {"en": "Get all orders sorted by <code>customer</code> A→Z, and for each customer from the newest order to the oldest.", "ru": "Выведи все заказы, отсортированные по <code>customer</code> от A до Z, а у каждого покупателя — от самого нового заказа к самому старому."},
+                 "answer": "SELECT * FROM orders ORDER BY customer ASC, order_date DESC;"},
+                {"id": "3.12",
+                 "text": {"en": "Get all orders sorted by <code>product_id</code> ascending, and for the same product by <code>quantity</code> descending.", "ru": "Выведи все заказы, отсортированные по <code>product_id</code> по возрастанию, а для одного и того же товара — по <code>quantity</code> по убыванию."},
+                 "answer": "SELECT * FROM orders ORDER BY product_id ASC, quantity DESC;"},
+                {"id": "3.13",
+                 "text": {"en": "Get all products sorted by <code>stock</code> from the largest to the smallest, and with the same stock by <code>product_name</code> A→Z.", "ru": "Выведи все товары, отсортированные по <code>stock</code> от большего к меньшему, а при одинаковом остатке — по <code>product_name</code> от A до Z."},
+                 "answer": "SELECT * FROM products ORDER BY stock DESC, product_name ASC;"},
+                {"id": "3.14",
+                 "text": {"en": "Get all orders sorted by <code>quantity</code> from the largest to the smallest, and with the same quantity from the newest order to the oldest.", "ru": "Выведи все заказы, отсортированные по <code>quantity</code> от большего к меньшему, а при одинаковом количестве — от самого нового заказа к самому старому."},
+                 "answer": "SELECT * FROM orders ORDER BY quantity DESC, order_date DESC;"},
+
+                # Section D
+                {"id": "3.15",
+                 "section": {"en": "D · LIMIT and OFFSET", "ru": "D · LIMIT и OFFSET"},
+                 "intro": {"en": "<p><code>LIMIT n</code> keeps only the first <code>n</code> rows of the result. <code>OFFSET m</code> skips <code>m</code> rows first: <code>LIMIT 3 OFFSET 3</code> = skip 3, take 3, so rows 4, 5 and 6.</p>\n<p>“The first rows” only make sense after sorting, so <code>LIMIT</code> almost always goes with <code>ORDER BY</code>. In the query <code>LIMIT</code> comes after <code>ORDER BY</code>, and <code>OFFSET</code> after <code>LIMIT</code>.</p>\n<p><b>Example:</b> the 2 orders with the biggest quantity.</p>",
+                           "ru": "<p><code>LIMIT n</code> оставляет только первые <code>n</code> строк результата. <code>OFFSET m</code> сначала пропускает <code>m</code> строк: <code>LIMIT 3 OFFSET 3</code> = пропусти 3, возьми 3, то есть строки 4, 5 и 6.</p>\n<p>«Первые строки» имеют смысл только после сортировки, поэтому <code>LIMIT</code> почти всегда идёт вместе с <code>ORDER BY</code>. В запросе <code>LIMIT</code> пишется после <code>ORDER BY</code>, а <code>OFFSET</code> — после <code>LIMIT</code>.</p>\n<p><b>Пример:</b> 2 заказа с самым большим количеством.</p>"},
+                 "example": "SELECT order_id, customer, quantity\nFROM orders\nORDER BY quantity DESC\nLIMIT 2;",
+                 "text": {"en": "Get the 3 most expensive products.", "ru": "Выведи 3 самых дорогих товара."},
+                 "answer": "SELECT * FROM products ORDER BY price DESC LIMIT 3;"},
+                {"id": "3.16",
+                 "text": {"en": "Get the 5 cheapest products.", "ru": "Выведи 5 самых дешёвых товаров."},
+                 "answer": "SELECT * FROM products ORDER BY price ASC LIMIT 5;"},
+                {"id": "3.17",
+                 "text": {"en": "Get the 4 newest orders (by <code>order_date</code>).", "ru": "Выведи 4 самых новых заказа (по <code>order_date</code>)."},
+                 "answer": "SELECT * FROM orders ORDER BY order_date DESC LIMIT 4;"},
+                {"id": "3.18",
+                 "text": {"en": "Get the 3 oldest orders.", "ru": "Выведи 3 самых старых заказа."},
+                 "answer": "SELECT * FROM orders ORDER BY order_date ASC LIMIT 3;"},
+                {"id": "3.19",
+                 "text": {"en": "Sort the products alphabetically by <code>product_name</code> and get rows 4 to 6 (skip 3, take 3).", "ru": "Отсортируй товары по <code>product_name</code> в алфавитном порядке и выведи строки с 4-й по 6-ю (пропусти 3, возьми 3)."},
+                 "answer": "SELECT * FROM products ORDER BY product_name ASC LIMIT 3 OFFSET 3;"},
+                {"id": "3.20",
+                 "text": {"en": "Get the 2nd and the 3rd most expensive products.", "ru": "Выведи второй и третий по дороговизне товары."},
+                 "answer": "SELECT * FROM products ORDER BY price DESC LIMIT 2 OFFSET 1;"},
+
+                # Section E
+                {"id": "3.21",
+                 "section": {"en": "E · WHERE + ORDER BY + LIMIT", "ru": "E · WHERE + ORDER BY + LIMIT"},
+                 "intro": {"en": "<p>The order of clauses in a query is fixed: <code>SELECT … FROM … WHERE … ORDER BY … LIMIT …</code>. The database works in the same order: <code>WHERE</code> keeps the right rows, <code>ORDER BY</code> sorts them, and <code>LIMIT</code> cuts last.</p>\n<p>So “the top 3 in Electronics” is: keep Electronics → sort → take 3. Not “take the top 3 of all products and keep the Electronics among them”.</p>\n<p><b>Example:</b> Dave's 2 biggest orders.</p>",
+                           "ru": "<p>Порядок частей в запросе фиксирован: <code>SELECT … FROM … WHERE … ORDER BY … LIMIT …</code>. База работает в том же порядке: <code>WHERE</code> оставляет нужные строки, <code>ORDER BY</code> их сортирует, а <code>LIMIT</code> отрезает в самом конце.</p>\n<p>Поэтому «топ-3 в Electronics» — это: оставить Electronics → отсортировать → взять 3. А не «взять топ-3 из всех товаров и оставить среди них Electronics».</p>\n<p><b>Пример:</b> 2 самых больших заказа Dave.</p>"},
+                 "example": "SELECT order_id, quantity, order_date\nFROM orders\nWHERE customer = 'Dave'\nORDER BY quantity DESC\nLIMIT 2;",
+                 "text": {"en": "Get the 3 most expensive products in the <code>'Electronics'</code> category.", "ru": "Выведи 3 самых дорогих товара в категории <code>'Electronics'</code>."},
+                 "answer": "SELECT * FROM products WHERE category = 'Electronics' ORDER BY price DESC LIMIT 3;"},
+                {"id": "3.22",
+                 "text": {"en": "Get the 4 newest orders of the customers whose name starts with <code>'A'</code> or <code>'B'</code>, the newest first.", "ru": "Выведи 4 самых новых заказа покупателей, чьё имя начинается на <code>'A'</code> или <code>'B'</code>, сначала самые новые."},
+                 "answer": "SELECT * FROM orders\nWHERE customer LIKE 'A%' OR customer LIKE 'B%'\nORDER BY order_date DESC\nLIMIT 4;"},
+                {"id": "3.23",
+                 "text": {"en": "Get the 5 cheapest products that are NOT in the <code>'Stationery'</code> category and have a supplier (not <code>NULL</code>).", "ru": "Выведи 5 самых дешёвых товаров НЕ из категории <code>'Stationery'</code>, у которых есть поставщик (не <code>NULL</code>)."},
+                 "answer": "SELECT * FROM products\nWHERE category <> 'Stationery'\n  AND supplier IS NOT NULL\nORDER BY price ASC\nLIMIT 5;"},
+                {"id": "3.24",
+                 "text": {"en": "Get the 3 products with the smallest <code>stock</code>, without the products whose stock is unknown. With the same stock, the more expensive one first.", "ru": "Выведи 3 товара с самым маленьким <code>stock</code>, без товаров с неизвестным остатком. При одинаковом остатке — сначала более дорогой."},
+                 "answer": "SELECT * FROM products\nWHERE stock IS NOT NULL\nORDER BY stock ASC, price DESC\nLIMIT 3;"},
+                {"id": "3.25",
+                 "text": {"en": "Get the 2 most expensive products with <code>stock</code> greater than 10. With the same price, sort by <code>product_name</code> A→Z.", "ru": "Выведи 2 самых дорогих товара, у которых <code>stock</code> больше 10. При одинаковой цене — по <code>product_name</code> от A до Z."},
+                 "answer": "SELECT * FROM products\nWHERE stock > 10\nORDER BY price DESC, product_name ASC\nLIMIT 2;"},
+
+                # Section F
+                {"id": "3.26",
+                 "section": {"en": "F · Common mistakes", "ru": "F · Типичные ошибки"},
+                 "intro": {"en": "<p>Four traps:</p>\n<ul>\n<li><b>LIMIT without ORDER BY.</b> <code>SELECT * FROM products LIMIT 3;</code> returns <i>some</i> 3 rows, not the cheapest and not the most expensive. <code>LIMIT</code> decides <i>how many</i> rows, <code>ORDER BY</code> decides <i>which</i>.</li>\n<li><b>DESC covers one column.</b> <code>ORDER BY price DESC, stock</code> = price descending, stock <b>ascending</b>. If both must be descending, write <code>DESC</code> twice.</li>\n<li><b>OFFSET without ORDER BY.</b> “Skip 3” then skips any 3 rows.</li>\n<li><b>LIMIT is the last step.</b> <code>WHERE</code> filters first, then the rows are sorted, then <code>LIMIT</code> cuts.</li>\n</ul>\n<p><b>Example:</b> both columns descending, each with its own <code>DESC</code>.</p>",
+                           "ru": "<p>Четыре ловушки:</p>\n<ul>\n<li><b>LIMIT без ORDER BY.</b> <code>SELECT * FROM products LIMIT 3;</code> возвращает <i>какие-то</i> 3 строки, не самые дешёвые и не самые дорогие. <code>LIMIT</code> решает, <i>сколько</i> строк, а <code>ORDER BY</code> — <i>какие</i>.</li>\n<li><b>DESC действует на один столбец.</b> <code>ORDER BY price DESC, stock</code> = цена по убыванию, остаток <b>по возрастанию</b>. Если оба по убыванию, пиши <code>DESC</code> два раза.</li>\n<li><b>OFFSET без ORDER BY.</b> «Пропусти 3» тогда пропускает какие попало 3 строки.</li>\n<li><b>LIMIT — последний шаг.</b> Сначала <code>WHERE</code> фильтрует, потом строки сортируются, и только потом <code>LIMIT</code> отрезает.</li>\n</ul>\n<p><b>Пример:</b> оба столбца по убыванию, у каждого свой <code>DESC</code>.</p>"},
+                 "example": "SELECT customer, order_date\nFROM orders\nORDER BY customer DESC, order_date DESC;",
+                 "text": {"en": "Get the 3 products with the smallest <code>product_id</code>.", "ru": "Выведи 3 товара с самыми маленькими <code>product_id</code>."},
+                 "answer": "SELECT * FROM products ORDER BY product_id ASC LIMIT 3;"},
+                {"id": "3.27",
+                 "text": {"en": "Someone wrote <code>SELECT * FROM products LIMIT 3;</code> to get the 3 cheapest products. Write the correct query.", "ru": "Кто-то написал <code>SELECT * FROM products LIMIT 3;</code>, чтобы получить 3 самых дешёвых товара. Напиши правильный запрос."},
+                 "answer": "SELECT * FROM products ORDER BY price ASC LIMIT 3;"},
+                {"id": "3.28",
+                 "text": {"en": "Get all products sorted by <code>category</code> descending (Z→A), and inside each category by <code>price</code> ascending.", "ru": "Выведи все товары, отсортированные по <code>category</code> по убыванию (Z→A), а внутри категории — по <code>price</code> по возрастанию."},
+                 "answer": "SELECT * FROM products ORDER BY category DESC, price ASC;"},
+                {"id": "3.29",
+                 "text": {"en": "Get all orders sorted by <code>product_id</code> descending, and for the same product by <code>quantity</code> descending too.", "ru": "Выведи все заказы, отсортированные по <code>product_id</code> по убыванию, а для одного и того же товара — по <code>quantity</code> тоже по убыванию."},
+                 "answer": "SELECT * FROM orders ORDER BY product_id DESC, quantity DESC;"},
+                {"id": "3.30",
+                 "text": {"en": "Get all orders sorted by <code>discount</code> descending, and with the same discount by <code>order_date</code> descending too.", "ru": "Выведи все заказы, отсортированные по <code>discount</code> по убыванию, а при одинаковой скидке — по <code>order_date</code> тоже по убыванию."},
+                 "answer": "SELECT * FROM orders ORDER BY discount DESC, order_date DESC;"},
+                {"id": "3.31",
+                 "text": {"en": "Skip the 4 most expensive products and get the next 2 (the 5th and the 6th most expensive).", "ru": "Пропусти 4 самых дорогих товара и выведи следующие 2 (пятый и шестой по дороговизне)."},
+                 "answer": "SELECT * FROM products ORDER BY price DESC LIMIT 2 OFFSET 4;"},
+                {"id": "3.32",
+                 "text": {"en": "Get the 3 products with the biggest <code>stock</code> among the products that have a supplier.", "ru": "Выведи 3 товара с самым большим <code>stock</code> среди товаров, у которых есть поставщик."},
+                 "answer": "SELECT * FROM products\nWHERE supplier IS NOT NULL\nORDER BY stock DESC\nLIMIT 3;"},
+                {"id": "3.33",
+                 "text": {"en": "Get the 2 oldest orders of the customers whose name starts with <code>'C'</code>.", "ru": "Выведи 2 самых старых заказа покупателей, чьё имя начинается на <code>'C'</code>."},
+                 "answer": "SELECT * FROM orders\nWHERE customer LIKE 'C%'\nORDER BY order_date ASC\nLIMIT 2;"},
+                {"id": "3.34",
+                 "text": {"en": "Get all products sorted by <code>supplier</code> A→Z, and for the same supplier by <code>product_name</code> A→Z.", "ru": "Выведи все товары, отсортированные по <code>supplier</code> от A до Z, а у одного поставщика — по <code>product_name</code> от A до Z."},
+                 "answer": "SELECT * FROM products ORDER BY supplier ASC, product_name ASC;"},
+                {"id": "3.35",
+                 "text": {"en": "Someone wrote <code>SELECT * FROM products ORDER BY category, price DESC LIMIT 5;</code> to get the 5 most expensive products. Write the correct query.", "ru": "Кто-то написал <code>SELECT * FROM products ORDER BY category, price DESC LIMIT 5;</code>, чтобы получить 5 самых дорогих товаров. Напиши правильный запрос."},
+                 "answer": "SELECT * FROM products ORDER BY price DESC LIMIT 5;"},
+            ],
         },
         {
             "id": 4,
