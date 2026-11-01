@@ -560,7 +560,6 @@ function defaultLesson(){
 function startLesson(){ return COURSE_LESSON&&activeLesson>=0?activeLesson:defaultLesson() }
 function seedSQL(){ return COURSE_LESSON?COURSE_LESSON.seed:SEED[lang] }
 let runCount=0;
-let remoteEdit=false;                     // true while the collaboration code puts a partner's text in the editor
 /* ---------- prediction tasks: "will this person pass?" (row) and "mark who passes" (pick) ---------- */
 let pickState=new Set(), lastExplain=null, SEED_DB=null;
 function resetPredict(){ pickState=new Set(); lastExplain=null; truthState={}; truthShown=false; }
@@ -848,7 +847,7 @@ function highlight(){
   }
   hl.innerHTML=out+'\n';
   gut.textContent=src.split('\n').map((_,i)=>i+1).join('\n');
-  if(!remoteEdit) saveCode(src);   // only your own typing is saved: a partner's text must not overwrite your answer
+  saveCode(src);
 }
 ta.addEventListener('input',highlight);
 ta.addEventListener('scroll',()=>{hl.scrollTop=ta.scrollTop;gut.scrollTop=ta.scrollTop});
@@ -1482,11 +1481,11 @@ function start(){
       else if(d.delete!=null){if(old<i) shift-=Math.min(d.delete,i-old); old+=d.delete}
     } return i+shift};
     const a=map(ta.selectionStart), b=map(ta.selectionEnd), dir=ta.selectionDirection;
-    applyingRemote=true; remoteEdit=true;
+    applyingRemote=true;
     ta.value=ytext.toString();
     if(document.activeElement===ta) ta.setSelectionRange(a,b,dir);
     orig.highlight();
-    applyingRemote=false; remoteEdit=false;
+    applyingRemote=false;
     renderCarets();
   });
 
@@ -1624,7 +1623,7 @@ function start(){
       if(msg.type==='synced'){
         // editor text
         if(ytext.length===0&&ta.value){synced=true;pushLocal()}
-        else if(ytext.toString()!==ta.value){applyingRemote=true;remoteEdit=true;ta.value=ytext.toString();orig.highlight();applyingRemote=false;remoteEdit=false}
+        else if(ytext.toString()!==ta.value){applyingRemote=true;ta.value=ytext.toString();orig.highlight();applyingRemote=false}
         // shared actions
         if(msg.epoch!==epoch){                      // new room or first connect: rebuild from the log
           epoch=msg.epoch; lastSeq=0;
