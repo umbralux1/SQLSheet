@@ -189,6 +189,21 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
 .lesson-note .pexplain.good{background:var(--new)}
 .lesson-note .pexplain.bad{background:var(--err-bg)}
 .lesson-note .pexplain code{font-size:.9em}
+.lesson-note .pexplain .tnote{color:var(--muted)}
+.tv-true{color:var(--accent)} .tv-false{color:var(--err)} .tv-null{color:var(--null)}
+.lesson-note .given{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0 0 8px;font-family:var(--f-mono);font-size:13.5px}
+.lesson-note .tvb{font-family:var(--f-mono);font-weight:700}
+.ttable th,.ttable td{text-align:center;font-family:var(--f-mono);padding:4px 14px}
+.ttable th.tc{color:var(--fg)}
+.ttable .t0{border-left:2px solid var(--line-strong)}
+.ttable td.tvv{font-weight:600}
+.ttable td.tcell{cursor:pointer;font-weight:700;min-width:96px;user-select:none;color:var(--muted)}
+.ttable td.tcell.tv-true{color:var(--accent)} .ttable td.tcell.tv-false{color:var(--err)} .ttable td.tcell.tv-null{color:var(--null)}
+.ttable td.tcell:hover{background:var(--head)}
+.ttable td.tcell.done{cursor:default}
+.ttable td.tcell.miss{box-shadow:inset 0 0 0 2px var(--err)}
+.ttable td.tcell:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+@media (max-width:520px){.ttable th,.ttable td{padding:4px 7px;font-size:12px}.ttable td.tcell{min-width:64px}}
 </style>
 <style>
 .lang{display:inline-flex;border:1px solid var(--line-strong);border-radius:4px;overflow:hidden;margin-left:auto;align-self:center}
@@ -355,6 +370,8 @@ const T = {
  en:{
   brand1:'SQL', brand2:'Sheet', title:'SQL Sheet',
   tagline:'Write a query and see the result as a spreadsheet. The database lives in your browser, so feel free to break it.',
+  truthHint:'Click a cell: ? → TRUE → FALSE', truthHint3:'Click a cell: ? → TRUE → FALSE → NULL',
+  truthWrong:n=>n===1?'1 cell is wrong or empty.':`${n} cells are wrong or empty.`, truthMissNote:'Cells with a red frame were wrong.', whyValue:v=>`Result: ${v}.`,
   why:'Explain condition', whyBack:'Back to result', whyTitle:'Show every part of WHERE as a ✓/✗ column',
   whyNeed:'Run a SELECT with WHERE first', whyFail:"Can't take this condition apart. Try a simpler query: SELECT … FROM table WHERE …;",
   whyAnd:'AND: ✓ only if all are ✓', whyOr:'OR: ✓ if at least one is ✓', whyNot:'NOT: turns ✓ into ✗ and back',
@@ -399,6 +416,8 @@ const T = {
  ru:{
   brand1:'SQL', brand2:'Табличка', title:'SQL Табличка',
   tagline:'Пиши запрос — результат появится как лист Excel. База живёт в браузере, ломать можно смело.',
+  truthHint:'Нажимай на клетку: ? → TRUE → FALSE', truthHint3:'Нажимай на клетку: ? → TRUE → FALSE → NULL',
+  truthWrong:n=>`Неверных или пустых клеток: ${n}.`, truthMissNote:'Клетки в красной рамке были неверными.', whyValue:v=>`Результат: ${v}.`,
   why:'Разобрать условие', whyBack:'Обычный результат', whyTitle:'Показать каждую часть WHERE отдельной колонкой ✓/✗',
   whyNeed:'Сначала выполни SELECT с WHERE', whyFail:'Не получилось разобрать это условие. Попробуй запрос попроще: SELECT … FROM таблица WHERE …;',
   whyAnd:'AND: ✓, только если все ✓', whyOr:'OR: ✓, если хоть одна ✓', whyNot:'NOT: меняет ✓ на ✗ и обратно',
@@ -528,7 +547,7 @@ function lessonList(){
   const label=k=>T[k].extra?`${L.extraTask} ${pos[k]}`:`${L.task} ${pos[k]}`;
   return COURSE_LESSON.tasks.map((t,k)=>({t:label(k), d:stripTags(t.text[lang]), q:'', section:t.section?t.section[lang]:'',
     extraStart:!!t.extra&&(k===0||!T[k-1].extra),
-    n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${label(k)}/${t.extra?cnt.extra:cnt.main}</span><div class="task-text">${t.text[lang]}</div>`+predictBlock(k)+introOf(k)+
+    n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.num||COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${label(k)}/${t.extra?cnt.extra:cnt.main}</span><div class="task-text">${t.text[lang]}</div>`+predictBlock(k)+introOf(k)+
       (TEACHER_ANSWERS&&TEACHER_ANSWERS[k]?`<details class="answer"><summary><span class="when-closed">${esc(L.answerLabel)}</span><span class="when-open">${esc(L.answerHide)}</span></summary><code>${esc(TEACHER_ANSWERS[k])}</code></details>`:'')}));
 }
 function defaultLesson(){
@@ -543,7 +562,7 @@ function seedSQL(){ return COURSE_LESSON?COURSE_LESSON.seed:SEED[lang] }
 let runCount=0;
 /* ---------- prediction tasks: "will this person pass?" (row) and "mark who passes" (pick) ---------- */
 let pickState=new Set(), lastExplain=null, SEED_DB=null;
-function resetPredict(){ pickState=new Set(); lastExplain=null; }
+function resetPredict(){ pickState=new Set(); lastExplain=null; truthState={}; truthShown=false; }
 function seedDB(){                       // the lesson's original data, untouched by the student's queries
   if(!COURSE_LESSON||typeof SQL==='undefined'||!SQL) return null;
   if(!SEED_DB){ SEED_DB=new SQL.Database(); SEED_DB.run(COURSE_LESSON.seed); }
@@ -560,8 +579,80 @@ function predictTable(cols,rows,pickable,active,types){
   });
   return h+'</tbody></table>';
 }
+/* ---------- logic tasks: "what does this expression return?" (value) and truth tables (truth) ---------- */
+let truthState={}, truthShown=false;        // "row,col" -> 'true' | 'false' | 'null'
+const sqlVal=v=>v===1?'TRUE':v===0?'FALSE':'NULL';
+function truthRows(t){                    // every combination of the variables, TRUE first
+  const vals=t.nulls?[1,0,null]:[1,0];
+  let rows=[[]]; t.vars.forEach(()=>{ rows=rows.flatMap(r=>vals.map(v=>[...r,v])) });
+  return rows;
+}
+function valueSQL(t){                     // the query that shows the real value in the grid
+  const given=t.given?Object.entries(t.given):[];
+  return given.length?`SELECT ${t.expr} AS result\nFROM (SELECT ${given.map(([k,v])=>`${sqlVal(v)} AS ${k}`).join(', ')});`
+                     :`SELECT ${t.expr} AS result;`;
+}
+function truthSQL(t){
+  return `WITH v(${t.vars.join(', ')}) AS (VALUES ${truthRows(t).map(r=>'('+r.map(sqlVal).join(', ')+')').join(', ')})\n`+
+         `SELECT ${t.vars.join(', ')}, ${t.cols.map(c=>`${c} AS "${c}"`).join(', ')}\nFROM v;`;
+}
+function truthExpected(t){                // [[1|0|null, …] per row], worked out by SQLite itself
+  const d=seedDB(); if(!d) return null;
+  const sql=`WITH v(${t.vars.join(', ')}) AS (VALUES ${truthRows(t).map(r=>'('+r.map(sqlVal).join(', ')+')').join(', ')}) `+
+            `SELECT ${t.cols.map(c=>`CASE WHEN (${c}) THEN 1 WHEN NOT (${c}) THEN 0 END`).join(', ')} FROM v`;
+  try{ return d.exec(sql)[0].values }catch(e){ return null }
+}
+const tvCls=v=>v===1||v==='true'?'tv-true':v===0||v==='false'?'tv-false':v===null||v==='null'?'tv-null':'';
+function logicBlock(t,active){
+  if(t.kind==='value'){
+    const given=t.given?`<div class="given">${Object.entries(t.given).map(([k,v])=>`<code>${esc(k)} = <b class="${tvCls(v)}">${sqlVal(v)}</b></code>`).join('')}</div>`:'';
+    const opts=['true','false',...(t.nulls?['null']:[])];
+    return `<pre class="cond">${esc(t.expr)}</pre>${given}<div class="yn">${opts.map(v=>`<button class="btn tvb ${tvCls(v)}" type="button" data-yn="${v}">${v.toUpperCase()}</button>`).join('')}</div><div class="pfeed" id="pfeed"></div>`;
+  }
+  const rows=truthRows(t);
+  let h=`<div class="pwrap"><table class="ptable ttable"><thead><tr>${t.vars.map(v=>`<th>${esc(v)}</th>`).join('')}${t.cols.map((c,j)=>`<th class="tc${j===0?' t0':''}">${esc(c)}</th>`).join('')}</tr></thead><tbody>`;
+  rows.forEach((r,i)=>{
+    h+='<tr>'+r.map(v=>`<td class="tvv ${tvCls(v)}">${sqlVal(v)}</td>`).join('')+
+      t.cols.map((c,j)=>{ const s=active?truthState[i+','+j]:''; return `<td class="tcell${j===0?' t0':''} ${tvCls(s)}" data-cell="${i},${j}" role="button" tabindex="0" aria-label="${esc(c)}">${s?s.toUpperCase():'?'}</td>` }).join('')+'</tr>';
+  });
+  return h+`</tbody></table></div><div class="yn"><button class="btn primary" type="button" id="truth-check">${esc(L.checkPick)}</button><span class="pcount">${esc(t.nulls?L.truthHint3:L.truthHint)}</span></div><div class="pfeed" id="pfeed"></div>`;
+}
+function toggleCell(key){
+  if(truthShown) return;
+  const t=COURSE_LESSON.tasks[activeLesson], order=['','true','false',...(t.nulls?['null']:[])];
+  const next=order[(order.indexOf(truthState[key]||'')+1)%order.length];
+  if(next) truthState[key]=next; else delete truthState[key];
+  const td=document.querySelector(`#note [data-cell="${key}"]`);
+  if(td){ td.textContent=next?next.toUpperCase():'?'; td.classList.remove('tv-true','tv-false','tv-null'); if(next) td.classList.add(tvCls(next)); }
+}
+function truthCells(t){ return truthRows(t).map((_,i)=>t.cols.map((_,j)=>truthState[i+','+j]||'')) }
+async function submitTruth(){
+  const t=COURSE_LESSON.tasks[activeLesson];
+  const res=await predictCheck({cells:truthCells(t)}); if(!res) return;
+  lastExplain=res.explain;
+  if(res.ok){ fillTruth(t); revealResult(); predictOutcome(true,res.explain,null,true); return; }
+  showMsg('ok','');
+  $('msg').insertAdjacentHTML('beforeend',`<div class="dumb" role="status">you're so dumb dumb</div><span class="bad">${esc(L.truthWrong(res.wrong))}</span>`);
+  $('pfeed').innerHTML=`<button class="btn" type="button" id="truth-reveal">${esc(L.showAnswer)}</button>`;
+}
+function fillTruth(t){                    // show the right values; cells the student got wrong stay marked
+  const want=truthExpected(t); if(!want) return;
+  truthShown=true;
+  const b=$('truth-check'); if(b) b.disabled=true;
+  want.forEach((row,i)=>row.forEach((v,j)=>{
+    const td=document.querySelector(`#note [data-cell="${i},${j}"]`); if(!td) return;
+    const mine=truthState[i+','+j]||'', right=mine===(v===1?'true':v===0?'false':'null');
+    td.textContent=sqlVal(v); td.classList.remove('tv-true','tv-false','tv-null'); td.classList.add(tvCls(v),'done'); td.classList.toggle('miss',!right);
+  }));
+}
+function revealTruth(){
+  const t=COURSE_LESSON.tasks[activeLesson];
+  fillTruth(t); revealResult();
+  $('pfeed').innerHTML=`<div class="pexplain bad"><b>${esc(L.answerShown)}</b> ${lastExplain?lastExplain[lang]:''} <span class="tnote">${esc(L.truthMissNote)}</span></div>`;
+}
 function predictBlock(k){
   const t=COURSE_LESSON.tasks[k]; if(!t.kind) return '';
+  if(t.kind==='value'||t.kind==='truth') return logicBlock(t,k===activeLesson);
   const table=predictTableName(t), active=k===activeLesson;
   const cond=t.kind==='pick'?`<pre class="cond">SELECT * FROM ${esc(table)}\nWHERE ${esc(t.condition)};</pre>`:`<pre class="cond">WHERE ${esc(t.condition)}</pre>`;
   const db=seedDB(); if(!db) return cond;
@@ -597,11 +688,13 @@ async function predictCheck(body){
 }
 function revealResult(){                 // run the task's query so the real result appears in the grid
   const t=COURSE_LESSON.tasks[activeLesson];
+  if(t.kind==='value'){ run(valueSQL(t)); return; }
+  if(t.kind==='truth'){ run(truthSQL(t)); return; }
   run(`SELECT * FROM ${predictTableName(t)} WHERE ${t.condition};`);
 }
-function predictOutcome(ok,explain,note){
+function predictOutcome(ok,explain,note,noWhy){
   const k=activeLesson;
-  $('pfeed').innerHTML=`<div class="pexplain ${ok?'good':'bad'}"><b>${esc(ok?L.predictRight:L.predictWrong)}</b> ${explain?explain[lang]:''}<div class="why-row"><button class="btn why-btn" type="button"></button></div></div>`; updateWhyBtn();
+  $('pfeed').innerHTML=`<div class="pexplain ${ok?'good':'bad'}"><b>${esc(ok?L.predictRight:L.predictWrong)}</b> ${explain?explain[lang]:''}${noWhy?'':'<div class="why-row"><button class="btn why-btn" type="button"></button></div>'}</div>`; updateWhyBtn();
   if(ok){ COURSE_PROGRESS.add(COURSE_LESSON.id,COURSE_LESSON.tasks[k].id); celebrate(k); renderLessons(k); }
   else $('msg').insertAdjacentHTML('beforeend',`<div class="dumb" role="status">you're so dumb dumb</div>${note?`<span class="bad">${esc(note)}</span>`:''}`);
 }
@@ -652,7 +745,7 @@ function celebrate(k){
   const doneCount=group.filter(done).length, all=doneCount>=n;
   const after=group.filter(i=>i>k), nextOpen=after.find(i=>!done(i))??group.find(i=>!done(i));
   const dots=group.map(i=>`<i class="${done(i)?'on':''}${i===k?' now':''}"></i>`).join('');
-  const nextLesson=COURSE.lessons.find(x=>x.id>COURSE_LESSON.id&&x.available);
+  const nextLesson=COURSE.lessons.slice(COURSE.lessons.findIndex(x=>x.id===COURSE_LESSON.id)+1).find(x=>x.available);
   const extras=[...T.keys()].filter(i=>T[i].extra), extraOpen=extras.find(i=>!done(i));
   const finishMain=(nextLesson?`<a class="btn primary" href="./?lesson=${nextLesson.id}&task=1">${esc(L.nextLesson)}</a>`:`<a class="btn primary" href="lessons">${esc(L.allLessons)}</a>`)+
     (extraOpen!=null?` <button class="btn" data-lesson-go="${extraOpen}">${esc(L.tryExtra)}</button>`:'');
@@ -975,7 +1068,7 @@ function renderLessons(active){
   const el=$('lessons'); el.innerHTML='';
   const ids=COURSE_LESSON?new Set(COURSE_PROGRESS.get(COURSE_LESSON.id)):new Set();
   const solved={has:i=>!!COURSE_LESSON&&ids.has(COURSE_LESSON.tasks[i].id)};
-  if(COURSE_LESSON){ $('lessons-label').textContent=L.tasksOf(COURSE_LESSON.id); const back=$('lessons-back'); back.hidden=false; back.textContent=L.allLessons; }
+  if(COURSE_LESSON){ $('lessons-label').textContent=L.tasksOf(COURSE_LESSON.num||COURSE_LESSON.id); const back=$('lessons-back'); back.hidden=false; back.textContent=L.allLessons; }
   lessonList().forEach((l,i)=>{
     if(l.extraStart){const h=document.createElement('div');h.className='extra-head';h.textContent=L.extraHead;el.appendChild(h)}
     if(l.section){const h=document.createElement('div');h.className='sect';h.textContent=l.section;el.appendChild(h)}
@@ -1093,19 +1186,42 @@ function splitSelect(st){                 // top-level clauses of one SELECT
   return {sel:st.slice(1,at.FROM), from:st.slice(at.FROM+1,at.WHERE), where:st.slice(at.WHERE+1,end),
           order:at.ORDER!=null?st.slice(at.ORDER,at.LIMIT!=null&&at.LIMIT>at.ORDER?at.LIMIT:st.length):[]};
 }
+function splitExpr(st){                   // SELECT <one expression> [AS name] [FROM …]: the logic lesson's queries
+  let depth=0, from=-1;
+  for(let i=1;i<st.length;i++){
+    const x=st[i];
+    if(x.v==='(') depth++; else if(x.v===')') depth--;
+    else if(depth) continue;
+    else if(x.v===','&&from<0) return null;
+    else if(x.t==='word'&&['WHERE','GROUP','HAVING','ORDER','LIMIT','UNION','EXCEPT','INTERSECT','WINDOW'].includes(x.u)) return null;
+    else if(x.t==='word'&&x.u==='FROM'&&from<0) from=i;
+  }
+  let sel=st.slice(1,from<0?st.length:from);
+  if(sel.length>2&&sel[sel.length-2].t==='word'&&sel[sel.length-2].u==='AS') sel=sel.slice(0,-2);
+  if(!sel.length||sel[0].v==='*') return null;
+  return {expr:sel, from:from<0?[]:st.slice(from+1), order:[]};
+}
 function whyPlan(src){
   const st=lastSelect(src||''); if(!st) return null;
-  const q=splitSelect(st); if(!q||!q.where.length||!q.from.length) return null;
   const S=(a)=>a.length?src.slice(a[0].s,a[a.length-1].e):'';
-  let tree; try{ tree=parseCond(q.where,src) }catch(e){ return null }
-  return {q,tree,S};
+  const q=splitSelect(st);
+  if(q&&q.where.length&&q.from.length){
+    let tree; try{ tree=parseCond(q.where,src) }catch(e){ return null }
+    return {q,tree,S};
+  }
+  const x=splitExpr(st); if(!x) return null;
+  let tree; try{ tree=parseCond(x.expr,src) }catch(e){ return null }
+  if(tree.op==='leaf'&&!/[=<>]|\b(?:IS|IN|LIKE|BETWEEN|TRUE|FALSE)\b/i.test(tree.txt)) return null;   // not a condition
+  return {q:x,tree,S,expr:true};
 }
+const tvName=v=>v===1?'TRUE':v===0?'FALSE':'NULL';
 function whyBuild(src){
   const plan=whyPlan(src); if(!plan) return null;
   const {q,tree,S}=plan;
   // letters for the comparisons, in the order they are written
   const leaves=[]; (function walk(n){ if(n.op==='leaf') leaves.push(n); else if(n.kid) walk(n.kid); else n.kids.forEach(walk) })(tree);
-  leaves.forEach((n,i)=>n.letter=colLetter(i));
+  // circled numbers, so they can't be mixed up with the sheet's column letters A, B, C
+  leaves.forEach((n,i)=>n.letter=i<20?String.fromCharCode(0x2460+i):'('+(i+1)+')');
   // a header with every bracket shown; the ones SQL adds by itself are marked "implicit"
   let implicit=false;
   const real=n=>n.op==='()'?real(n.kid):n;
@@ -1117,7 +1233,7 @@ function whyBuild(src){
     return s;
   }
   const cols=[];
-  leaves.forEach(n=>cols.push({n,head:n.letter,sub:n.txt}));
+  leaves.forEach(n=>cols.push({n,head:(leaves.length>1?n.letter+' ':'')+n.txt,sub:''}));
   (function post(n){
     if(n.op==='leaf') return;
     if(n.op==='()'){ post(n.kid); return }
@@ -1126,25 +1242,31 @@ function whyBuild(src){
   })(tree);
   const last=cols[cols.length-1]; last.fin=true;
   label(tree,null);                        // sets "implicit" for the whole condition
-  // which data columns to show
-  const ft=q.from.filter(x=>!(x.t==='word'&&x.u==='AS'));
-  const simple=(ft.length===1||ft.length===2)&&ft.every(x=>x.t==='word'||x.t==='qid')&&!ft.some(x=>['JOIN','ON','USING'].includes(x.u));
-  const tname=simple?ft[0].v.replace(/^["`[]|["`\]]$/g,''):null;
-  let dataSql, dataCols=[], dataTypes=[];
-  const info=tname&&tables().includes(tname)?tableInfo(tname):null;
-  if(info&&info.length){
-    const ref=new Set(q.where.filter(x=>x.t==='word'||x.t==='qid').map(x=>x.v.replace(/^["`[]|["`\]]$/g,'').toLowerCase()));
-    const pick=info.filter((c,i)=>c.pk||i===0);
-    const nm=info.find(c=>/name/i.test(c.name)&&!pick.includes(c)); if(nm) pick.push(nm);
-    info.forEach(c=>{ if(ref.has(c.name.toLowerCase())&&!pick.includes(c)) pick.push(c) });
-    const keep=info.filter(c=>pick.includes(c));          // in table order
-    dataSql=keep.map(c=>`"${c.name}"`).join(', ');
-    dataCols=keep.map(c=>c.name); dataTypes=keep.map(c=>c.type.toLowerCase());
-  }else{
-    dataSql=S(q.sel);
-  }
   const logic=cols.map((c,i)=>`CASE WHEN (${c.n.sql}) THEN 1 WHEN NOT (${c.n.sql}) THEN 0 END AS "__w${i}"`).join(', ');
-  const base=`SELECT ${dataSql}, ${logic} FROM ${S(q.from)}`;
+  let base, info=null, dataCols=[], dataTypes=[];
+  if(plan.expr){
+    // one expression: no table, or the given values in a FROM (…) (shown as columns)
+    base=q.from.length?`SELECT *, ${logic} FROM ${S(q.from)}`:`SELECT ${logic}`;
+  }else{
+    // which data columns to show
+    const ft=q.from.filter(x=>!(x.t==='word'&&x.u==='AS'));
+    const simple=(ft.length===1||ft.length===2)&&ft.every(x=>x.t==='word'||x.t==='qid')&&!ft.some(x=>['JOIN','ON','USING'].includes(x.u));
+    const tname=simple?ft[0].v.replace(/^["`[]|["`\]]$/g,''):null;
+    let dataSql;
+    info=tname&&tables().includes(tname)?tableInfo(tname):null;
+    if(info&&info.length){
+      const ref=new Set(q.where.filter(x=>x.t==='word'||x.t==='qid').map(x=>x.v.replace(/^["`[]|["`\]]$/g,'').toLowerCase()));
+      const pick=info.filter((c,i)=>c.pk||i===0);
+      const nm=info.find(c=>/name/i.test(c.name)&&!pick.includes(c)); if(nm) pick.push(nm);
+      info.forEach(c=>{ if(ref.has(c.name.toLowerCase())&&!pick.includes(c)) pick.push(c) });
+      const keep=info.filter(c=>pick.includes(c));          // in table order
+      dataSql=keep.map(c=>`"${c.name}"`).join(', ');
+      dataCols=keep.map(c=>c.name); dataTypes=keep.map(c=>c.type.toLowerCase());
+    }else{
+      info=null; dataSql=S(q.sel);
+    }
+    base=`SELECT ${dataSql}, ${logic} FROM ${S(q.from)}`;
+  }
   let r=null;
   for(const sql of q.order.length?[base+' '+S(q.order),base]:[base]){ try{ r=db.exec(sql)[0]; break }catch(e){ r=undefined } }
   if(r===undefined) return null;
@@ -1158,7 +1280,8 @@ function whyBuild(src){
     why:{from:nData,fin:nData+cols.length-1},
     rowids:vals.map((_,i)=>i),
     marks:Object.fromEntries(pass.map((ok,i)=>[i,ok?'pass':'fail'])),
-    passed:pass.filter(Boolean).length, implicit, hasNull:vals.some(v=>v.slice(nData).some(x=>x===null)), legend:leaves.map(n=>`${n.letter}: ${n.txt}`)
+    passed:pass.filter(Boolean).length, implicit, hasNull:vals.some(v=>v.slice(nData).some(x=>x===null)), legend:leaves.length>1?leaves.map(n=>`${n.letter} ${n.txt}`):[],
+    expr:!!plan.expr, value:plan.expr&&vals.length===1?vals[0][vals[0].length-1]:undefined
   };
 }
 function updateWhyBtn(){
@@ -1176,9 +1299,9 @@ function toggleWhy(){
   if(!w){ showMsg('err',L.whyFail); updateWhyBtn(); return }
   whyOn=true; whyResult=w; renderTabs(); openTab('__result');
   const el=$('msg'); el.className='msg ok why-msg';
-  el.innerHTML=`<b>${esc(L.whyPassed(w.passed,w.rows.length))}</b> <span class="lg"><i class="sw" style="background:var(--new)"></i>${esc(L.whyLegPass)}</span>`+
+  el.innerHTML=(w.expr&&w.value!==undefined?`<b>${esc(L.whyValue(tvName(w.value)))}</b> `:`<b>${esc(L.whyPassed(w.passed,w.rows.length))}</b> <span class="lg"><i class="sw" style="background:var(--new)"></i>${esc(L.whyLegPass)}</span>`)+
     `<span class="lg"><b class="wt">✓</b>&nbsp;${esc(L.whyYes)}</span><span class="lg"><b class="wf">✗</b>&nbsp;${esc(L.whyNo)}</span>`+
-    `<div class="why-key">${w.legend.map(s=>`<code>${esc(s)}</code>`).join('')}</div>`+
+    (w.legend.length?`<div class="why-key">${w.legend.map(s=>`<code>${esc(s)}</code>`).join('')}</div>`:'')+
     (w.hasNull?`<div class="why-note">${esc(L.whyNull)}</div>`:'')+
     (w.implicit?`<div class="why-note">${esc(L.whyImplicit)}</div>`:'');
   updateWhyBtn();
@@ -1192,9 +1315,11 @@ document.addEventListener('click',e=>{ const b=e.target.closest('.why-btn'); if(
 $('note').addEventListener('click',e=>{
   const r=e.target.closest('[data-emp]'); if(r){ togglePick(+r.dataset.emp); return; }
   const y=e.target.closest('[data-yn]'); if(y){ answerRow(y.dataset.yn); return; }
+  const c=e.target.closest('[data-cell]'); if(c){ toggleCell(c.dataset.cell); return; }
   if(e.target.closest('#pick-check')) submitPick(); else if(e.target.closest('#pick-reveal')) revealPick();
+  else if(e.target.closest('#truth-check')) submitTruth(); else if(e.target.closest('#truth-reveal')) revealTruth();
 });
-$('note').addEventListener('keydown',e=>{ const r=e.target.closest('[data-emp]'); if(r&&(e.key===' '||e.key==='Enter')){ e.preventDefault(); r.click(); } });
+$('note').addEventListener('keydown',e=>{ const r=e.target.closest('[data-emp],[data-cell]'); if(r&&(e.key===' '||e.key==='Enter')){ e.preventDefault(); r.click(); } });
 $('lessons-toggle').onclick=()=>{const box=$('lessons-box'),open=box.classList.toggle('open');$('lessons-toggle').setAttribute('aria-expanded',open);renderToggle()};
 function renderToggle(){const open=$('lessons-box').classList.contains('open');$('lessons-toggle').textContent=open?L.hideTasks:(COURSE_LESSON?L.showTasks(COURSE_LESSON.tasks.length):L.showLessons)}
 $('reset').onclick=()=>{resetDb();renderSchema();clearResult();showMsg('ok',L.resetDone+' '+L.ready)};
@@ -1273,7 +1398,7 @@ function start(){
   }
   document.addEventListener('click',e=>{
     if(!live()) return;
-    const t=e.target.closest('.why-btn,#run,#reset,.lang button,.seg button,#tabs button,.tname,#lessons button,[data-lesson-go],#note [data-emp],#note [data-yn],#pick-check,#pick-reveal');
+    const t=e.target.closest('.why-btn,#run,#reset,.lang button,.seg button,#tabs button,.tname,#lessons button,[data-lesson-go],#note [data-emp],#note [data-yn],#note [data-cell],#pick-check,#pick-reveal,#truth-check,#truth-reveal');
     if(!t) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if(t.classList.contains('why-btn')){ if(!t.disabled) emit({kind:'why'}); }
@@ -1282,6 +1407,10 @@ function start(){
     else if(t.dataset.lang) emit({kind:'lang',lang:t.dataset.lang});
     else if(t.closest('#tabs')) emit({kind:'tab',id:t.dataset.id});
     else if(t.classList.contains('tname')) emit({kind:'tab',id:t.childNodes[0].textContent.trim()});
+    else if(t.dataset.cell||t.id==='truth-check'||t.id==='truth-reveal'){
+      const id=COURSE_LESSON&&COURSE_LESSON.tasks[activeLesson]?COURSE_LESSON.tasks[activeLesson].id:null;
+      emit({kind:'predict',id,op:t.dataset.cell?'cell':t.id==='truth-check'?'tcheck':'treveal',cell:t.dataset.cell});
+    }
     else if(t.dataset.emp||t.dataset.yn||t.id==='pick-check'||t.id==='pick-reveal'){
       const id=COURSE_LESSON&&COURSE_LESSON.tasks[activeLesson]?COURSE_LESSON.tasks[activeLesson].id:null;
       emit({kind:'predict',id,op:t.dataset.emp?'toggle':t.dataset.yn?t.dataset.yn:t.id==='pick-check'?'check':'reveal',emp:t.dataset.emp?+t.dataset.emp:undefined});
@@ -1324,7 +1453,8 @@ function start(){
       case 'predict': {                            // someone answered or marked a row in a prediction task
         if(!COURSE_LESSON) return;
         const i=COURSE_LESSON.tasks.findIndex(t=>t.id===a.id); if(i!==activeLesson) return;
-        if(a.op==='toggle') togglePick(a.emp); else if(a.op==='yes'||a.op==='no') answerRow(a.op);
+        if(a.op==='toggle') togglePick(a.emp); else if(['yes','no','true','false','null'].includes(a.op)) answerRow(a.op);
+        else if(a.op==='cell') toggleCell(a.cell); else if(a.op==='tcheck') submitTruth(); else if(a.op==='treveal') revealTruth();
         else if(a.op==='check') submitPick(); else if(a.op==='reveal') revealPick();
         return;
       }

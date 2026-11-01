@@ -206,7 +206,7 @@ const T={
  en:{live:'Live', connecting:'Connecting…', offline:'Offline, reconnecting…', room:'room', you:'you', yourName:'Your name', copyLink:'Copy invite link', copied:'Link copied', alone:'Only you here. Share the link to invite someone.',
    brand2:'Sheet', title:'SQL Sheet Lessons', navTrainer:'Trainer', navLessons:'Lessons', roadmap:'Course roadmap',
    lesson:n=>`Lesson ${n}`, soon:'Soon', theory:'Theory', tables:'Tables for this lesson', tasks:'Tasks',
-   predictTag:'Predict', extraHead:'Extra practice', extraMeta:(n,d)=>`${n} more tasks · ${d} solved`, extraTask:n=>`Extra ${n}`,
+   truthTag:'Truth table', predictTag:'Predict', extraHead:'Extra practice', extraMeta:(n,d)=>`${n} more tasks · ${d} solved`, extraTask:n=>`Extra ${n}`,
    extraText:'Optional tasks on the same topics, for homework or more practice. They do not count towards finishing the lesson.',
    rows:n=>`${n} rows`, result:n=>`Result: ${n} ${n===1?'row':'rows'}`, solved:(a,b)=>`${a} of ${b} tasks solved`, start:'Start lesson in the trainer', cont:'Continue in the trainer',
    solve:'Solve →', again:'Solve again →', task:n=>`Task ${n}`, answers:'For the teacher', answer:'Answer', tips:'Teaching tips', teacherOnly:'Answers and teaching tips are visible to the teacher only.', login:'Log in', logout:'Log out', user:'Username', pass:'Password', wrongLogin:'Wrong username or password.', teacherIn:'You are logged in as teacher. The answer is shown on each task page in the trainer.', loginFail:'Could not reach the server. Answers need the app running on a server.',
@@ -214,7 +214,7 @@ const T={
  ru:{live:'Онлайн', connecting:'Подключение…', offline:'Нет связи, переподключаюсь…', room:'комната', you:'ты', yourName:'Твоё имя', copyLink:'Скопировать ссылку', copied:'Ссылка скопирована', alone:'Пока здесь только ты. Отправь ссылку, чтобы позвать кого-то.',
    brand2:'Табличка', title:'SQL Табличка — уроки', navTrainer:'Тренажёр', navLessons:'Уроки', roadmap:'План курса',
    lesson:n=>`Урок ${n}`, soon:'Скоро', theory:'Теория', tables:'Таблицы урока', tasks:'Задания',
-   predictTag:'Предсказание', extraHead:'Дополнительная практика', extraMeta:(n,d)=>`ещё ${n} заданий · решено ${d}`, extraTask:n=>`Доп. ${n}`,
+   truthTag:'Таблица истинности', predictTag:'Предсказание', extraHead:'Дополнительная практика', extraMeta:(n,d)=>`ещё ${n} заданий · решено ${d}`, extraTask:n=>`Доп. ${n}`,
    extraText:'Необязательные задания на те же темы: для домашней работы или чтобы потренироваться ещё. На прохождение урока они не влияют.',
    rows:n=>`${n} стр.`, result:n=>`Результат: строк — ${n}`, solved:(a,b)=>`Решено ${a} из ${b}`, start:'Начать урок в тренажёре', cont:'Продолжить в тренажёре',
    solve:'Решить →', again:'Решить ещё раз →', task:n=>`Задание ${n}`, answers:'Для преподавателя', answer:'Ответ', tips:'Советы преподавателю', teacherOnly:'Ответы и советы видит только преподаватель.', login:'Войти', logout:'Выйти', user:'Логин', pass:'Пароль', wrongLogin:'Неверный логин или пароль.', teacherIn:'Ты вошёл как преподаватель. Ответ показывается на странице каждого задания в тренажёре.', loginFail:'Нет связи с сервером. Ответы доступны, только когда приложение запущено на сервере.',
@@ -232,13 +232,19 @@ function renderRoadmap(){
   const id=currentId();
   $('roadmap').innerHTML=COURSE.lessons.map(l=>{
     const done=l.available?COURSE_PROGRESS.count(l):0, total=l.available?l.tasks.filter(t=>!t.extra).length:0;   // a lesson is done when its main tasks are
-    const inner=`<span class="num">${String(l.id).padStart(2,'0')}</span><b>${esc(l.title[lang])}${l.available?'':`<span class="soon-tag">${L.soon}</span>`}${l.available&&done===total?'<span class="done-tag">✓</span>':''}</b><small>${esc(l.topics[lang])}</small>`;
+    const inner=`<span class="num">${String(l.num||l.id).padStart(2,'0')}</span><b>${esc(l.title[lang])}${l.available?'':`<span class="soon-tag">${L.soon}</span>`}${l.available&&done===total?'<span class="done-tag">✓</span>':''}</b><small>${esc(l.topics[lang])}</small>`;
     return l.available
       ? `<li><a href="#lesson-${l.id}" aria-current="${l.id===id}">${inner}</a></li>`
       : `<li class="soon"><div>${inner}</div></li>`;
   }).join('');
 }
 
+function logicCode(t){   // logic tasks: the expression to work out, or the columns of the truth table
+  const tv=v=>v===1?'TRUE':v===0?'FALSE':'NULL';
+  if(t.kind==='value') return `<code class="cond">${esc(t.expr)}${t.given?esc('   ·   '+Object.entries(t.given).map(([k,v])=>k+' = '+tv(v)).join(', ')):''}</code>`;
+  if(t.kind==='truth') return `<code class="cond">${esc(t.vars.join(', ')+'  →  '+t.cols.join('   |   '))}</code>`;
+  return '';
+}
 function miniSheet(r){   // a query result as a small Excel-like sheet
   const cols=r.columns, rows=r.values;
   let h='<table class="sheet"><thead><tr><th></th>'+cols.map((_,i)=>`<th>${colLetter(i)}</th>`).join('')+'</tr></thead><tbody>';
@@ -258,7 +264,7 @@ function sheet(db,table){
 function renderLesson(){
   const id=currentId(), l=COURSE.lessons.find(x=>x.id===id)||COURSE.lessons[0], el=$('lesson');
   if(!l.available){
-    el.innerHTML=`<div class="lesson-head"><span class="label">${L.lesson(l.id)}</span><h2>${esc(l.title[lang])}</h2><p>${esc(l.topics[lang])}</p></div>
+    el.innerHTML=`<div class="lesson-head"><span class="label">${L.lesson(l.num||l.id)}</span><h2>${esc(l.title[lang])}</h2><p>${esc(l.topics[lang])}</p></div>
       <div class="soon-box"><p style="margin:0 0 12px">${L.soonText}</p><a class="btn ghost" href="#lesson-1">${L.back}</a></div>`;
     return;
   }
@@ -281,11 +287,11 @@ function renderLesson(){
   const row=i=>{const t=l.tasks[i], n=pos[i];
     return `${t.section?`<li class="sect">${esc(t.section[lang])}</li>`:''}${t.intro?`<li class="intro"><div class="theory">${t.intro[lang]}</div><pre class="code">${esc(t.example||'')}</pre>${exampleHtml[i]||''}</li>`:''}
       <li class="${solved.has(i)?'done':''}"><span class="st">${solved.has(i)?'✓':n}</span>
-        <div class="txt"><b>${t.extra?L.extraTask(n):L.task(n)}${t.kind?` <span class="ktag">${L.predictTag}</span>`:''}</b>${t.text[lang]}${t.condition?`<code class="cond">${esc((t.kind==='pick'?'SELECT * FROM '+(t.table||l.tables[0])+' WHERE ':'WHERE ')+t.condition)}</code>`:''}</div>
+        <div class="txt"><b>${t.extra?L.extraTask(n):L.task(n)}${t.kind?` <span class="ktag">${t.kind==='truth'?L.truthTag:L.predictTag}</span>`:''}</b>${t.text[lang]}${logicCode(t)}${t.condition?`<code class="cond">${esc((t.kind==='pick'?'SELECT * FROM '+(t.table||l.tables[0])+' WHERE ':'WHERE ')+t.condition)}</code>`:''}</div>
         <a class="go" href="./?lesson=${l.id}&task=${encodeURIComponent(t.id)}">${solved.has(i)?L.again:L.solve}</a></li>`};
   el.innerHTML=`
     <div class="lesson-head">
-      <span class="label">${L.lesson(l.id)}</span>
+      <span class="label">${L.lesson(l.num||l.id)}</span>
       <h2>${esc(l.title[lang])}</h2>
       <p>${esc(l.topics[lang])}</p>
       <div class="progress"><div class="bar"><i style="width:${Math.round(solved.size/total*100)}%"></i></div><span>${L.solved(solved.size,total)}</span>

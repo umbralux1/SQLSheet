@@ -119,6 +119,545 @@ INSERT INTO books VALUES
                 },
             ],
         },
+        {'id': 14,
+         'available': True,
+         'title': {'en': 'Logic Foundations', 'ru': 'Логический фундамент'},
+         'topics': {'en': 'TRUE and FALSE, AND/OR/NOT, truth tables, order, brackets', 'ru': 'TRUE и FALSE, AND/OR/NOT, таблицы истинности, порядок, скобки'},
+         'theory': {'en': '<p>Every condition in <code>WHERE</code> is a small calculation whose answer is <code>TRUE</code> or <code>FALSE</code>. This lesson is about these '
+                          'calculations, mostly without tables.</p>\n'
+                          '<h4>Logical values</h4>\n'
+                          '<ul>\n'
+                          "  <li>A comparison (<code>5 &gt; 3</code>, <code>city = 'Paris'</code>) gives <code>TRUE</code> or <code>FALSE</code>. In SQLite <code>TRUE</code> is 1 and "
+                          '<code>FALSE</code> is 0.</li>\n'
+                          '  <li><code>AND</code> — <code>TRUE</code> only if both sides are <code>TRUE</code>. <code>OR</code> — <code>TRUE</code> if at least one side is. '
+                          '<code>NOT</code> — the opposite.</li>\n'
+                          '</ul>\n'
+                          '<h4>The order</h4>\n'
+                          '<p>Comparisons → <code>NOT</code> → <code>AND</code> → <code>OR</code>, like × before + in math. Brackets are worked out first.</p>\n'
+                          '<h4>How the tasks work</h4>\n'
+                          '<ul>\n'
+                          '  <li><b>What does it return?</b> — choose <code>TRUE</code> or <code>FALSE</code> (in the last section also <code>NULL</code>). Then the real answer appears, '
+                          'and <b>Explain condition</b> shows every step as a column.</li>\n'
+                          '  <li><b>Truth table</b> — click the cells to fill them in, then press <b>Check</b>.</li>\n'
+                          '  <li>Some tasks are ordinary queries.</li>\n'
+                          '</ul>',
+                    'ru': '<p>Каждое условие в <code>WHERE</code> — это маленькое вычисление, ответ которого <code>TRUE</code> или <code>FALSE</code>. Этот урок про такие вычисления, в '
+                          'основном без таблиц.</p>\n'
+                          '<h4>Логические значения</h4>\n'
+                          '<ul>\n'
+                          "  <li>Сравнение (<code>5 &gt; 3</code>, <code>city = 'Paris'</code>) даёт <code>TRUE</code> или <code>FALSE</code>. В SQLite <code>TRUE</code> — это 1, а "
+                          '<code>FALSE</code> — 0.</li>\n'
+                          '  <li><code>AND</code> — <code>TRUE</code>, только если обе стороны <code>TRUE</code>. <code>OR</code> — <code>TRUE</code>, если хотя бы одна. <code>NOT</code> '
+                          '— наоборот.</li>\n'
+                          '</ul>\n'
+                          '<h4>Порядок</h4>\n'
+                          '<p>Сравнения → <code>NOT</code> → <code>AND</code> → <code>OR</code>, как × раньше + в математике. Скобки считаются первыми.</p>\n'
+                          '<h4>Как устроены задания</h4>\n'
+                          '<ul>\n'
+                          '  <li><b>Что вернёт?</b> — выбери <code>TRUE</code> или <code>FALSE</code> (в последнем разделе ещё <code>NULL</code>). Потом появится настоящий ответ, а '
+                          'кнопка <b>«Разобрать условие»</b> покажет каждый шаг отдельным столбцом.</li>\n'
+                          '  <li><b>Таблица истинности</b> — нажимай на клетки, чтобы заполнить их, потом нажми <b>«Проверить»</b>.</li>\n'
+                          '  <li>Некоторые задания — обычные запросы.</li>\n'
+                          '</ul>'},
+         'tips': {'en': ['Ask Rosa to say the steps aloud: “first the comparisons, then NOT, then AND, then OR”.',
+                         'After every answer press <b>Explain condition</b>: each step becomes a ✓/✗ column.',
+                         'Math analogy: <code>AND</code> = ×, <code>OR</code> = + (TRUE = 1, FALSE = 0). <code>1 + 1 × 0</code> is 1, not 0.',
+                         'In section C compare the 1/0 column with the <code>WHERE</code> result: the rows with 1 are exactly the rows <code>WHERE</code> keeps.',
+                         'In section F invent your own life examples together: what she needs to go to the cinema, to a party, etc.',
+                         'Section G (NULL) can wait if she is tired.'],
+                  'ru': ['Проси Розу проговаривать шаги вслух: «сначала сравнения, потом NOT, потом AND, потом OR».',
+                         'После каждого ответа нажимай <b>«Разобрать условие»</b>: каждый шаг станет столбцом ✓/✗.',
+                         'Аналогия с математикой: <code>AND</code> = ×, <code>OR</code> = + (TRUE = 1, FALSE = 0). <code>1 + 1 × 0</code> — это 1, а не 0.',
+                         'В разделе C сравни столбец 1/0 с результатом <code>WHERE</code>: строки с 1 — ровно те, которые оставляет <code>WHERE</code>.',
+                         'В разделе F придумайте вместе свои жизненные примеры: что нужно, чтобы пойти в кино, на вечеринку и т. п.',
+                         'Раздел G (NULL) можно отложить, если она устала.']},
+         'tables': ['employees'],
+         'seed': 'CREATE TABLE employees (\n'
+                 '    emp_id      INT PRIMARY KEY,\n'
+                 '    first_name  VARCHAR(50),\n'
+                 '    last_name   VARCHAR(50),\n'
+                 '    department  VARCHAR(30),\n'
+                 '    salary      INT,\n'
+                 '    hire_year   INT,\n'
+                 '    city        VARCHAR(50),\n'
+                 '    bonus       INT\n'
+                 ');\n'
+                 'INSERT INTO employees VALUES\n'
+                 "(1,  'Alice',   'Brown',   'IT',      60000, 2018, 'London',  5000),\n"
+                 "(2,  'Bob',     'Smith',   'HR',      45000, 2019, 'Paris',   NULL),\n"
+                 "(3,  'Charlie', 'Johnson', 'IT',      75000, 2015, 'London',  8000),\n"
+                 "(4,  'Diana',   'Miller',  'Sales',   52000, 2020, 'Berlin',  3000),\n"
+                 "(5,  'Ethan',   'Davis',   'IT',      68000, 2017, 'Paris',   NULL),\n"
+                 "(6,  'Fiona',   'Wilson',  'Sales',   48000, 2021, 'Madrid',  2000),\n"
+                 "(7,  'George',  'Moore',   'HR',      55000, 2016, 'Berlin',  4000),\n"
+                 "(8,  'Hannah',  'Taylor',  'Sales',   62000, 2018, 'London',  6000),\n"
+                 "(9,  'Ivan',    'Petrov',  'IT',      90000, 2014, 'Madrid',  10000),\n"
+                 "(10, 'Julia',   'Adams',   'HR',      41000, 2022, 'Paris',   NULL);",
+         'tasks': [{'id': 'lg.1',
+                    'kind': 'value',
+                    'expr': '5 > 3',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': '5 is greater than 3, so the answer is “yes”: <code>TRUE</code>. In the grid it is <code>1</code>.',
+                                'ru': '5 больше 3, значит ответ «да»: <code>TRUE</code>. В таблице это <code>1</code>.'},
+                    'section': {'en': 'A · TRUE and FALSE', 'ru': 'A · TRUE и FALSE'},
+                    'intro': {'en': '<p>A comparison is a question with two possible answers: yes or no. In SQL the answer is a <b>logical value</b> (boolean): <code>TRUE</code> or '
+                                    '<code>FALSE</code>. <code>5 &gt; 3</code> <i>is</i> the value <code>TRUE</code>, just like <code>2 + 3</code> <i>is</i> the value '
+                                    '<code>5</code>.</p>\n'
+                                    '<p>SQLite keeps <code>TRUE</code> as <code>1</code> and <code>FALSE</code> as <code>0</code>, so in the result you will see 1 and 0.</p>\n'
+                                    '<p><b>Example:</b> two comparisons at once.</p>',
+                              'ru': '<p>Сравнение — это вопрос, на который есть два ответа: да или нет. В SQL ответ — это <b>логическое значение</b> (boolean): <code>TRUE</code> или '
+                                    '<code>FALSE</code>. <code>5 &gt; 3</code> — <i>это и есть</i> значение <code>TRUE</code>, так же как <code>2 + 3</code> — это значение '
+                                    '<code>5</code>.</p>\n'
+                                    '<p>SQLite хранит <code>TRUE</code> как <code>1</code>, а <code>FALSE</code> как <code>0</code>, поэтому в результате ты увидишь 1 и 0.</p>\n'
+                                    '<p><b>Пример:</b> два сравнения сразу.</p>'},
+                    'example': 'SELECT 5 > 3 AS first, 2 = 7 AS second;'},
+                   {'id': 'lg.2',
+                    'kind': 'value',
+                    'expr': "'Paris' = 'Berlin'",
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': 'The texts are different, so they are not equal: <code>FALSE</code> (in the grid <code>0</code>).',
+                                'ru': 'Тексты разные, значит они не равны: <code>FALSE</code> (в таблице <code>0</code>).'}},
+                   {'id': 'lg.3',
+                    'kind': 'value',
+                    'expr': '10 <> 10',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': '<code>&lt;&gt;</code> means “not equal”. 10 is equal to 10, so “not equal” is <code>FALSE</code>.',
+                                'ru': '<code>&lt;&gt;</code> значит «не равно». 10 равно 10, поэтому «не равно» — это <code>FALSE</code>.'}},
+                   {'id': 'lg.4',
+                    'kind': 'value',
+                    'expr': '7 >= 7',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': '<code>&gt;=</code> means “greater <b>or</b> equal”. 7 is not greater than 7, but it is equal, so <code>TRUE</code>.',
+                                'ru': '<code>&gt;=</code> значит «больше <b>или</b> равно». 7 не больше 7, но равно, поэтому <code>TRUE</code>.'}},
+                   {'id': 'lg.5',
+                    'kind': 'value',
+                    'expr': "'apple' < 'banana'",
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': 'Texts are compared alphabetically, like in a dictionary: <i>apple</i> comes before <i>banana</i>, so it is “smaller”: <code>TRUE</code>.',
+                                'ru': 'Тексты сравниваются по алфавиту, как в словаре: <i>apple</i> идёт раньше <i>banana</i>, значит он «меньше»: <code>TRUE</code>.'}},
+                   {'id': 'lg.6',
+                    'kind': 'truth',
+                    'vars': ['A', 'B'],
+                    'cols': ['A AND B'],
+                    'text': {'en': 'Fill in the truth table of <code>AND</code>: what is <code>A AND B</code> for every pair of values?',
+                             'ru': 'Заполни таблицу истинности для <code>AND</code>: чему равно <code>A AND B</code> для каждой пары значений?'},
+                    'explain': {'en': '<code>AND</code> is <code>TRUE</code> only in the first row, where both are <code>TRUE</code>.',
+                                'ru': '<code>AND</code> даёт <code>TRUE</code> только в первой строке, где оба <code>TRUE</code>.'},
+                    'section': {'en': 'B · AND, OR, NOT', 'ru': 'B · AND, OR, NOT'},
+                    'intro': {'en': '<p>Logical values can be joined, like numbers with + and ×:</p>\n'
+                                    '<ul>\n'
+                                    '<li><code>AND</code> is <code>TRUE</code> only if <b>both</b> sides are <code>TRUE</code>.</li>\n'
+                                    '<li><code>OR</code> is <code>TRUE</code> if <b>at least one</b> side is <code>TRUE</code>.</li>\n'
+                                    '<li><code>NOT</code> turns <code>TRUE</code> into <code>FALSE</code> and back.</li>\n'
+                                    '</ul>\n'
+                                    '<p>All the cases fit in a small <b>truth table</b>:</p>\n'
+                                    '<table class="ops"><thead><tr><th>A</th><th>B</th><th>A AND B</th><th>A OR B</th></tr></thead><tbody>\n'
+                                    '<tr><td>TRUE</td><td>TRUE</td><td>TRUE</td><td>TRUE</td></tr>\n'
+                                    '<tr><td>TRUE</td><td>FALSE</td><td>FALSE</td><td>TRUE</td></tr>\n'
+                                    '<tr><td>FALSE</td><td>TRUE</td><td>FALSE</td><td>TRUE</td></tr>\n'
+                                    '<tr><td>FALSE</td><td>FALSE</td><td>FALSE</td><td>FALSE</td></tr>\n'
+                                    '</tbody></table>\n'
+                                    '<table class="ops"><thead><tr><th>A</th><th>NOT A</th></tr></thead><tbody>\n'
+                                    '<tr><td>TRUE</td><td>FALSE</td></tr>\n'
+                                    '<tr><td>FALSE</td><td>TRUE</td></tr>\n'
+                                    '</tbody></table>\n'
+                                    '<p><b>Example:</b></p>',
+                              'ru': '<p>Логические значения можно соединять, как числа знаками + и ×:</p>\n'
+                                    '<ul>\n'
+                                    '<li><code>AND</code> («и») даёт <code>TRUE</code>, только если <b>обе</b> стороны <code>TRUE</code>.</li>\n'
+                                    '<li><code>OR</code> («или») даёт <code>TRUE</code>, если <b>хотя бы одна</b> сторона <code>TRUE</code>.</li>\n'
+                                    '<li><code>NOT</code> («не») меняет <code>TRUE</code> на <code>FALSE</code> и обратно.</li>\n'
+                                    '</ul>\n'
+                                    '<p>Все случаи помещаются в маленькую <b>таблицу истинности</b>:</p>\n'
+                                    '<table class="ops"><thead><tr><th>A</th><th>B</th><th>A AND B</th><th>A OR B</th></tr></thead><tbody>\n'
+                                    '<tr><td>TRUE</td><td>TRUE</td><td>TRUE</td><td>TRUE</td></tr>\n'
+                                    '<tr><td>TRUE</td><td>FALSE</td><td>FALSE</td><td>TRUE</td></tr>\n'
+                                    '<tr><td>FALSE</td><td>TRUE</td><td>FALSE</td><td>TRUE</td></tr>\n'
+                                    '<tr><td>FALSE</td><td>FALSE</td><td>FALSE</td><td>FALSE</td></tr>\n'
+                                    '</tbody></table>\n'
+                                    '<table class="ops"><thead><tr><th>A</th><th>NOT A</th></tr></thead><tbody>\n'
+                                    '<tr><td>TRUE</td><td>FALSE</td></tr>\n'
+                                    '<tr><td>FALSE</td><td>TRUE</td></tr>\n'
+                                    '</tbody></table>\n'
+                                    '<p><b>Пример:</b></p>'},
+                    'example': 'SELECT TRUE AND FALSE AS "and", TRUE OR FALSE AS "or", NOT TRUE AS "not";'},
+                   {'id': 'lg.7',
+                    'kind': 'truth',
+                    'vars': ['A', 'B'],
+                    'cols': ['A OR B'],
+                    'text': {'en': 'Fill in the truth table of <code>OR</code>.', 'ru': 'Заполни таблицу истинности для <code>OR</code>.'},
+                    'explain': {'en': '<code>OR</code> is <code>FALSE</code> only in the last row, where both are <code>FALSE</code>.',
+                                'ru': '<code>OR</code> даёт <code>FALSE</code> только в последней строке, где оба <code>FALSE</code>.'}},
+                   {'id': 'lg.8',
+                    'kind': 'truth',
+                    'vars': ['A'],
+                    'cols': ['NOT A'],
+                    'text': {'en': 'Fill in the truth table of <code>NOT</code>.', 'ru': 'Заполни таблицу истинности для <code>NOT</code>.'}},
+                   {'id': 'lg.9',
+                    'kind': 'value',
+                    'expr': 'TRUE AND FALSE',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': '<code>AND</code> needs both sides <code>TRUE</code>. The right side is <code>FALSE</code>, so the result is <code>FALSE</code>.',
+                                'ru': '<code>AND</code> нужны обе стороны <code>TRUE</code>. Справа <code>FALSE</code>, поэтому результат <code>FALSE</code>.'}},
+                   {'id': 'lg.10',
+                    'kind': 'value',
+                    'expr': 'FALSE OR TRUE',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': '<code>OR</code> needs at least one <code>TRUE</code>. The right side is <code>TRUE</code>, so <code>TRUE</code>.',
+                                'ru': '<code>OR</code> хватает одного <code>TRUE</code>. Справа <code>TRUE</code>, значит <code>TRUE</code>.'}},
+                   {'id': 'lg.11',
+                    'kind': 'value',
+                    'expr': 'NOT (3 > 5)',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': '<code>3 &gt; 5</code> is <code>FALSE</code>. <code>NOT</code> turns <code>FALSE</code> into <code>TRUE</code>.',
+                                'ru': '<code>3 &gt; 5</code> — это <code>FALSE</code>. <code>NOT</code> меняет <code>FALSE</code> на <code>TRUE</code>.'}},
+                   {'id': 'lg.12',
+                    'kind': 'value',
+                    'expr': 'TRUE AND TRUE AND FALSE',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': 'With several <code>AND</code> all parts must be <code>TRUE</code>. One <code>FALSE</code> is enough to make everything <code>FALSE</code>.',
+                                'ru': 'Когда <code>AND</code> несколько, все части должны быть <code>TRUE</code>. Одного <code>FALSE</code> достаточно, чтобы всё стало '
+                                      '<code>FALSE</code>.'}},
+                   {'id': 'lg.13',
+                    'kind': 'value',
+                    'expr': 'FALSE OR FALSE OR TRUE',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': 'With several <code>OR</code> one <code>TRUE</code> is enough: <code>TRUE</code>.',
+                                'ru': 'Когда <code>OR</code> несколько, хватает одного <code>TRUE</code>: <code>TRUE</code>.'}},
+                   {'id': 'lg.14',
+                    'kind': 'value',
+                    'expr': '5 > 3 AND 2 > 7',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': 'The comparisons first: <code>5 &gt; 3</code> is <code>TRUE</code>, <code>2 &gt; 7</code> is <code>FALSE</code>. <code>TRUE AND FALSE</code> = '
+                                      '<code>FALSE</code>.',
+                                'ru': 'Сначала сравнения: <code>5 &gt; 3</code> — <code>TRUE</code>, <code>2 &gt; 7</code> — <code>FALSE</code>. <code>TRUE AND FALSE</code> = '
+                                      '<code>FALSE</code>.'}},
+                   {'id': 'lg.15',
+                    'kind': 'truth',
+                    'vars': ['A', 'B'],
+                    'cols': ['NOT B', 'A AND NOT B'],
+                    'text': {'en': 'Fill in both columns. The first one is a step that helps with the second.', 'ru': 'Заполни оба столбца. Первый — это шаг, который помогает со вторым.'},
+                    'explain': {'en': '<code>A AND NOT B</code> is <code>TRUE</code> only when <code>A</code> is <code>TRUE</code> and <code>B</code> is <code>FALSE</code>.',
+                                'ru': '<code>A AND NOT B</code> даёт <code>TRUE</code>, только когда <code>A</code> — <code>TRUE</code>, а <code>B</code> — <code>FALSE</code>.'}},
+                   {'id': 'lg.16',
+                    'text': {'en': "Show <code>first_name</code>, <code>city</code> and a column <code>is_paris</code> that says whether the employee is from <code>'Paris'</code>.",
+                             'ru': "Выведи <code>first_name</code>, <code>city</code> и столбец <code>is_paris</code>, который показывает, из <code>'Paris'</code> ли сотрудник."},
+                    'answer': "SELECT first_name, city, city = 'Paris' AS is_paris FROM employees;",
+                    'section': {'en': 'C · A comparison is a column', 'ru': 'C · Сравнение — это столбец'},
+                    'intro': {'en': '<p>A comparison can be a column of the result. Then every row gets its own answer, 1 or 0, like a helper column in Excel with '
+                                    '<code>=C2&gt;60000</code>.</p>\n'
+                                    '<p><code>WHERE</code> does the same comparison for every row and keeps only the rows where the answer is 1 (<code>TRUE</code>).</p>\n'
+                                    '<p><b>Example:</b> who earns more than 60000.</p>',
+                              'ru': '<p>Сравнение может быть столбцом результата. Тогда у каждой строки свой ответ, 1 или 0, как вспомогательный столбец в Excel с формулой '
+                                    '<code>=C2&gt;60000</code>.</p>\n'
+                                    '<p><code>WHERE</code> делает то же сравнение для каждой строки и оставляет только строки, где ответ 1 (<code>TRUE</code>).</p>\n'
+                                    '<p><b>Пример:</b> кто зарабатывает больше 60000.</p>'},
+                    'example': 'SELECT first_name, salary, salary > 60000 AS rich\nFROM employees;'},
+                   {'id': 'lg.17',
+                    'text': {'en': "Show <code>first_name</code>, <code>department</code>, <code>salary</code> and two columns: <code>is_it</code> (the department is <code>'IT'</code>) "
+                                   'and <code>high</code> (salary greater than 60000).',
+                             'ru': "Выведи <code>first_name</code>, <code>department</code>, <code>salary</code> и два столбца: <code>is_it</code> (отдел <code>'IT'</code>) и "
+                                   '<code>high</code> (зарплата больше 60000).'},
+                    'answer': "SELECT first_name, department, salary,\n       department = 'IT' AS is_it,\n       salary > 60000 AS high\nFROM employees;"},
+                   {'id': 'lg.18',
+                    'text': {'en': "Join the two conditions: show <code>first_name</code> and a column <code>it_and_high</code> = the department is <code>'IT'</code> AND salary greater "
+                                   'than 60000.',
+                             'ru': "Соедини два условия: выведи <code>first_name</code> и столбец <code>it_and_high</code> = отдел <code>'IT'</code> И зарплата больше 60000."},
+                    'answer': "SELECT first_name, department = 'IT' AND salary > 60000 AS it_and_high FROM employees;"},
+                   {'id': 'lg.19',
+                    'text': {'en': "Show <code>first_name</code>, <code>city</code> and a column <code>not_london</code>: the employee is NOT from <code>'London'</code>. Use "
+                                   '<code>NOT</code>.',
+                             'ru': "Выведи <code>first_name</code>, <code>city</code> и столбец <code>not_london</code>: сотрудник НЕ из <code>'London'</code>. Используй "
+                                   '<code>NOT</code>.'},
+                    'answer': "SELECT first_name, city, NOT city = 'London' AS not_london FROM employees;"},
+                   {'id': 'lg.20',
+                    'text': {'en': "Now put the condition from the previous tasks into <code>WHERE</code>: show all employees from <code>'IT'</code> with salary greater than 60000. These "
+                                   'are exactly the rows where <code>it_and_high</code> was 1.',
+                             'ru': "Теперь перенеси условие из прошлых заданий в <code>WHERE</code>: выведи всех сотрудников из <code>'IT'</code> с зарплатой больше 60000. Это ровно те "
+                                   'строки, где <code>it_and_high</code> был 1.'},
+                    'answer': "SELECT * FROM employees WHERE department = 'IT' AND salary > 60000;"},
+                   {'id': 'lg.21',
+                    'kind': 'value',
+                    'expr': 'TRUE OR FALSE AND FALSE',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': '<code>AND</code> goes first: <code>FALSE AND FALSE</code> = <code>FALSE</code>. Then <code>TRUE OR FALSE</code> = <code>TRUE</code>. Left to right '
+                                      'you would get <code>FALSE</code>: that is the trap.',
+                                'ru': 'Сначала <code>AND</code>: <code>FALSE AND FALSE</code> = <code>FALSE</code>. Потом <code>TRUE OR FALSE</code> = <code>TRUE</code>. Если считать '
+                                      'слева направо, получится <code>FALSE</code>: в этом и ловушка.'},
+                    'section': {'en': 'D · Who goes first: NOT, AND, OR', 'ru': 'D · Кто первый: NOT, AND, OR'},
+                    'intro': {'en': '<p>Like in math, where × goes before +, logical operators have an order:</p>\n'
+                                    '<ol>\n'
+                                    '<li>comparisons (<code>=</code>, <code>&gt;</code>, <code>&lt;&gt;</code>, …)</li>\n'
+                                    '<li><code>NOT</code></li>\n'
+                                    '<li><code>AND</code></li>\n'
+                                    '<li><code>OR</code></li>\n'
+                                    '</ol>\n'
+                                    '<p>Think of <code>AND</code> as × and <code>OR</code> as + (<code>TRUE</code> = 1, <code>FALSE</code> = 0): <code>TRUE OR TRUE AND FALSE</code> = 1 + '
+                                    '1 × 0 = 1 = <code>TRUE</code>. <code>NOT</code> is like a minus in front of a number: it acts only on the nearest value.</p>\n'
+                                    '<p><b>Example:</b> math and logic follow the same idea.</p>',
+                              'ru': '<p>Как в математике, где × выполняется раньше +, у логических операторов есть порядок:</p>\n'
+                                    '<ol>\n'
+                                    '<li>сравнения (<code>=</code>, <code>&gt;</code>, <code>&lt;&gt;</code>, …)</li>\n'
+                                    '<li><code>NOT</code></li>\n'
+                                    '<li><code>AND</code></li>\n'
+                                    '<li><code>OR</code></li>\n'
+                                    '</ol>\n'
+                                    '<p>Представь <code>AND</code> как ×, а <code>OR</code> как + (<code>TRUE</code> = 1, <code>FALSE</code> = 0): <code>TRUE OR TRUE AND FALSE</code> = 1 '
+                                    '+ 1 × 0 = 1 = <code>TRUE</code>. <code>NOT</code> — как минус перед числом: действует только на ближайшее значение.</p>\n'
+                                    '<p><b>Пример:</b> в математике и в логике одна и та же идея.</p>'},
+                    'example': 'SELECT 1 + 2 * 3 AS math, TRUE OR TRUE AND FALSE AS logic;'},
+                   {'id': 'lg.22',
+                    'kind': 'value',
+                    'expr': '2 < 4 OR 3 > 5 AND 1 = 2',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': 'Comparisons first: <code>TRUE OR FALSE AND FALSE</code>. Then <code>AND</code>: <code>FALSE AND FALSE</code> = <code>FALSE</code>. Then '
+                                      '<code>OR</code>: <code>TRUE OR FALSE</code> = <code>TRUE</code>.',
+                                'ru': 'Сначала сравнения: <code>TRUE OR FALSE AND FALSE</code>. Потом <code>AND</code>: <code>FALSE AND FALSE</code> = <code>FALSE</code>. Потом '
+                                      '<code>OR</code>: <code>TRUE OR FALSE</code> = <code>TRUE</code>.'}},
+                   {'id': 'lg.23',
+                    'kind': 'value',
+                    'expr': 'NOT TRUE AND FALSE',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': '<code>NOT</code> acts only on the nearest value: <code>(NOT TRUE) AND FALSE</code> = <code>FALSE AND FALSE</code> = <code>FALSE</code>. It is not '
+                                      '<code>NOT (TRUE AND FALSE)</code>, which would be <code>TRUE</code>.',
+                                'ru': '<code>NOT</code> действует только на ближайшее значение: <code>(NOT TRUE) AND FALSE</code> = <code>FALSE AND FALSE</code> = <code>FALSE</code>. Это '
+                                      'не <code>NOT (TRUE AND FALSE)</code>, которое было бы <code>TRUE</code>.'}},
+                   {'id': 'lg.24',
+                    'kind': 'value',
+                    'expr': 'NOT FALSE OR TRUE',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': '<code>(NOT FALSE) OR TRUE</code> = <code>TRUE OR TRUE</code> = <code>TRUE</code>. <code>NOT</code> does not cover the whole <code>OR</code>.',
+                                'ru': '<code>(NOT FALSE) OR TRUE</code> = <code>TRUE OR TRUE</code> = <code>TRUE</code>. <code>NOT</code> не действует на весь <code>OR</code>.'}},
+                   {'id': 'lg.25',
+                    'kind': 'value',
+                    'expr': 'NOT 5 > 3 OR 2 > 1',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': 'Comparisons first: <code>NOT TRUE OR TRUE</code>. Then <code>NOT</code>: <code>FALSE OR TRUE</code>. Then <code>OR</code>: <code>TRUE</code>.',
+                                'ru': 'Сначала сравнения: <code>NOT TRUE OR TRUE</code>. Потом <code>NOT</code>: <code>FALSE OR TRUE</code>. Потом <code>OR</code>: <code>TRUE</code>.'}},
+                   {'id': 'lg.26',
+                    'kind': 'value',
+                    'expr': 'TRUE OR TRUE AND NOT TRUE',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': '<code>NOT</code> first: <code>NOT TRUE</code> = <code>FALSE</code>. Then <code>AND</code>: <code>TRUE AND FALSE</code> = <code>FALSE</code>. Then '
+                                      '<code>OR</code>: <code>TRUE OR FALSE</code> = <code>TRUE</code>.',
+                                'ru': 'Сначала <code>NOT</code>: <code>NOT TRUE</code> = <code>FALSE</code>. Потом <code>AND</code>: <code>TRUE AND FALSE</code> = <code>FALSE</code>. '
+                                      'Потом <code>OR</code>: <code>TRUE OR FALSE</code> = <code>TRUE</code>.'}},
+                   {'id': 'lg.27',
+                    'kind': 'truth',
+                    'vars': ['A', 'B', 'C'],
+                    'cols': ['B AND C', 'A OR B AND C'],
+                    'text': {'en': 'Fill in both columns. The first one is the part SQL works out first.', 'ru': 'Заполни оба столбца. Первый — это часть, которую SQL считает первой.'},
+                    'explain': {'en': '<code>A OR B AND C</code> = <code>A OR (B AND C)</code>: it is <code>TRUE</code> when <code>A</code> is <code>TRUE</code>, or when the first column '
+                                      'is <code>TRUE</code>.',
+                                'ru': '<code>A OR B AND C</code> = <code>A OR (B AND C)</code>: это <code>TRUE</code>, когда <code>A</code> — <code>TRUE</code> или когда первый столбец '
+                                      '<code>TRUE</code>.'}},
+                   {'id': 'lg.28',
+                    'kind': 'value',
+                    'expr': '(TRUE OR FALSE) AND FALSE',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': 'Brackets first: <code>TRUE OR FALSE</code> = <code>TRUE</code>. Then <code>TRUE AND FALSE</code> = <code>FALSE</code>. Without brackets it would be '
+                                      '<code>TRUE</code>.',
+                                'ru': 'Сначала скобки: <code>TRUE OR FALSE</code> = <code>TRUE</code>. Потом <code>TRUE AND FALSE</code> = <code>FALSE</code>. Без скобок было бы '
+                                      '<code>TRUE</code>.'},
+                    'section': {'en': 'E · Brackets', 'ru': 'E · Скобки'},
+                    'intro': {'en': '<p>Brackets change the order, like in math: what is in brackets is worked out first. <code>(TRUE OR FALSE) AND FALSE</code> = <code>TRUE AND '
+                                    'FALSE</code> = <code>FALSE</code>, but without the brackets the same values give <code>TRUE</code>.</p>\n'
+                                    '<p><code>NOT (…)</code> turns around the whole bracket, <code>NOT</code> without brackets only the nearest value.</p>\n'
+                                    '<p>Rule: if you mix <code>AND</code> and <code>OR</code>, write the brackets, even where they are not needed. Then the query is easy to read and to '
+                                    'check.</p>\n'
+                                    '<p><b>Example:</b> <code>NOT</code> without and with brackets.</p>',
+                              'ru': '<p>Скобки меняют порядок, как в математике: то, что в скобках, считается первым. <code>(TRUE OR FALSE) AND FALSE</code> = <code>TRUE AND FALSE</code> '
+                                    '= <code>FALSE</code>, а без скобок те же значения дают <code>TRUE</code>.</p>\n'
+                                    '<p><code>NOT (…)</code> переворачивает всю скобку, а <code>NOT</code> без скобок — только ближайшее значение.</p>\n'
+                                    '<p>Правило: если смешиваешь <code>AND</code> и <code>OR</code>, ставь скобки, даже там, где они не обязательны. Так запрос легко читать и '
+                                    'проверять.</p>\n'
+                                    '<p><b>Пример:</b> <code>NOT</code> без скобок и со скобками.</p>'},
+                    'example': 'SELECT NOT TRUE OR TRUE AS without_brackets,\n       NOT (TRUE OR TRUE) AS with_brackets;'},
+                   {'id': 'lg.29',
+                    'kind': 'value',
+                    'expr': 'NOT (TRUE AND FALSE)',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': 'Brackets first: <code>TRUE AND FALSE</code> = <code>FALSE</code>. <code>NOT FALSE</code> = <code>TRUE</code>.',
+                                'ru': 'Сначала скобки: <code>TRUE AND FALSE</code> = <code>FALSE</code>. <code>NOT FALSE</code> = <code>TRUE</code>.'}},
+                   {'id': 'lg.30',
+                    'kind': 'value',
+                    'expr': 'NOT (FALSE OR TRUE) AND TRUE',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': 'Brackets: <code>FALSE OR TRUE</code> = <code>TRUE</code>. <code>NOT TRUE</code> = <code>FALSE</code>. <code>FALSE AND TRUE</code> = '
+                                      '<code>FALSE</code>.',
+                                'ru': 'Скобки: <code>FALSE OR TRUE</code> = <code>TRUE</code>. <code>NOT TRUE</code> = <code>FALSE</code>. <code>FALSE AND TRUE</code> = '
+                                      '<code>FALSE</code>.'}},
+                   {'id': 'lg.31',
+                    'kind': 'value',
+                    'expr': '(2 < 4 OR 3 > 5) AND 1 = 2',
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': 'The same comparisons as in section D, but with brackets: <code>(TRUE OR FALSE) AND FALSE</code> = <code>TRUE AND FALSE</code> = <code>FALSE</code>. '
+                                      'The brackets changed the answer.',
+                                'ru': 'Те же сравнения, что в разделе D, но со скобками: <code>(TRUE OR FALSE) AND FALSE</code> = <code>TRUE AND FALSE</code> = <code>FALSE</code>. Скобки '
+                                      'поменяли ответ.'}},
+                   {'id': 'lg.32',
+                    'kind': 'truth',
+                    'vars': ['A', 'B', 'C'],
+                    'cols': ['A OR B AND C', '(A OR B) AND C'],
+                    'text': {'en': 'Fill in both columns. In which rows are they different?', 'ru': 'Заполни оба столбца. В каких строках они отличаются?'},
+                    'explain': {'en': 'They are different when <code>A</code> is <code>TRUE</code> and <code>C</code> is <code>FALSE</code>: without brackets <code>A</code> alone is '
+                                      'enough, with brackets <code>C</code> is always needed.',
+                                'ru': 'Они отличаются, когда <code>A</code> — <code>TRUE</code>, а <code>C</code> — <code>FALSE</code>: без скобок хватает одного <code>A</code>, а со '
+                                      'скобками <code>C</code> нужен всегда.'}},
+                   {'id': 'lg.33',
+                    'kind': 'truth',
+                    'vars': ['A', 'B'],
+                    'cols': ['NOT A AND B', 'NOT (A AND B)'],
+                    'text': {'en': 'Fill in both columns. Where does the bracket after <code>NOT</code> change the result?',
+                             'ru': 'Заполни оба столбца. Где скобка после <code>NOT</code> меняет результат?'},
+                    'explain': {'en': '<code>NOT A AND B</code> = <code>(NOT A) AND B</code>: <code>TRUE</code> only for <code>A</code> = <code>FALSE</code>, <code>B</code> = '
+                                      '<code>TRUE</code>. <code>NOT (A AND B)</code> is <code>FALSE</code> only when both are <code>TRUE</code>.',
+                                'ru': '<code>NOT A AND B</code> = <code>(NOT A) AND B</code>: <code>TRUE</code> только при <code>A</code> = <code>FALSE</code>, <code>B</code> = '
+                                      '<code>TRUE</code>. <code>NOT (A AND B)</code> даёт <code>FALSE</code>, только когда оба <code>TRUE</code>.'}},
+                   {'id': 'lg.34',
+                    'kind': 'value',
+                    'expr': 'homework AND (sunny OR umbrella)',
+                    'given': {'homework': 1, 'sunny': 0, 'umbrella': 0},
+                    'text': {'en': 'The homework is done, it is raining and there is no umbrella. Does Rosa go for a walk?',
+                             'ru': 'Уроки сделаны, идёт дождь, зонта нет. Пойдёт ли Роза гулять?'},
+                    'explain': {'en': '<code>sunny OR umbrella</code> = <code>FALSE OR FALSE</code> = <code>FALSE</code>. <code>TRUE AND FALSE</code> = <code>FALSE</code>: no walk today.',
+                                'ru': '<code>sunny OR umbrella</code> = <code>FALSE OR FALSE</code> = <code>FALSE</code>. <code>TRUE AND FALSE</code> = <code>FALSE</code>: сегодня без '
+                                      'прогулки.'},
+                    'section': {'en': 'F · From words to logic', 'ru': 'F · От слов к логике'},
+                    'intro': {'en': '<p>In everyday language we also join conditions with “and”, “or”, “not”. Brackets show what belongs together.</p>\n'
+                                    '<p>“Rosa goes for a walk if she has done her homework and it is sunny or she has an umbrella.” What is meant: the homework is a must, and for the '
+                                    'weather there are two options. So: <code>homework AND (sunny OR umbrella)</code>.</p>\n'
+                                    '<p>Without brackets SQL reads <code>(homework AND sunny) OR umbrella</code>: with an umbrella she could go without doing her homework.</p>\n'
+                                    '<p><b>Example:</b> the values are given as columns of a small one-row table.</p>',
+                              'ru': '<p>В обычной речи условия тоже соединяют словами «и», «или», «не». Скобки показывают, что к чему относится.</p>\n'
+                                    '<p>«Роза идёт гулять, если сделала уроки и светит солнце или у неё есть зонт». Имеется в виду: уроки — обязательно, а для погоды есть два варианта. '
+                                    'Значит: <code>homework AND (sunny OR umbrella)</code>.</p>\n'
+                                    '<p>Без скобок SQL прочитает <code>(homework AND sunny) OR umbrella</code>: с зонтом можно пойти гулять и без уроков.</p>\n'
+                                    '<p><b>Пример:</b> значения заданы столбцами маленькой таблицы из одной строки.</p>'},
+                    'example': 'SELECT homework AND (sunny OR umbrella) AS walk\nFROM (SELECT TRUE AS homework, TRUE AS sunny, FALSE AS umbrella);'},
+                   {'id': 'lg.35',
+                    'kind': 'value',
+                    'expr': 'homework AND (sunny OR umbrella)',
+                    'given': {'homework': 1, 'sunny': 0, 'umbrella': 1},
+                    'text': {'en': 'The homework is done, it is raining, but Rosa has an umbrella. Does she go for a walk?',
+                             'ru': 'Уроки сделаны, идёт дождь, но у Розы есть зонт. Пойдёт ли она гулять?'},
+                    'explain': {'en': '<code>sunny OR umbrella</code> = <code>FALSE OR TRUE</code> = <code>TRUE</code>. <code>TRUE AND TRUE</code> = <code>TRUE</code>: Rosa goes, with '
+                                      'the umbrella.',
+                                'ru': '<code>sunny OR umbrella</code> = <code>FALSE OR TRUE</code> = <code>TRUE</code>. <code>TRUE AND TRUE</code> = <code>TRUE</code>: Роза идёт гулять с '
+                                      'зонтом.'}},
+                   {'id': 'lg.36',
+                    'kind': 'value',
+                    'expr': 'homework AND sunny OR umbrella',
+                    'given': {'homework': 0, 'sunny': 0, 'umbrella': 1},
+                    'text': {'en': 'Someone forgot the brackets. The homework is not done, it is raining, but there is an umbrella. What does the condition without brackets say?',
+                             'ru': 'Кто-то забыл скобки. Уроки не сделаны, идёт дождь, но есть зонт. Что скажет условие без скобок?'},
+                    'explain': {'en': '<code>AND</code> first: <code>FALSE AND FALSE</code> = <code>FALSE</code>. Then <code>FALSE OR TRUE</code> = <code>TRUE</code>: the condition lets '
+                                      'Rosa go without homework. That is why the brackets are needed.',
+                                'ru': 'Сначала <code>AND</code>: <code>FALSE AND FALSE</code> = <code>FALSE</code>. Потом <code>FALSE OR TRUE</code> = <code>TRUE</code>: условие '
+                                      'отпускает Розу гулять без уроков. Вот зачем нужны скобки.'}},
+                   {'id': 'lg.37',
+                    'kind': 'value',
+                    'expr': 'ticket AND NOT late',
+                    'given': {'ticket': 1, 'late': 1},
+                    'text': {'en': 'Cinema: you can come in if you have a ticket and you are not late. You have a ticket, but you are late. Do you get in?',
+                             'ru': 'Кино: пускают, если есть билет и ты не опоздала. Билет есть, но ты опоздала. Пустят?'},
+                    'explain': {'en': "<code>NOT late</code> = <code>NOT TRUE</code> = <code>FALSE</code>. <code>TRUE AND FALSE</code> = <code>FALSE</code>: you don't get in.",
+                                'ru': '<code>NOT late</code> = <code>NOT TRUE</code> = <code>FALSE</code>. <code>TRUE AND FALSE</code> = <code>FALSE</code>: не пустят.'}},
+                   {'id': 'lg.38',
+                    'kind': 'truth',
+                    'vars': ['homework', 'sunny', 'umbrella'],
+                    'cols': ['homework AND (sunny OR umbrella)'],
+                    'text': {'en': "Fill in the whole table for Rosa's walk: all 8 situations.", 'ru': 'Заполни всю таблицу для прогулки Розы: все 8 ситуаций.'},
+                    'explain': {'en': 'Without homework (the last 4 rows) it is always <code>FALSE</code>. With homework it is <code>FALSE</code> only when there is neither sun nor '
+                                      'umbrella.',
+                                'ru': 'Без уроков (последние 4 строки) всегда <code>FALSE</code>. С уроками — <code>FALSE</code> только когда нет ни солнца, ни зонта.'}},
+                   {'id': 'lg.39',
+                    'kind': 'value',
+                    'expr': "1 = 1 AND 'Berlin'",
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': "<code>'Berlin'</code> is not a comparison. SQLite turns it into the number 0, that is <code>FALSE</code>. <code>TRUE AND FALSE</code> = "
+                                      '<code>FALSE</code>.',
+                                'ru': "<code>'Berlin'</code> — это не сравнение. SQLite превращает его в число 0, то есть <code>FALSE</code>. <code>TRUE AND FALSE</code> = "
+                                      '<code>FALSE</code>.'},
+                    'section': {'en': 'G · Traps: text and NULL', 'ru': 'G · Ловушки: текст и NULL'},
+                    'intro': {'en': "<p><b>Text instead of a comparison.</b> When SQLite needs a logical value and gets text, it turns the text into a number: <code>'Berlin'</code> "
+                                    "becomes 0, that is <code>FALSE</code>. That is why <code>city = 'Paris' OR 'Berlin'</code> gives no error: it means <code>city = 'Paris' OR "
+                                    'FALSE</code>, and Berlin is lost.</p>\n'
+                                    '<p><b>NULL is “unknown”.</b> It is the third logical value:</p>\n'
+                                    '<ul>\n'
+                                    '<li><code>TRUE AND NULL</code> = <code>NULL</code> (it depends on the unknown part), but <code>FALSE AND NULL</code> = <code>FALSE</code> (one '
+                                    '<code>FALSE</code> is enough).</li>\n'
+                                    '<li><code>TRUE OR NULL</code> = <code>TRUE</code> (one <code>TRUE</code> is enough), but <code>FALSE OR NULL</code> = <code>NULL</code>.</li>\n'
+                                    '<li><code>NOT NULL</code> = <code>NULL</code>. Any comparison with <code>NULL</code>, even <code>NULL = NULL</code>, is <code>NULL</code>.</li>\n'
+                                    '<li><code>WHERE</code> keeps only <code>TRUE</code> rows, so the rows with <code>NULL</code> are dropped.</li>\n'
+                                    '</ul>\n'
+                                    '<p><b>Example:</b></p>',
+                              'ru': "<p><b>Текст вместо сравнения.</b> Когда SQLite нужно логическое значение, а там текст, он превращает текст в число: <code>'Berlin'</code> становится "
+                                    "0, то есть <code>FALSE</code>. Поэтому <code>city = 'Paris' OR 'Berlin'</code> не даёт ошибки: это значит <code>city = 'Paris' OR FALSE</code>, и "
+                                    'Берлин теряется.</p>\n'
+                                    '<p><b>NULL — это «неизвестно».</b> Третье логическое значение:</p>\n'
+                                    '<ul>\n'
+                                    '<li><code>TRUE AND NULL</code> = <code>NULL</code> (зависит от неизвестной части), а <code>FALSE AND NULL</code> = <code>FALSE</code> (одного '
+                                    '<code>FALSE</code> хватает).</li>\n'
+                                    '<li><code>TRUE OR NULL</code> = <code>TRUE</code> (одного <code>TRUE</code> хватает), а <code>FALSE OR NULL</code> = <code>NULL</code>.</li>\n'
+                                    '<li><code>NOT NULL</code> = <code>NULL</code>. Любое сравнение с <code>NULL</code>, даже <code>NULL = NULL</code>, даёт <code>NULL</code>.</li>\n'
+                                    '<li><code>WHERE</code> оставляет только строки с <code>TRUE</code>, поэтому строки с <code>NULL</code> отбрасываются.</li>\n'
+                                    '</ul>\n'
+                                    '<p><b>Пример:</b></p>'},
+                    'example': "SELECT 1 = 2 OR 'Paris' AS text_trap, FALSE OR NULL AS false_or_null;"},
+                   {'id': 'lg.40',
+                    'text': {'en': "Show <code>first_name</code>, <code>city</code> and two columns: <code>wrong</code> = <code>city = 'Paris' OR 'Berlin'</code> and <code>right</code> = "
+                                   "<code>city = 'Paris' OR city = 'Berlin'</code>. Look at the employees from Berlin.",
+                             'ru': "Выведи <code>first_name</code>, <code>city</code> и два столбца: <code>wrong</code> = <code>city = 'Paris' OR 'Berlin'</code> и <code>right</code> = "
+                                   "<code>city = 'Paris' OR city = 'Berlin'</code>. Посмотри на сотрудников из Берлина."},
+                    'answer': "SELECT first_name, city,\n       city = 'Paris' OR 'Berlin' AS wrong,\n       city = 'Paris' OR city = 'Berlin' AS right\nFROM employees;"},
+                   {'id': 'lg.41',
+                    'kind': 'value',
+                    'expr': 'TRUE AND NULL',
+                    'nulls': True,
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': '<code>AND</code> needs to know both sides. The left one is <code>TRUE</code>, so everything depends on the unknown one: <code>NULL</code>.',
+                                'ru': '<code>AND</code> нужно знать обе стороны. Левая — <code>TRUE</code>, значит всё зависит от неизвестной: <code>NULL</code>.'}},
+                   {'id': 'lg.42',
+                    'kind': 'value',
+                    'expr': 'FALSE AND NULL',
+                    'nulls': True,
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': 'One <code>FALSE</code> is enough for <code>AND</code> to be <code>FALSE</code>, whatever the unknown part is.',
+                                'ru': 'Одного <code>FALSE</code> хватает, чтобы <code>AND</code> был <code>FALSE</code>, какой бы ни была неизвестная часть.'}},
+                   {'id': 'lg.43',
+                    'kind': 'value',
+                    'expr': 'TRUE OR NULL',
+                    'nulls': True,
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': 'One <code>TRUE</code> is enough for <code>OR</code> to be <code>TRUE</code>, whatever the unknown part is.',
+                                'ru': 'Одного <code>TRUE</code> хватает, чтобы <code>OR</code> был <code>TRUE</code>, какой бы ни была неизвестная часть.'}},
+                   {'id': 'lg.44',
+                    'kind': 'value',
+                    'expr': 'NULL = NULL',
+                    'nulls': True,
+                    'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
+                    'explain': {'en': 'Two unknown values are not known to be equal, so the answer is unknown too: <code>NULL</code>. To check for <code>NULL</code> use <code>IS '
+                                      'NULL</code>: <code>NULL IS NULL</code> is <code>TRUE</code>.',
+                                'ru': 'Про два неизвестных значения нельзя сказать, что они равны, поэтому ответ тоже неизвестен: <code>NULL</code>. Чтобы проверить на <code>NULL</code>, '
+                                      'используй <code>IS NULL</code>: <code>NULL IS NULL</code> — это <code>TRUE</code>.'}},
+                   {'id': 'lg.45',
+                    'kind': 'truth',
+                    'vars': ['A', 'B'],
+                    'cols': ['A AND B'],
+                    'nulls': True,
+                    'text': {'en': 'Fill in the truth table of <code>AND</code> with <code>NULL</code>: 9 rows.',
+                             'ru': 'Заполни таблицу истинности для <code>AND</code> с <code>NULL</code>: 9 строк.'},
+                    'explain': {'en': 'Any <code>FALSE</code> gives <code>FALSE</code>. Otherwise, if there is a <code>NULL</code>, the result is <code>NULL</code>.',
+                                'ru': 'Любой <code>FALSE</code> даёт <code>FALSE</code>. Иначе, если есть <code>NULL</code>, результат <code>NULL</code>.'}},
+                   {'id': 'lg.46',
+                    'kind': 'truth',
+                    'vars': ['A', 'B'],
+                    'cols': ['A OR B'],
+                    'nulls': True,
+                    'text': {'en': 'Fill in the truth table of <code>OR</code> with <code>NULL</code>.', 'ru': 'Заполни таблицу истинности для <code>OR</code> с <code>NULL</code>.'},
+                    'explain': {'en': 'Any <code>TRUE</code> gives <code>TRUE</code>. Otherwise, if there is a <code>NULL</code>, the result is <code>NULL</code>.',
+                                'ru': 'Любой <code>TRUE</code> даёт <code>TRUE</code>. Иначе, если есть <code>NULL</code>, результат <code>NULL</code>.'}}]},
         {
             "id": 2,
             "available": True,

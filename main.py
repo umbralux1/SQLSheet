@@ -78,8 +78,9 @@ window.COURSE_PROGRESS = {
 def public_course() -> dict:
     """The course without the answers, the explanations of prediction tasks and the teacher's tips."""
     lessons = []
-    for lesson in COURSE["lessons"]:
+    for num, lesson in enumerate(COURSE["lessons"], 1):
         item = {k: v for k, v in lesson.items() if k not in ("tasks", "tips")}
+        item["num"] = num                      # the number shown to people: lessons can be inserted anywhere
         if "tasks" in lesson:
             item["tasks"] = [{k: v for k, v in t.items() if k not in ("answer", "explain")} for t in lesson["tasks"]]
         lessons.append(item)
@@ -164,8 +165,68 @@ def passing_rows(lesson_id: int, task: int) -> tuple[tuple, ...]:
     return tuple((r[0], r[1]) for r in rows)
 
 
+# ---------------------------------------------------------------------------
+# Logic tasks
+#   "kind": "value" - what does <expr> return? The student answers true, false (or null).
+#                     "given" sets the values of named variables, e.g. {"homework": 1}.
+#   "kind": "truth" - a truth table: every combination of "vars", one column per "cols".
+# ---------------------------------------------------------------------------
+
+
+def _tv(v) -> str:
+    return "true" if v == 1 else "false" if v == 0 else "null"
+
+
+def _sql_val(v) -> str:
+    return "TRUE" if v == 1 else "FALSE" if v == 0 else "NULL"
+
+
+def _as_bool(expr: str) -> str:
+    """SQLite's own view of an expression as a logical value: 1, 0 or NULL."""
+    return f"CASE WHEN ({expr}) THEN 1 WHEN NOT ({expr}) THEN 0 END"
+
+
+def truth_rows(t: dict) -> list[list]:
+    """Every combination of the variables, TRUE first (then FALSE, then NULL)."""
+    rows = [[]]
+    for _ in t["vars"]:
+        rows = [r + [v] for r in rows for v in ([1, 0, None] if t.get("nulls") else [1, 0])]
+    return rows
+
+
+@lru_cache(maxsize=256)
+def logic_value(lesson_id: int, task: int) -> str:
+    t = find_lesson(lesson_id)["tasks"][task]
+    sql = "SELECT " + _as_bool(t["expr"])
+    if t.get("given"):
+        sql += " FROM (SELECT " + ", ".join(f"{_sql_val(v)} AS {k}" for k, v in t["given"].items()) + ")"
+    con = sqlite3.connect(":memory:")
+    try:
+        return _tv(con.execute(sql).fetchone()[0])
+    finally:
+        con.close()
+
+
+@lru_cache(maxsize=256)
+def truth_table(lesson_id: int, task: int) -> tuple[tuple[str, ...], ...]:
+    t = find_lesson(lesson_id)["tasks"][task]
+    values = ", ".join("(" + ", ".join(_sql_val(v) for v in r) + ")" for r in truth_rows(t))
+    sql = (f"WITH v({', '.join(t['vars'])}) AS (VALUES {values}) "
+           f"SELECT {', '.join(_as_bool(c) for c in t['cols'])} FROM v")
+    con = sqlite3.connect(":memory:")
+    try:
+        return tuple(tuple(_tv(v) for v in row) for row in con.execute(sql).fetchall())
+    finally:
+        con.close()
+
+
 def teacher_answer(lesson_id: int, task: int) -> str:
     t = find_lesson(lesson_id)["tasks"][task]
+    if t.get("kind") == "value":
+        return logic_value(lesson_id, task).upper()
+    if t.get("kind") == "truth":
+        table = truth_table(lesson_id, task)
+        return "\n".join(f"{col}: " + ", ".join(row[j].upper() for row in table) for j, col in enumerate(t["cols"]))
     if t.get("kind") == "row":
         return "Yes" if t["row"] in [r[0] for r in passing_rows(lesson_id, task)] else "No"
     if t.get("kind") == "pick":
@@ -199,8 +260,9 @@ class CheckData(BaseModel):
     task: int
     columns: list[str] = []
     rows: list[list] = []
-    answer: str | None = None        # prediction "row" tasks: "yes" or "no"
+    answer: str | None = None        # "row" tasks: "yes" or "no"; "value" tasks: "true", "false" or "null"
     picked: list[int] | None = None  # prediction "pick" tasks: the ids the student marked
+    cells: list[list[str]] | None = None  # truth tables: "true" / "false" / "null" / "" per cell
 
 
 # ---------------------------------------------------------------------------
@@ -293,6 +355,14 @@ async def check(data: CheckData):
     if task.get("kind") == "row":
         passes = task["row"] in [r[0] for r in passing_rows(data.lesson, data.task)]
         return {"ok": (data.answer == "yes") == passes, "explain": task.get("explain")}
+    if task.get("kind") == "value":
+        return {"ok": data.answer == logic_value(data.lesson, data.task), "explain": task.get("explain")}
+    if task.get("kind") == "truth":
+        want = truth_table(data.lesson, data.task)
+        got = data.cells or []
+        wrong = sum(1 for i, row in enumerate(want) for j, v in enumerate(row)
+                    if i >= len(got) or j >= len(got[i]) or got[i][j] != v)
+        return {"ok": wrong == 0, "wrong": wrong, "explain": task.get("explain")}
     if task.get("kind") == "pick":
         want = {r[0] for r in passing_rows(data.lesson, data.task)}
         got = set(data.picked or [])

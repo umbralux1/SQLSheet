@@ -64,6 +64,21 @@ for lesson in COURSE["lessons"]:
             if not all(k in task.get("explain", {}) for k in ("en", "ru")):
                 bad += 1
                 fail(f"lesson {lid}, task {i}: prediction task needs an en and ru explanation")
+        elif task.get("kind") in ("value", "truth"):     # logic tasks: an expression instead of an answer
+            exprs = [task.get("expr")] if task["kind"] == "value" else task.get("cols", [])
+            names = list(task.get("given", {})) if task["kind"] == "value" else task.get("vars", [])
+            try:
+                if not all(exprs):
+                    raise KeyError("expr / cols")
+                frm = (" FROM (SELECT " + ", ".join("1 AS %s" % n for n in names) + ")") if names else ""
+                for e in exprs:
+                    con.execute("SELECT (%s)%s" % (e, frm)).fetchall()
+            except (sqlite3.Error, KeyError) as e:
+                bad += 1
+                fail(f"lesson {lid}, task {i}: expression fails: {e}")
+            if task["kind"] == "value" and not all(k in task.get("explain", {}) for k in ("en", "ru")):
+                bad += 1
+                fail(f"lesson {lid}, task {i}: \"value\" task needs an en and ru explanation")
         elif "answer" not in task:
             bad += 1
             fail(f"lesson {lid}, task {i}: no answer")
