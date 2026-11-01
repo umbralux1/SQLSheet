@@ -514,6 +514,226 @@ INSERT INTO books VALUES
                                       '<code>TRUE</code>. <code>NOT (A AND B)</code> is <code>FALSE</code> only when both are <code>TRUE</code>.',
                                 'ru': '<code>NOT A AND B</code> = <code>(NOT A) AND B</code>: <code>TRUE</code> только при <code>A</code> = <code>FALSE</code>, <code>B</code> = '
                                       '<code>TRUE</code>. <code>NOT (A AND B)</code> даёт <code>FALSE</code>, только когда оба <code>TRUE</code>.'}},
+                  {'id': 'lg.d1',
+                    'kind': 'truth',
+                    'vars': ['A', 'B'],
+                    'cols': ['A AND B', 'NOT (A AND B)', 'NOT A OR NOT B'],
+                    'text': {'en': 'Prove the first law. Fill in the table: the columns <code>NOT (A AND B)</code> and <code>NOT A OR NOT B</code> must be the same in every row.',
+                             'ru': 'Докажи первый закон. Заполни таблицу: столбцы <code>NOT (A AND B)</code> и <code>NOT A OR NOT B</code> должны совпасть в каждой строке.'},
+                    'explain': {'en': 'The last two columns are the same in all 4 rows, so <code>NOT (A AND B)</code> = <code>NOT A OR NOT B</code>. Both are <code>FALSE</code> only in the first '
+                                      'row.',
+                                'ru': 'Два последних столбца совпадают во всех 4 строках, значит <code>NOT (A AND B)</code> = <code>NOT A OR NOT B</code>. Оба равны <code>FALSE</code> только в '
+                                      'первой строке.'},
+                    'section': {'en': "F · De Morgan's laws", 'ru': 'F · Законы де Моргана'},
+                    'intro': {'en': "<p>De Morgan's laws show how to remove the brackets after <code>NOT</code>:</p>\n"
+                                    '<pre class="code">NOT (A AND B)  =  NOT A OR  NOT B\n'
+                                    'NOT (A OR  B)  =  NOT A AND NOT B</pre>\n'
+                                    '<p><b>Recipe:</b> put <code>NOT</code> on each part <b>and swap</b> <code>AND</code> ↔ <code>OR</code>.</p>\n'
+                                    '<p>In words: “not (rain or snow)” = “no rain <b>and</b> no snow”. “Not (tall and rich)” = “not tall <b>or</b> not rich”: one missing quality is enough.</p>\n'
+                                    '<p>Why does the operator flip? <code>A AND B</code> is <code>TRUE</code> in one row only, where both are <code>TRUE</code>. So <code>NOT (A AND B)</code> is '
+                                    '<code>FALSE</code> in that row only, and that is exactly the row where <code>NOT A OR NOT B</code> is <code>FALSE</code>. A truth table proves it: two '
+                                    'expressions are equal if their columns match in <b>every</b> row.</p>\n'
+                                    '<p>Two more rules. <code>NOT NOT A</code> = <code>A</code>. And <code>NOT</code> in front of one comparison is written with the opposite operator:</p>\n'
+                                    '<table class="ops"><thead><tr><th>NOT (…)</th><th>=</th></tr></thead><tbody>\n'
+                                    '<tr><td><code>NOT (x = 5)</code></td><td><code>x &lt;&gt; 5</code></td></tr>\n'
+                                    '<tr><td><code>NOT (x &lt;&gt; 5)</code></td><td><code>x = 5</code></td></tr>\n'
+                                    '<tr><td><code>NOT (x &gt; 5)</code></td><td><code>x &lt;= 5</code></td></tr>\n'
+                                    '<tr><td><code>NOT (x &lt; 5)</code></td><td><code>x &gt;= 5</code></td></tr>\n'
+                                    '<tr><td><code>NOT (x &gt;= 5)</code></td><td><code>x &lt; 5</code></td></tr>\n'
+                                    '<tr><td><code>NOT (x &lt;= 5)</code></td><td><code>x &gt; 5</code></td></tr>\n'
+                                    '</tbody></table>\n'
+                                    '<p><b>The classic mistake</b> is to forget the swap: <code>NOT (A OR B)</code> is <b>not</b> <code>NOT A OR NOT B</code>.</p>\n'
+                                    '<p><b>Example:</b> both sides of the second law on the employees table give the same column.</p>',
+                              'ru': '<p>Законы де Моргана показывают, как убрать скобки после <code>NOT</code>:</p>\n'
+                                    '<pre class="code">NOT (A AND B)  =  NOT A OR  NOT B\n'
+                                    'NOT (A OR  B)  =  NOT A AND NOT B</pre>\n'
+                                    '<p><b>Рецепт:</b> поставь <code>NOT</code> перед каждой частью <b>и поменяй</b> <code>AND</code> ↔ <code>OR</code>.</p>\n'
+                                    '<p>Словами: «не (дождь или снег)» = «нет дождя <b>и</b> нет снега». «Не (высокий и богатый)» = «не высокий <b>или</b> не богатый»: достаточно, чтобы не хватало '
+                                    'одного качества.</p>\n'
+                                    '<p>Почему оператор меняется? <code>A AND B</code> даёт <code>TRUE</code> только в одной строке, где оба <code>TRUE</code>. Значит, <code>NOT (A AND B)</code> '
+                                    'даёт <code>FALSE</code> только в этой строке, и это ровно та строка, где <code>NOT A OR NOT B</code> равно <code>FALSE</code>. Таблица истинности это '
+                                    'доказывает: два выражения равны, если их столбцы совпадают в <b>каждой</b> строке.</p>\n'
+                                    '<p>Ещё два правила. <code>NOT NOT A</code> = <code>A</code>. А <code>NOT</code> перед одним сравнением записывают противоположным оператором:</p>\n'
+                                    '<table class="ops"><thead><tr><th>NOT (…)</th><th>=</th></tr></thead><tbody>\n'
+                                    '<tr><td><code>NOT (x = 5)</code></td><td><code>x &lt;&gt; 5</code></td></tr>\n'
+                                    '<tr><td><code>NOT (x &lt;&gt; 5)</code></td><td><code>x = 5</code></td></tr>\n'
+                                    '<tr><td><code>NOT (x &gt; 5)</code></td><td><code>x &lt;= 5</code></td></tr>\n'
+                                    '<tr><td><code>NOT (x &lt; 5)</code></td><td><code>x &gt;= 5</code></td></tr>\n'
+                                    '<tr><td><code>NOT (x &gt;= 5)</code></td><td><code>x &lt; 5</code></td></tr>\n'
+                                    '<tr><td><code>NOT (x &lt;= 5)</code></td><td><code>x &gt; 5</code></td></tr>\n'
+                                    '</tbody></table>\n'
+                                    '<p><b>Классическая ошибка</b> — забыть поменять оператор: <code>NOT (A OR B)</code> — это <b>не</b> <code>NOT A OR NOT B</code>.</p>\n'
+                                    '<p><b>Пример:</b> обе стороны второго закона на таблице сотрудников дают одинаковый столбец.</p>'},
+                    'example': 'SELECT first_name, city, department,\n'
+                               "       NOT (city = 'Paris' OR department = 'HR') AS left_side,\n"
+                               "       city <> 'Paris' AND department <> 'HR' AS right_side\n"
+                               'FROM employees;'},
+                   {'id': 'lg.d2',
+                    'kind': 'truth',
+                    'vars': ['A', 'B'],
+                    'cols': ['A OR B', 'NOT (A OR B)', 'NOT A AND NOT B'],
+                    'text': {'en': 'Prove the second law: fill in the table and compare the last two columns.', 'ru': 'Докажи второй закон: заполни таблицу и сравни два последних столбца.'},
+                    'explain': {'en': 'The last two columns are the same in all 4 rows: both are <code>TRUE</code> only in the last row, where <code>A</code> and <code>B</code> are both '
+                                      '<code>FALSE</code>.',
+                                'ru': 'Два последних столбца совпадают во всех 4 строках: оба равны <code>TRUE</code> только в последней строке, где и <code>A</code>, и <code>B</code> — '
+                                      '<code>FALSE</code>.'}},
+                   {'id': 'lg.d3',
+                    'kind': 'truth',
+                    'vars': ['A', 'B'],
+                    'cols': ['NOT (A OR B)', 'NOT A OR NOT B'],
+                    'text': {'en': 'Someone forgot to swap <code>OR</code> for <code>AND</code>. Fill in the table: are the two columns equal?',
+                             'ru': 'Кто-то забыл поменять <code>OR</code> на <code>AND</code>. Заполни таблицу: равны ли два столбца?'},
+                    'explain': {'en': 'No: they differ in rows 2 and 3, where only one of <code>A</code>, <code>B</code> is <code>TRUE</code>. Without the swap the law does not work.',
+                                'ru': 'Нет: они отличаются в строках 2 и 3, где <code>TRUE</code> только одно из <code>A</code>, <code>B</code>. Без замены оператора закон не работает.'}},
+                   {'id': 'lg.d4',
+                    'kind': 'truth',
+                    'vars': ['A'],
+                    'cols': ['NOT A', 'NOT NOT A'],
+                    'text': {'en': 'Fill in the table. What does a double <code>NOT</code> do?', 'ru': 'Заполни таблицу. Что делает двойное <code>NOT</code>?'},
+                    'explain': {'en': '<code>NOT NOT A</code> turns the value around twice, so it is <code>A</code> again.',
+                                'ru': '<code>NOT NOT A</code> переворачивает значение два раза, поэтому снова получается <code>A</code>.'}},
+                   {'id': 'lg.d5',
+                    'kind': 'truth',
+                    'vars': ['A', 'B', 'C'],
+                    'cols': ['NOT (A OR B OR C)', 'NOT A AND NOT B AND NOT C'],
+                    'text': {'en': 'The law works for any number of parts. Prove it for three: fill in both columns.',
+                             'ru': 'Закон работает для любого числа частей. Докажи его для трёх: заполни оба столбца.'},
+                    'explain': {'en': 'Both columns are <code>TRUE</code> only in the last row, where all three are <code>FALSE</code>.',
+                                'ru': 'Оба столбца равны <code>TRUE</code> только в последней строке, где все три — <code>FALSE</code>.'}},
+                   {'id': 'lg.d6',
+                    'kind': 'rewrite',
+                    'expr': 'NOT (A AND B)',
+                    'vars': ['A', 'B'],
+                    'form': 'no_not_bracket',
+                    'text': {'en': 'Open the brackets after <code>NOT</code>: write the same condition without <code>NOT</code> in front of a bracket.',
+                             'ru': 'Раскрой скобки после <code>NOT</code>: запиши то же условие без <code>NOT</code> перед скобкой.'},
+                    'answer': 'NOT A OR NOT B',
+                    'explain': {'en': '<code>NOT</code> on each part, <code>AND</code> becomes <code>OR</code>: <code>NOT A OR NOT B</code>.',
+                                'ru': '<code>NOT</code> перед каждой частью, <code>AND</code> становится <code>OR</code>: <code>NOT A OR NOT B</code>.'},
+                    'section': {'en': "G · De Morgan's laws: practice", 'ru': 'G · Законы де Моргана: практика'},
+                    'intro': {'en': '<p>Now rewrite conditions yourself. Type <b>only the new condition</b> in the editor, without <code>SELECT</code>, for example <code>NOT A OR NOT B</code>, and '
+                                    'press <b>Run</b>.</p>\n'
+                                    '<p>The grid shows the original condition and yours side by side for every case. They must match in every row, and there must be no <code>NOT</code> in front of '
+                                    'a bracket.</p>\n'
+                                    '<p>In the tasks with comparisons, remove <code>NOT</code> completely: use the opposite operator (<code>=</code> ↔ <code>&lt;&gt;</code>, <code>&gt;</code> ↔ '
+                                    '<code>&lt;=</code>, <code>&lt;</code> ↔ <code>&gt;=</code>).</p>\n'
+                                    '<p><b>Example:</b> <code>NOT (A OR NOT B)</code> = <code>NOT A AND NOT NOT B</code> = <code>NOT A AND B</code>.</p>',
+                              'ru': '<p>Теперь преобразуй условия сама. Напиши в редакторе <b>только новое условие</b>, без <code>SELECT</code>, например <code>NOT A OR NOT B</code>, и нажми '
+                                    '<b>«Выполнить»</b>.</p>\n'
+                                    '<p>В таблице рядом появятся исходное условие и твоё для каждого случая. Они должны совпасть в каждой строке, и перед скобкой не должно остаться '
+                                    '<code>NOT</code>.</p>\n'
+                                    '<p>В заданиях со сравнениями убери <code>NOT</code> совсем: используй противоположный оператор (<code>=</code> ↔ <code>&lt;&gt;</code>, <code>&gt;</code> ↔ '
+                                    '<code>&lt;=</code>, <code>&lt;</code> ↔ <code>&gt;=</code>).</p>\n'
+                                    '<p><b>Пример:</b> <code>NOT (A OR NOT B)</code> = <code>NOT A AND NOT NOT B</code> = <code>NOT A AND B</code>.</p>'},
+                    'example': 'WITH v(A, B) AS (VALUES (TRUE, TRUE), (TRUE, FALSE), (FALSE, TRUE), (FALSE, FALSE))\nSELECT A, B, NOT (A OR NOT B) AS original, NOT A AND B AS rewritten\nFROM v;'},
+                   {'id': 'lg.d7',
+                    'kind': 'rewrite',
+                    'expr': 'NOT (A OR B)',
+                    'vars': ['A', 'B'],
+                    'form': 'no_not_bracket',
+                    'text': {'en': 'Open the brackets after <code>NOT</code>: write the same condition without <code>NOT</code> in front of a bracket.',
+                             'ru': 'Раскрой скобки после <code>NOT</code>: запиши то же условие без <code>NOT</code> перед скобкой.'},
+                    'answer': 'NOT A AND NOT B',
+                    'explain': {'en': '<code>NOT</code> on each part, <code>OR</code> becomes <code>AND</code>: <code>NOT A AND NOT B</code>.',
+                                'ru': '<code>NOT</code> перед каждой частью, <code>OR</code> становится <code>AND</code>: <code>NOT A AND NOT B</code>.'}},
+                   {'id': 'lg.d8',
+                    'kind': 'rewrite',
+                    'expr': 'NOT (NOT A AND B)',
+                    'vars': ['A', 'B'],
+                    'form': 'no_not_bracket',
+                    'text': {'en': 'Open the brackets after <code>NOT</code>: write the same condition without <code>NOT</code> in front of a bracket.',
+                             'ru': 'Раскрой скобки после <code>NOT</code>: запиши то же условие без <code>NOT</code> перед скобкой.'},
+                    'answer': 'A OR NOT B',
+                    'explain': {'en': '<code>NOT NOT A OR NOT B</code>, and <code>NOT NOT A</code> = <code>A</code>: <code>A OR NOT B</code>.',
+                                'ru': '<code>NOT NOT A OR NOT B</code>, а <code>NOT NOT A</code> = <code>A</code>: <code>A OR NOT B</code>.'}},
+                   {'id': 'lg.d9',
+                    'kind': 'rewrite',
+                    'expr': 'NOT (A AND B AND C)',
+                    'vars': ['A', 'B', 'C'],
+                    'form': 'no_not_bracket',
+                    'text': {'en': 'Open the brackets after <code>NOT</code>: write the same condition without <code>NOT</code> in front of a bracket.',
+                             'ru': 'Раскрой скобки после <code>NOT</code>: запиши то же условие без <code>NOT</code> перед скобкой.'},
+                    'answer': 'NOT A OR NOT B OR NOT C',
+                    'explain': {'en': 'Every <code>AND</code> becomes <code>OR</code>: <code>NOT A OR NOT B OR NOT C</code>.',
+                                'ru': 'Каждый <code>AND</code> становится <code>OR</code>: <code>NOT A OR NOT B OR NOT C</code>.'}},
+                   {'id': 'lg.d10',
+                    'kind': 'rewrite',
+                    'expr': 'NOT (A AND (B OR C))',
+                    'vars': ['A', 'B', 'C'],
+                    'form': 'no_not_bracket',
+                    'text': {'en': 'Open the brackets after <code>NOT</code>: write the same condition without <code>NOT</code> in front of a bracket.',
+                             'ru': 'Раскрой скобки после <code>NOT</code>: запиши то же условие без <code>NOT</code> перед скобкой.'},
+                    'answer': 'NOT A OR (NOT B AND NOT C)',
+                    'explain': {'en': 'Step by step: <code>NOT A OR NOT (B OR C)</code>, then the inner bracket: <code>NOT A OR (NOT B AND NOT C)</code>. The brackets around <code>NOT B AND NOT '
+                                      'C</code> are not required (AND goes first), but they make it easier to read.',
+                                'ru': 'По шагам: <code>NOT A OR NOT (B OR C)</code>, потом внутренняя скобка: <code>NOT A OR (NOT B AND NOT C)</code>. Скобки вокруг <code>NOT B AND NOT C</code> не '
+                                      'обязательны (AND выполняется первым), но с ними легче читать.'}},
+                   {'id': 'lg.d11',
+                    'kind': 'rewrite',
+                    'expr': "NOT (city = 'Paris')",
+                    'domain': {'city': ['Paris', 'Berlin', 'London']},
+                    'form': 'no_not',
+                    'text': {'en': 'Write the same condition <b>without <code>NOT</code></b>: use the opposite operators.',
+                             'ru': 'Запиши то же условие <b>без <code>NOT</code></b>: используй противоположные операторы.'},
+                    'answer': "city <> 'Paris'",
+                    'explain': {'en': "The opposite of <code>=</code> is <code>&lt;&gt;</code>: <code>city &lt;&gt; 'Paris'</code>.",
+                                'ru': "Противоположность <code>=</code> — это <code>&lt;&gt;</code>: <code>city &lt;&gt; 'Paris'</code>."}},
+                   {'id': 'lg.d12',
+                    'kind': 'rewrite',
+                    'expr': 'NOT (salary > 55000)',
+                    'domain': {'salary': [54999, 55000, 55001]},
+                    'form': 'no_not',
+                    'text': {'en': 'Write the same condition <b>without <code>NOT</code></b>: use the opposite operators.',
+                             'ru': 'Запиши то же условие <b>без <code>NOT</code></b>: используй противоположные операторы.'},
+                    'answer': 'salary <= 55000',
+                    'explain': {'en': 'The opposite of “greater” is “less <b>or equal</b>”: <code>salary &lt;= 55000</code>. With <code>&lt;</code> a salary of exactly 55000 would be lost.',
+                                'ru': 'Противоположность «больше» — «меньше <b>или равно</b>»: <code>salary &lt;= 55000</code>. С <code>&lt;</code> потерялась бы зарплата ровно 55000.'}},
+                   {'id': 'lg.d13',
+                    'kind': 'rewrite',
+                    'expr': "NOT (city = 'Paris' OR city = 'Berlin')",
+                    'domain': {'city': ['Paris', 'Berlin', 'London', 'Madrid']},
+                    'form': 'no_not',
+                    'text': {'en': 'Write the same condition <b>without <code>NOT</code></b>: use the opposite operators.',
+                             'ru': 'Запиши то же условие <b>без <code>NOT</code></b>: используй противоположные операторы.'},
+                    'answer': "city <> 'Paris' AND city <> 'Berlin'",
+                    'explain': {'en': "<code>OR</code> becomes <code>AND</code>, every <code>=</code> becomes <code>&lt;&gt;</code>: <code>city &lt;&gt; 'Paris' AND city &lt;&gt; 'Berlin'</code>. "
+                                      'With <code>OR</code> it would be <code>TRUE</code> for everyone.',
+                                'ru': "<code>OR</code> становится <code>AND</code>, каждое <code>=</code> — <code>&lt;&gt;</code>: <code>city &lt;&gt; 'Paris' AND city &lt;&gt; 'Berlin'</code>. С "
+                                      '<code>OR</code> было бы <code>TRUE</code> у всех.'}},
+                   {'id': 'lg.d14',
+                    'kind': 'rewrite',
+                    'expr': "NOT (department = 'IT' AND salary > 60000)",
+                    'domain': {'department': ['IT', 'HR'], 'salary': [59999, 60000, 60001]},
+                    'form': 'no_not',
+                    'text': {'en': 'Write the same condition <b>without <code>NOT</code></b>: use the opposite operators.',
+                             'ru': 'Запиши то же условие <b>без <code>NOT</code></b>: используй противоположные операторы.'},
+                    'answer': "department <> 'IT' OR salary <= 60000",
+                    'explain': {'en': "<code>AND</code> becomes <code>OR</code>: <code>department &lt;&gt; 'IT' OR salary &lt;= 60000</code>.",
+                                'ru': "<code>AND</code> становится <code>OR</code>: <code>department &lt;&gt; 'IT' OR salary &lt;= 60000</code>."}},
+                   {'id': 'lg.d15',
+                    'kind': 'rewrite',
+                    'expr': 'NOT (hire_year < 2017 OR salary >= 68000)',
+                    'domain': {'hire_year': [2016, 2017, 2018], 'salary': [67999, 68000, 68001]},
+                    'form': 'no_not',
+                    'text': {'en': 'Write the same condition <b>without <code>NOT</code></b>: use the opposite operators.',
+                             'ru': 'Запиши то же условие <b>без <code>NOT</code></b>: используй противоположные операторы.'},
+                    'answer': 'hire_year >= 2017 AND salary < 68000',
+                    'explain': {'en': '<code>OR</code> becomes <code>AND</code>, <code>&lt;</code> becomes <code>&gt;=</code>, <code>&gt;=</code> becomes <code>&lt;</code>: <code>hire_year &gt;= '
+                                      '2017 AND salary &lt; 68000</code>.',
+                                'ru': '<code>OR</code> становится <code>AND</code>, <code>&lt;</code> — <code>&gt;=</code>, <code>&gt;=</code> — <code>&lt;</code>: <code>hire_year &gt;= 2017 AND '
+                                      'salary &lt; 68000</code>.'}},
+                   {'id': 'lg.d16',
+                    'kind': 'rewrite',
+                    'expr': "NOT (city = 'London' AND (department = 'IT' OR salary > 60000))",
+                    'domain': {'city': ['London', 'Paris'], 'department': ['IT', 'HR'], 'salary': [59999, 60000, 60001]},
+                    'form': 'no_not',
+                    'text': {'en': 'Write the same condition <b>without <code>NOT</code></b>: use the opposite operators.',
+                             'ru': 'Запиши то же условие <b>без <code>NOT</code></b>: используй противоположные операторы.'},
+                    'answer': "city <> 'London' OR (department <> 'IT' AND salary <= 60000)",
+                    'explain': {'en': "Outer bracket: <code>NOT city = 'London' OR NOT (department = 'IT' OR salary &gt; 60000)</code>. Inner one: <code>city &lt;&gt; 'London' OR (department "
+                                      "&lt;&gt; 'IT' AND salary &lt;= 60000)</code>.",
+                                'ru': "Внешняя скобка: <code>NOT city = 'London' OR NOT (department = 'IT' OR salary &gt; 60000)</code>. Внутренняя: <code>city &lt;&gt; 'London' OR (department "
+                                      "&lt;&gt; 'IT' AND salary &lt;= 60000)</code>."}},
                    {'id': 'lg.34',
                     'kind': 'value',
                     'expr': 'homework AND (sunny OR umbrella)',
@@ -523,7 +743,7 @@ INSERT INTO books VALUES
                     'explain': {'en': '<code>sunny OR umbrella</code> = <code>FALSE OR FALSE</code> = <code>FALSE</code>. <code>TRUE AND FALSE</code> = <code>FALSE</code>: no walk today.',
                                 'ru': '<code>sunny OR umbrella</code> = <code>FALSE OR FALSE</code> = <code>FALSE</code>. <code>TRUE AND FALSE</code> = <code>FALSE</code>: сегодня без '
                                       'прогулки.'},
-                    'section': {'en': 'F · From words to logic', 'ru': 'F · От слов к логике'},
+                    'section': {'en': 'H · From words to logic', 'ru': 'H · От слов к логике'},
                     'intro': {'en': '<p>In everyday language we also join conditions with “and”, “or”, “not”. Brackets show what belongs together.</p>\n'
                                     '<p>“Rosa goes for a walk if she has done her homework and it is sunny or she has an umbrella.” What is meant: the homework is a must, and for the '
                                     'weather there are two options. So: <code>homework AND (sunny OR umbrella)</code>.</p>\n'
@@ -579,7 +799,7 @@ INSERT INTO books VALUES
                                       '<code>FALSE</code>.',
                                 'ru': "<code>'Berlin'</code> — это не сравнение. SQLite превращает его в число 0, то есть <code>FALSE</code>. <code>TRUE AND FALSE</code> = "
                                       '<code>FALSE</code>.'},
-                    'section': {'en': 'G · Traps: text and NULL', 'ru': 'G · Ловушки: текст и NULL'},
+                    'section': {'en': 'I · Traps: text and NULL', 'ru': 'I · Ловушки: текст и NULL'},
                     'intro': {'en': "<p><b>Text instead of a comparison.</b> When SQLite needs a logical value and gets text, it turns the text into a number: <code>'Berlin'</code> "
                                     "becomes 0, that is <code>FALSE</code>. That is why <code>city = 'Paris' OR 'Berlin'</code> gives no error: it means <code>city = 'Paris' OR "
                                     'FALSE</code>, and Berlin is lost.</p>\n'

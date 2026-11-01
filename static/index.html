@@ -190,6 +190,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
 .lesson-note .pexplain.bad{background:var(--err-bg)}
 .lesson-note .pexplain code{font-size:.9em}
 .lesson-note .pexplain .tnote{color:var(--muted)}
+.lesson-note .rw-hint{font-size:13px;color:var(--muted);margin:-2px 0 8px}
 .tv-true{color:var(--accent)} .tv-false{color:var(--err)} .tv-null{color:var(--null)}
 .lesson-note .given{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0 0 8px;font-family:var(--f-mono);font-size:13.5px}
 .lesson-note .tvb{font-family:var(--f-mono);font-weight:700}
@@ -370,6 +371,11 @@ const T = {
  en:{
   brand1:'SQL', brand2:'Sheet', title:'SQL Sheet',
   tagline:'Write a query and see the result as a spreadsheet. The database lives in your browser, so feel free to break it.',
+  rewriteHint:'Type the new condition in the editor (without SELECT) and press Run.', rewriteNoSelect:'Write only the condition, without SELECT. For example: NOT A OR NOT B',
+  rewriteError:"This condition can't be checked. Write only the condition, for example: NOT A OR NOT B",
+  rewriteDiffers:n=>`Not the same: the columns original and yours differ in ${n} ${n===1?'row':'rows'}. Compare them in the grid.`,
+  rewriteForm:'The meaning is right, but there is still NOT in front of a bracket. Open the bracket with De Morgan.',
+  rewriteFormNot:'The meaning is right, but there is still NOT. Use the opposite operators instead.',
   truthHint:'Click a cell: ? → TRUE → FALSE', truthHint3:'Click a cell: ? → TRUE → FALSE → NULL',
   truthWrong:n=>n===1?'1 cell is wrong or empty.':`${n} cells are wrong or empty.`, truthMissNote:'Cells with a red frame were wrong.', whyValue:v=>`Result: ${v}.`,
   why:'Explain condition', whyBack:'Back to result', whyTitle:'Show every part of WHERE as a ✓/✗ column',
@@ -416,6 +422,11 @@ const T = {
  ru:{
   brand1:'SQL', brand2:'Табличка', title:'SQL Табличка',
   tagline:'Пиши запрос — результат появится как лист Excel. База живёт в браузере, ломать можно смело.',
+  rewriteHint:'Напиши новое условие в редакторе (без SELECT) и нажми «Выполнить».', rewriteNoSelect:'Напиши только условие, без SELECT. Например: NOT A OR NOT B',
+  rewriteError:'Это условие не получается проверить. Напиши только условие, например: NOT A OR NOT B',
+  rewriteDiffers:n=>`Не то же самое: столбцы original и yours отличаются в строках: ${n}. Сравни их в таблице.`,
+  rewriteForm:'Смысл верный, но перед скобкой всё ещё стоит NOT. Раскрой скобку по закону де Моргана.',
+  rewriteFormNot:'Смысл верный, но NOT всё ещё есть. Используй вместо него противоположные операторы.',
   truthHint:'Нажимай на клетку: ? → TRUE → FALSE', truthHint3:'Нажимай на клетку: ? → TRUE → FALSE → NULL',
   truthWrong:n=>`Неверных или пустых клеток: ${n}.`, truthMissNote:'Клетки в красной рамке были неверными.', whyValue:v=>`Результат: ${v}.`,
   why:'Разобрать условие', whyBack:'Обычный результат', whyTitle:'Показать каждую часть WHERE отдельной колонкой ✓/✗',
@@ -650,8 +661,37 @@ function revealTruth(){
   fillTruth(t); revealResult();
   $('pfeed').innerHTML=`<div class="pexplain bad"><b>${esc(L.answerShown)}</b> ${lastExplain?lastExplain[lang]:''} <span class="tnote">${esc(L.truthMissNote)}</span></div>`;
 }
+/* ---------- rewrite tasks: the same condition in another form (De Morgan) ---------- */
+const sqlLit=v=>typeof v==='string'?`'${v.replace(/'/g,"''")}'`:v===null?'NULL':String(v);
+function rewriteCases(t){                 // the same cases the server compares on
+  if(t.vars) return {names:t.vars, rows:truthRows(t)};
+  const names=Object.keys(t.domain); let rows=[[]];
+  names.forEach(n=>{ rows=rows.flatMap(r=>t.domain[n].map(v=>[...r,v])) });
+  return {names,rows};
+}
+function rewriteSQL(t,mine){              // both conditions side by side, for every case
+  const {names,rows}=rewriteCases(t);
+  return `WITH v(${names.join(', ')}) AS (VALUES ${rows.map(r=>'('+r.map(sqlLit).join(', ')+')').join(', ')})\n`+
+         `SELECT ${names.join(', ')},\n       ${t.expr} AS original,\n       ${mine} AS yours\nFROM v;`;
+}
+function runRewrite(t,src){
+  const mine=src.replace(/;+\s*$/,'').trim(); if(!mine) return;
+  if(/^select\b/i.test(mine)){ showMsg('err',L.rewriteNoSelect); return; }
+  if(mine.includes(';')){ showMsg('err',L.rewriteError); return; }
+  run(rewriteSQL(t,mine));
+  if($('msg').classList.contains('err')) return;     // run() already shows the SQLite error
+  checkRewrite(mine);
+}
+async function checkRewrite(mine){
+  const k=activeLesson, myRun=runCount;
+  const res=await predictCheck({answer:mine}); if(!res||myRun!==runCount||k!==activeLesson) return;
+  if(res.ok){ predictOutcome(true,res.explain,null,true); return; }
+  const why=res.reason==='differs'?L.rewriteDiffers(res.rows):res.reason==='form'?(COURSE_LESSON.tasks[k].form==='no_not'?L.rewriteFormNot:L.rewriteForm):L.rewriteError;
+  $('msg').insertAdjacentHTML('beforeend',`<div class="dumb" role="status">you're so dumb dumb</div><span class="bad">${esc(why)}</span>`);
+}
 function predictBlock(k){
   const t=COURSE_LESSON.tasks[k]; if(!t.kind) return '';
+  if(t.kind==='rewrite') return `<pre class="cond">${esc(t.expr)}</pre><div class="rw-hint">${esc(L.rewriteHint)}</div><div class="pfeed" id="pfeed"></div>`;
   if(t.kind==='value'||t.kind==='truth') return logicBlock(t,k===activeLesson);
   const table=predictTableName(t), active=k===activeLesson;
   const cond=t.kind==='pick'?`<pre class="cond">SELECT * FROM ${esc(table)}\nWHERE ${esc(t.condition)};</pre>`:`<pre class="cond">WHERE ${esc(t.condition)}</pre>`;
@@ -667,7 +707,7 @@ function predictBlock(k){
     <div class="yn"><button class="btn primary" type="button" id="pick-check">${esc(L.checkPick)}</button><span class="pcount" id="pcount">${esc(L.marked(active?pickState.size:0))}</span></div><div class="pfeed" id="pfeed"></div>`;
 }
 function setPredictMode(i){
-  const t=COURSE_LESSON&&COURSE_LESSON.tasks[i], on=!!(t&&t.kind);
+  const t=COURSE_LESSON&&COURSE_LESSON.tasks[i], on=!!(t&&t.kind&&t.kind!=='rewrite');
   document.body.classList.toggle('predict-mode',on);
   if(on) showMsg('ok',L.predictReady);
 }
@@ -880,6 +920,8 @@ function run(given){
   runCount++;
   whyOn=false; whyResult=null; whySrc=null; updateWhyBtn();
   const src=(typeof given==='string'?given:ta.value).trim(); if(!src) return;
+  const rw=COURSE_LESSON&&activeLesson>=0&&COURSE_LESSON.tasks[activeLesson];
+  if(rw&&rw.kind==='rewrite'&&!src.startsWith('WITH v(')){ runRewrite(rw,src); return; }   // the editor holds a condition, not a query
   const noSemi=missingSemi(src);
   if(noSemi&&semiMode==='strict'){showMsg('err',L.semiErr);$('st-time').textContent='';return}
   const dml=[...src.matchAll(/\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+"?(\w+)"?/gi)].map(m=>m[1]);

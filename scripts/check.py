@@ -9,6 +9,7 @@ Usage: python scripts/check.py   (or: make check)
 """
 import ast
 import json
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -64,6 +65,33 @@ for lesson in COURSE["lessons"]:
             if not all(k in task.get("explain", {}) for k in ("en", "ru")):
                 bad += 1
                 fail(f"lesson {lid}, task {i}: prediction task needs an en and ru explanation")
+        elif task.get("kind") == "rewrite":               # the answer must mean the same as "expr", in the asked form
+            try:
+                if task.get("vars"):
+                    names, combos = task["vars"], [[]]
+                    for _ in names:
+                        combos = [r + [v] for r in combos for v in (1, 0)]
+                else:
+                    names, combos = list(task["domain"]), [[]]
+                    for n in names:
+                        combos = [r + [v] for r in combos for v in task["domain"][n]]
+                lit = lambda v: "'" + v.replace("'", "''") + "'" if isinstance(v, str) else str(v)
+                values = ", ".join("(" + ", ".join(lit(v) for v in r) + ")" for r in combos)
+                both = ", ".join("CASE WHEN (%s) THEN 1 WHEN NOT (%s) THEN 0 END" % (e, e) for e in (task["expr"], task["answer"]))
+                rows = con.execute("WITH v(%s) AS (VALUES %s) SELECT %s FROM v" % (", ".join(names), values, both)).fetchall()
+                if any(a != b for a, b in rows):
+                    bad += 1
+                    fail(f"lesson {lid}, task {i}: the answer does not mean the same as the expression")
+                pattern = r"\bnot\b" if task.get("form") == "no_not" else r"\bnot\s*\("
+                if re.search(pattern, task["answer"], re.I):
+                    bad += 1
+                    fail(f"lesson {lid}, task {i}: the answer does not have the asked form")
+            except (sqlite3.Error, KeyError) as e:
+                bad += 1
+                fail(f"lesson {lid}, task {i}: rewrite task fails: {e}")
+            if not all(k in task.get("explain", {}) for k in ("en", "ru")):
+                bad += 1
+                fail(f"lesson {lid}, task {i}: rewrite task needs an en and ru explanation")
         elif task.get("kind") in ("value", "truth"):     # logic tasks: an expression instead of an answer
             exprs = [task.get("expr")] if task["kind"] == "value" else task.get("cols", [])
             names = list(task.get("given", {})) if task["kind"] == "value" else task.get("vars", [])
@@ -83,7 +111,7 @@ for lesson in COURSE["lessons"]:
             bad += 1
             fail(f"lesson {lid}, task {i}: no answer")
         for field in ("answer", "example"):
-            if field in task:
+            if field in task and not (field == "answer" and task.get("kind") == "rewrite"):   # a rewrite answer is a condition
                 try:
                     con.execute(task[field]).fetchall()
                 except sqlite3.Error as e:

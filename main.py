@@ -220,6 +220,71 @@ def truth_table(lesson_id: int, task: int) -> tuple[tuple[str, ...], ...]:
         con.close()
 
 
+#   "kind": "rewrite" - the student writes a condition that means the same as <expr>,
+#                       but in another form ("form": "no_not_bracket" or "no_not").
+#                       It is compared on every combination of the "vars" (TRUE/FALSE)
+#                       or of the "domain" values ({"salary": [59999, 60000, 60001]}),
+#                       so the edge cases are always there.
+REWRITE_FORMS = {
+    "no_not_bracket": re.compile(r"\bnot\s*\(", re.I),   # De Morgan: no NOT in front of a bracket
+    "no_not": re.compile(r"\bnot\b", re.I),               # comparisons: the opposite operator instead of NOT
+}
+
+
+def _limited(con: sqlite3.Connection) -> sqlite3.Connection:
+    """The student's text runs on the server: stop anything that takes too long."""
+    con.set_progress_handler(lambda: 1, 200_000)
+    return con
+
+
+def _sql_lit(v) -> str:
+    if isinstance(v, str):
+        return "'" + v.replace("'", "''") + "'"
+    return "NULL" if v is None else str(v)     # TRUE and FALSE are 1 and 0 in SQLite
+
+
+def rewrite_cases(t: dict) -> tuple[list[str], list[list]]:
+    """The column names and every combination of values the two conditions are compared on."""
+    if t.get("vars"):
+        return t["vars"], truth_rows(t)
+    names, rows = list(t["domain"]), [[]]
+    for name in names:
+        rows = [r + [v] for r in rows for v in t["domain"][name]]
+    return names, rows
+
+
+def rewrite_rows(lesson: dict, t: dict, exprs: list[str]) -> list[tuple]:
+    """Each expression as TRUE/FALSE/NULL (1/0/None) on every row of the comparison."""
+    con = _limited(sqlite3.connect(":memory:"))
+    try:
+        names, rows = rewrite_cases(t)
+        values = ", ".join("(" + ", ".join(_sql_lit(v) for v in r) + ")" for r in rows)
+        sql = (f"WITH v({', '.join(names)}) AS (VALUES {values}) "
+               f"SELECT {', '.join(_as_bool(e) for e in exprs)} FROM v")
+        return con.execute(sql).fetchall()
+    finally:
+        con.close()
+
+
+def check_rewrite(lesson_id: int, task: int, expr: str) -> dict:
+    lesson = find_lesson(lesson_id)
+    t = lesson["tasks"][task]
+    expr = (expr or "").strip().rstrip(";").strip()
+    if not expr or ";" in expr or len(expr) > 500:
+        return {"ok": False, "reason": "error"}
+    try:
+        rows = rewrite_rows(lesson, t, [t["expr"], expr])
+    except sqlite3.Error:
+        return {"ok": False, "reason": "error"}
+    differ = sum(1 for a, b in rows if a != b)
+    if differ:
+        return {"ok": False, "reason": "differs", "rows": differ}
+    form = REWRITE_FORMS.get(t.get("form", "no_not_bracket"))
+    if form and form.search(re.sub(r"'(?:[^']|'')*'", "''", expr)):
+        return {"ok": False, "reason": "form"}
+    return {"ok": True, "explain": t.get("explain")}
+
+
 def teacher_answer(lesson_id: int, task: int) -> str:
     t = find_lesson(lesson_id)["tasks"][task]
     if t.get("kind") == "value":
@@ -357,6 +422,8 @@ async def check(data: CheckData):
         return {"ok": (data.answer == "yes") == passes, "explain": task.get("explain")}
     if task.get("kind") == "value":
         return {"ok": data.answer == logic_value(data.lesson, data.task), "explain": task.get("explain")}
+    if task.get("kind") == "rewrite":
+        return check_rewrite(data.lesson, data.task, data.answer)
     if task.get("kind") == "truth":
         want = truth_table(data.lesson, data.task)
         got = data.cells or []
