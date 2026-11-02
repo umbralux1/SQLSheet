@@ -558,7 +558,7 @@ function lessonList(){
   const label=k=>T[k].extra?`${L.extraTask} ${pos[k]}`:`${L.task} ${pos[k]}`;
   return COURSE_LESSON.tasks.map((t,k)=>({t:label(k), d:stripTags(t.text[lang]), q:'', section:t.section?t.section[lang]:'',
     extraStart:!!t.extra&&(k===0||!T[k-1].extra),
-    n:`<span class="crumb">${esc(L.lessonN(COURSE_LESSON.num||COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${label(k)}/${t.extra?cnt.extra:cnt.main}</span><div class="task-text">${t.text[lang]}</div>`+predictBlock(k)+introOf(k)+
+    n:`<span class="crumb">${esc(trackPrefix()+L.lessonN(COURSE_LESSON.num||COURSE_LESSON.id))} · ${esc(COURSE_LESSON.title[lang])}${sectionOf(k)?' · '+esc(sectionOf(k)):''} · ${label(k)}/${t.extra?cnt.extra:cnt.main}</span><div class="task-text">${t.text[lang]}</div>`+predictBlock(k)+introOf(k)+
       (TEACHER_ANSWERS&&TEACHER_ANSWERS[k]?`<details class="answer"><summary><span class="when-closed">${esc(L.answerLabel)}</span><span class="when-open">${esc(L.answerHide)}</span></summary><code>${esc(TEACHER_ANSWERS[k])}</code></details>`:'')}));
 }
 function defaultLesson(){
@@ -785,7 +785,7 @@ function celebrate(k){
   const doneCount=group.filter(done).length, all=doneCount>=n;
   const after=group.filter(i=>i>k), nextOpen=after.find(i=>!done(i))??group.find(i=>!done(i));
   const dots=group.map(i=>`<i class="${done(i)?'on':''}${i===k?' now':''}"></i>`).join('');
-  const nextLesson=COURSE.lessons.slice(COURSE.lessons.findIndex(x=>x.id===COURSE_LESSON.id)+1).find(x=>x.available);
+  const nextLesson=COURSE.lessons.slice(COURSE.lessons.findIndex(x=>x.id===COURSE_LESSON.id)+1).find(x=>x.available&&(x.track||'base')===(COURSE_LESSON.track||'base'));
   const extras=[...T.keys()].filter(i=>T[i].extra), extraOpen=extras.find(i=>!done(i));
   const finishMain=(nextLesson?`<a class="btn primary" href="./?lesson=${nextLesson.id}&task=1">${esc(L.nextLesson)}</a>`:`<a class="btn primary" href="lessons">${esc(L.allLessons)}</a>`)+
     (extraOpen!=null?` <button class="btn" data-lesson-go="${extraOpen}">${esc(L.tryExtra)}</button>`:'');
@@ -1110,7 +1110,7 @@ function renderLessons(active){
   const el=$('lessons'); el.innerHTML='';
   const ids=COURSE_LESSON?new Set(COURSE_PROGRESS.get(COURSE_LESSON.id)):new Set();
   const solved={has:i=>!!COURSE_LESSON&&ids.has(COURSE_LESSON.tasks[i].id)};
-  if(COURSE_LESSON){ $('lessons-label').textContent=L.tasksOf(COURSE_LESSON.num||COURSE_LESSON.id); const back=$('lessons-back'); back.hidden=false; back.textContent=L.allLessons; }
+  if(COURSE_LESSON){ $('lessons-label').textContent=trackPrefix()+L.tasksOf(COURSE_LESSON.num||COURSE_LESSON.id); const back=$('lessons-back'); back.hidden=false; back.textContent=L.allLessons; }
   lessonList().forEach((l,i)=>{
     if(l.extraStart){const h=document.createElement('div');h.className='extra-head';h.textContent=L.extraHead;el.appendChild(h)}
     if(l.section){const h=document.createElement('div');h.className='sect';h.textContent=l.section;el.appendChild(h)}
@@ -1121,6 +1121,10 @@ function renderLessons(active){
     b.onclick=()=>loadLesson(i);el.appendChild(b)});
 }
 /* ---------- the code typed in the editor is kept: per task in a lesson, as one draft otherwise ---------- */
+function trackPrefix(){                 // "SQL for analysts · " in front of "Lesson 1" in the second course
+  const tr=COURSE_LESSON&&(COURSE.tracks||[]).find(t=>t.id===(COURSE_LESSON.track||'base'));
+  return tr&&tr.id!=='base'?tr.title[lang]+' · ':'';
+}
 function codeKey(i){
   if(!COURSE_LESSON) return 'sqlt-draft-'+lang;
   const t=COURSE_LESSON.tasks[i]; return t?'sqlt-code-'+t.id:null;

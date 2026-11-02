@@ -59,6 +59,11 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var
 .roadmap b{font-size:13.5px;font-weight:600;line-height:1.35}
 .roadmap small{grid-column:2;font-size:12px;color:var(--muted);line-height:1.35}
 .roadmap li a:hover{background:var(--head)}
+.roadmap li.track{display:grid;gap:2px;padding:12px 8px 4px;margin-top:6px;border-top:1px solid var(--line)}
+.roadmap li.track:first-child{margin-top:0;border-top:0;padding-top:2px}
+.roadmap li.track b{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.roadmap li.track small{grid-column:auto;font-size:12px}
+.sheet td.more{color:var(--muted);font-style:italic;text-align:left}
 .roadmap li a[aria-current="true"]{background:var(--sel)}
 .roadmap li a[aria-current="true"] .num{color:var(--accent);font-weight:600}
 .roadmap li.soon div{opacity:.6}
@@ -205,7 +210,7 @@ details.answers pre.code{margin:0 14px 14px;border-left-color:var(--line-strong)
 const T={
  en:{live:'Live', connecting:'Connecting…', offline:'Offline, reconnecting…', room:'room', you:'you', yourName:'Your name', copyLink:'Copy invite link', copied:'Link copied', alone:'Only you here. Share the link to invite someone.',
    brand2:'Sheet', title:'SQL Sheet Lessons', navTrainer:'Trainer', navLessons:'Lessons', roadmap:'Course roadmap',
-   lesson:n=>`Lesson ${n}`, soon:'Soon', theory:'Theory', tables:'Tables for this lesson', tasks:'Tasks',
+   lesson:n=>`Lesson ${n}`, more:n=>`… and ${n} more rows: open the table in the trainer to see them all`, soon:'Soon', theory:'Theory', tables:'Tables for this lesson', tasks:'Tasks',
    rewriteTag:'Rewrite', truthTag:'Truth table', predictTag:'Predict', extraHead:'Extra practice', extraMeta:(n,d)=>`${n} more tasks · ${d} solved`, extraTask:n=>`Extra ${n}`,
    extraText:'Optional tasks on the same topics, for homework or more practice. They do not count towards finishing the lesson.',
    rows:n=>`${n} rows`, result:n=>`Result: ${n} ${n===1?'row':'rows'}`, solved:(a,b)=>`${a} of ${b} tasks solved`, start:'Start lesson in the trainer', cont:'Continue in the trainer',
@@ -213,7 +218,7 @@ const T={
    soonText:'This lesson is not ready yet. Lesson 1 is available now.', back:'Open lesson 1', number:'number', text:'text'},
  ru:{live:'Онлайн', connecting:'Подключение…', offline:'Нет связи, переподключаюсь…', room:'комната', you:'ты', yourName:'Твоё имя', copyLink:'Скопировать ссылку', copied:'Ссылка скопирована', alone:'Пока здесь только ты. Отправь ссылку, чтобы позвать кого-то.',
    brand2:'Табличка', title:'SQL Табличка — уроки', navTrainer:'Тренажёр', navLessons:'Уроки', roadmap:'План курса',
-   lesson:n=>`Урок ${n}`, soon:'Скоро', theory:'Теория', tables:'Таблицы урока', tasks:'Задания',
+   lesson:n=>`Урок ${n}`, more:n=>`… и ещё ${n} строк: открой таблицу в тренажёре, чтобы увидеть все`, soon:'Скоро', theory:'Теория', tables:'Таблицы урока', tasks:'Задания',
    rewriteTag:'Преобразование', truthTag:'Таблица истинности', predictTag:'Предсказание', extraHead:'Дополнительная практика', extraMeta:(n,d)=>`ещё ${n} заданий · решено ${d}`, extraTask:n=>`Доп. ${n}`,
    extraText:'Необязательные задания на те же темы: для домашней работы или чтобы потренироваться ещё. На прохождение урока они не влияют.',
    rows:n=>`${n} стр.`, result:n=>`Результат: строк — ${n}`, solved:(a,b)=>`Решено ${a} из ${b}`, start:'Начать урок в тренажёре', cont:'Продолжить в тренажёре',
@@ -226,17 +231,25 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const colLetter=i=>{let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s};
 
+function lessonLabel(l){   // "Lesson 3", or "SQL for analysts · Lesson 1" in the second course
+  const tr=(COURSE.tracks||[]).find(t=>t.id===(l.track||'base'));
+  return (tr&&tr.id!=='base'?esc(tr.title[lang])+' · ':'')+L.lesson(l.num||l.id);
+}
 function currentId(){ const m=(location.hash||'').match(/^#lesson-(\d+)$/); return m?+m[1]:1 }
 
 function renderRoadmap(){
   const id=currentId();
-  $('roadmap').innerHTML=COURSE.lessons.map(l=>{
+  const tracks=COURSE.tracks&&COURSE.tracks.length?COURSE.tracks:[{id:'base'}];
+  $('roadmap').innerHTML=tracks.map(tr=>{
+    const ls=COURSE.lessons.filter(l=>(l.track||'base')===tr.id); if(!ls.length) return '';
+    const head=tracks.length>1?`<li class="track"><b>${esc(tr.title[lang])}</b>${tr.about?`<small>${esc(tr.about[lang])}</small>`:''}</li>`:'';
+    return head+ls.map(l=>{
     const done=l.available?COURSE_PROGRESS.count(l):0, total=l.available?l.tasks.filter(t=>!t.extra).length:0;   // a lesson is done when its main tasks are
     const inner=`<span class="num">${String(l.num||l.id).padStart(2,'0')}</span><b>${esc(l.title[lang])}${l.available?'':`<span class="soon-tag">${L.soon}</span>`}${l.available&&done===total?'<span class="done-tag">✓</span>':''}</b><small>${esc(l.topics[lang])}</small>`;
     return l.available
       ? `<li><a href="#lesson-${l.id}" aria-current="${l.id===id}">${inner}</a></li>`
       : `<li class="soon"><div>${inner}</div></li>`;
-  }).join('');
+  }).join('')}).join('');
 }
 
 function logicCode(t){   // logic tasks: the expression to work out, or the columns of the truth table
@@ -258,14 +271,16 @@ function sheet(db,table){
   const info=db.exec(`PRAGMA table_info("${table}")`)[0].values;
   let h='<table class="sheet"><thead><tr><th></th>'+r.columns.map((_,i)=>`<th>${colLetter(i)}</th>`).join('')+'</tr></thead><tbody>';
   h+='<tr class="hdr"><th>1</th>'+r.columns.map((c,i)=>`<td>${esc(c)}<small>${esc((info[i][2]||'').toLowerCase())}</small></td>`).join('')+'</tr>';
-  r.values.forEach((row,k)=>{h+=`<tr><th>${k+2}</th>`+row.map(v=>typeof v==='number'?`<td class="n">${v.toLocaleString(lang==='ru'?'ru-RU':'en-US',{useGrouping:false,maximumFractionDigits:2})}</td>`:`<td>${esc(v==null?'NULL':v)}</td>`).join('')+'</tr>'});
+  const MAX=r.values.length>16?12:r.values.length;   // long tables: the first rows are enough here, the trainer has them all
+  r.values.slice(0,MAX).forEach((row,k)=>{h+=`<tr><th>${k+2}</th>`+row.map(v=>typeof v==='number'?`<td class="n">${v.toLocaleString(lang==='ru'?'ru-RU':'en-US',{useGrouping:false,maximumFractionDigits:2})}</td>`:`<td>${esc(v==null?'NULL':v)}</td>`).join('')+'</tr>'});
+  if(r.values.length>MAX) h+=`<tr><th></th><td class="more" colspan="${r.columns.length}">${esc(L.more(r.values.length-MAX))}</td></tr>`;
   return h+'</tbody></table>';
 }
 
 function renderLesson(){
   const id=currentId(), l=COURSE.lessons.find(x=>x.id===id)||COURSE.lessons[0], el=$('lesson');
   if(!l.available){
-    el.innerHTML=`<div class="lesson-head"><span class="label">${L.lesson(l.num||l.id)}</span><h2>${esc(l.title[lang])}</h2><p>${esc(l.topics[lang])}</p></div>
+    el.innerHTML=`<div class="lesson-head"><span class="label">${lessonLabel(l)}</span><h2>${esc(l.title[lang])}</h2><p>${esc(l.topics[lang])}</p></div>
       <div class="soon-box"><p style="margin:0 0 12px">${L.soonText}</p><a class="btn ghost" href="#lesson-1">${L.back}</a></div>`;
     return;
   }
@@ -292,7 +307,7 @@ function renderLesson(){
         <a class="go" href="./?lesson=${l.id}&task=${encodeURIComponent(t.id)}">${solved.has(i)?L.again:L.solve}</a></li>`};
   el.innerHTML=`
     <div class="lesson-head">
-      <span class="label">${L.lesson(l.num||l.id)}</span>
+      <span class="label">${lessonLabel(l)}</span>
       <h2>${esc(l.title[lang])}</h2>
       <p>${esc(l.topics[lang])}</p>
       <div class="progress"><div class="bar"><i style="width:${Math.round(solved.size/total*100)}%"></i></div><span>${L.solved(solved.size,total)}</span>

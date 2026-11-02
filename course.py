@@ -9,7 +9,372 @@ To add a lesson: fill in theory / seed / tables / tasks (every task needs an
 "answer" query) and set "available": True.
 """
 
+# The online shop of the "SQL for analysts" track. Every lesson of the track uses it;
+# /course.js sends it once ("seeds") and the lessons point to it with "seed_ref".
+SHOP_SEED = """CREATE TABLE customers (
+    customer_id  INTEGER PRIMARY KEY,
+    name         TEXT,
+    city         TEXT,
+    signup_date  DATE,
+    channel      TEXT
+);
+INSERT INTO customers VALUES
+(1, 'Anna', 'Madrid', '2024-08-24', 'social'),
+(2, 'Ben', 'Berlin', '2024-06-01', 'social'),
+(3, 'Clara', 'London', '2025-01-24', 'organic'),
+(4, 'David', 'London', '2024-09-09', 'organic'),
+(5, 'Elena', 'Madrid', '2025-01-03', 'organic'),
+(6, 'Felix', 'Rome', '2024-07-21', 'organic'),
+(7, 'Grace', NULL, '2024-08-08', 'referral'),
+(8, 'Hugo', 'Paris', '2024-12-16', 'organic'),
+(9, 'Iris', 'Madrid', '2025-01-20', 'social'),
+(10, 'Jack', 'Rome', '2025-05-29', 'social'),
+(11, 'Kate', 'Rome', '2024-09-22', 'organic'),
+(12, 'Leo', 'Paris', '2024-10-03', 'ads'),
+(13, 'Maria', 'Paris', '2024-09-27', 'ads'),
+(14, 'Nick', 'London', '2025-06-12', 'social'),
+(15, 'Olga', 'Berlin', '2025-09-15', 'ads'),
+(16, 'Paul', 'Berlin', '2024-11-28', 'ads'),
+(17, 'Quinn', 'Madrid', '2025-09-11', 'ads'),
+(18, 'Rosa', 'Rome', '2025-08-16', 'organic'),
+(19, 'Sam', NULL, '2025-05-06', 'social'),
+(20, 'Tina', 'Berlin', '2025-02-06', 'organic'),
+(21, 'Umar', 'Paris', '2025-04-16', 'social'),
+(22, 'Vera', 'Berlin', '2025-05-06', 'organic'),
+(23, 'Will', 'Berlin', '2024-10-29', 'ads'),
+(24, 'Xenia', 'London', '2024-10-30', 'organic'),
+(25, 'Yuri', 'Rome', '2024-11-05', 'social'),
+(26, 'Zoe', 'Rome', '2025-05-18', 'organic'),
+(27, 'Adam', 'Rome', '2024-06-26', 'social'),
+(28, 'Bella', 'London', '2025-07-23', 'organic'),
+(29, 'Chris', 'Paris', '2024-12-27', 'organic'),
+(30, 'Dina', 'Rome', '2025-08-29', 'social'),
+(31, 'Eric', 'Berlin', '2024-11-02', 'ads'),
+(32, 'Fiona', 'Rome', '2024-09-05', 'ads'),
+(33, 'Gleb', NULL, '2024-10-24', 'social'),
+(34, 'Helen', 'Berlin', '2025-01-31', 'organic'),
+(35, 'Ivan', 'Berlin', '2024-10-18', 'referral'),
+(36, 'Julia', 'Madrid', '2024-11-02', 'social'),
+(37, 'Karl', 'Rome', '2025-01-21', 'referral'),
+(38, 'Lina', 'London', '2024-12-06', 'social'),
+(39, 'Mark', 'Paris', '2024-11-04', 'ads'),
+(40, 'Nina', 'Rome', '2025-04-19', 'ads');
+CREATE TABLE products (
+    product_id  INTEGER PRIMARY KEY,
+    name        TEXT,
+    category    TEXT,
+    price       INTEGER,
+    cost        INTEGER
+);
+INSERT INTO products VALUES
+(1, 'Wireless Earbuds', 'Electronics', 89, 52),
+(2, 'Smart Watch', 'Electronics', 249, 160),
+(3, 'USB-C Charger', 'Electronics', 29, 11),
+(4, 'Bluetooth Speaker', 'Electronics', 119, 70),
+(5, 'Coffee Maker', 'Home', 139, 85),
+(6, 'Desk Lamp', 'Home', 45, 22),
+(7, 'Throw Blanket', 'Home', 39, 15),
+(8, 'Ceramic Mug Set', 'Home', 25, 9),
+(9, 'Mystery Novel', 'Books', 15, 6),
+(10, 'Cookbook', 'Books', 32, 14),
+(11, 'SQL for Beginners', 'Books', 41, 17),
+(12, 'Yoga Mat', 'Sport', 35, 13),
+(13, 'Running Shoes', 'Sport', 129, 74),
+(14, 'Water Bottle', 'Sport', 19, 6);
+CREATE TABLE orders (
+    order_id     INTEGER PRIMARY KEY,
+    customer_id  INTEGER,
+    order_date   DATE,
+    status       TEXT,
+    promo_code   TEXT,
+    amount       INTEGER
+);
+INSERT INTO orders VALUES
+(1, 2, '2025-01-13', 'returned', NULL, 41),
+(2, 16, '2025-01-16', 'delivered', 'WELCOME10', 125),
+(3, 11, '2025-01-22', 'delivered', NULL, 296),
+(4, 37, '2025-01-23', 'delivered', NULL, 87),
+(5, 12, '2025-01-24', 'delivered', 'WELCOME10', 125),
+(6, 8, '2025-02-17', 'delivered', 'WELCOME10', 26),
+(7, 35, '2025-02-23', 'delivered', NULL, 79),
+(8, 37, '2025-03-04', 'delivered', NULL, 15),
+(9, 25, '2025-03-05', 'delivered', 'SPRING', 40),
+(10, 9, '2025-03-09', 'delivered', 'SPRING', 35),
+(11, 37, '2025-03-10', 'delivered', NULL, 129),
+(12, 32, '2025-03-15', 'returned', NULL, 39),
+(13, 27, '2025-03-25', 'delivered', NULL, 258),
+(14, 35, '2025-04-17', 'delivered', NULL, 69),
+(15, 37, '2025-04-21', 'delivered', NULL, 89),
+(16, 32, '2025-04-24', 'delivered', NULL, 19),
+(17, 25, '2025-04-25', 'delivered', NULL, 184),
+(18, 40, '2025-05-06', 'delivered', 'SPRING', 107),
+(19, 3, '2025-05-09', 'delivered', NULL, 45),
+(20, 11, '2025-05-09', 'delivered', NULL, 30),
+(21, 9, '2025-05-11', 'delivered', NULL, 39),
+(22, 2, '2025-05-21', 'delivered', NULL, 80),
+(23, 26, '2025-05-21', 'delivered', NULL, 58),
+(24, 9, '2025-05-22', 'delivered', 'SPRING', 80),
+(25, 12, '2025-05-22', 'delivered', NULL, 338),
+(26, 37, '2025-05-25', 'delivered', NULL, 135),
+(27, 8, '2025-05-26', 'delivered', 'SPRING', 35),
+(28, 20, '2025-05-26', 'delivered', 'WELCOME10', 29),
+(29, 9, '2025-06-03', 'delivered', NULL, 45),
+(30, 14, '2025-06-12', 'delivered', 'WELCOME10', 116),
+(31, 6, '2025-06-25', 'delivered', 'WELCOME10', 37),
+(32, 8, '2025-07-03', 'delivered', NULL, 83),
+(33, 36, '2025-07-04', 'delivered', 'WELCOME10', 26),
+(34, 13, '2025-07-06', 'delivered', NULL, 187),
+(35, 36, '2025-07-06', 'delivered', NULL, 45),
+(36, 8, '2025-07-12', 'delivered', NULL, 41),
+(37, 37, '2025-07-16', 'cancelled', NULL, 129),
+(38, 9, '2025-07-18', 'delivered', NULL, 96),
+(39, 24, '2025-07-21', 'delivered', 'WELCOME10', 26),
+(40, 8, '2025-08-05', 'delivered', NULL, 119),
+(41, 23, '2025-08-12', 'delivered', NULL, 25),
+(42, 26, '2025-08-15', 'delivered', NULL, 32),
+(43, 5, '2025-08-21', 'delivered', NULL, 128),
+(44, 10, '2025-08-24', 'delivered', NULL, 32),
+(45, 39, '2025-08-26', 'delivered', NULL, 258),
+(46, 19, '2025-09-07', 'returned', NULL, 217),
+(47, 20, '2025-09-10', 'delivered', NULL, 74),
+(48, 31, '2025-09-11', 'delivered', NULL, 349),
+(49, 2, '2025-09-14', 'delivered', NULL, 756),
+(50, 26, '2025-09-16', 'delivered', NULL, 35),
+(51, 37, '2025-09-16', 'delivered', NULL, 114),
+(52, 3, '2025-09-22', 'delivered', NULL, 32),
+(53, 6, '2025-09-27', 'returned', NULL, 25),
+(54, 9, '2025-09-27', 'delivered', NULL, 523),
+(55, 35, '2025-09-28', 'delivered', NULL, 87),
+(56, 18, '2025-10-07', 'returned', 'WELCOME10', 224),
+(57, 30, '2025-10-09', 'delivered', 'WELCOME10', 55),
+(58, 20, '2025-10-10', 'returned', NULL, 19),
+(59, 30, '2025-10-10', 'cancelled', NULL, 32),
+(60, 11, '2025-10-11', 'delivered', NULL, 41),
+(61, 29, '2025-10-11', 'delivered', NULL, 317),
+(62, 32, '2025-10-11', 'delivered', NULL, 258),
+(63, 8, '2025-10-13', 'delivered', NULL, 417),
+(64, 37, '2025-10-14', 'delivered', NULL, 319),
+(65, 31, '2025-10-18', 'cancelled', NULL, 29),
+(66, 22, '2025-10-19', 'delivered', 'WELCOME10', 321),
+(67, 8, '2025-10-27', 'returned', NULL, 134),
+(68, 14, '2025-10-28', 'delivered', NULL, 29),
+(69, 18, '2025-11-01', 'delivered', NULL, 154),
+(70, 37, '2025-11-06', 'delivered', NULL, 376),
+(71, 30, '2025-11-07', 'delivered', NULL, 89),
+(72, 15, '2025-11-09', 'delivered', 'WELCOME10', 51),
+(73, 18, '2025-11-09', 'delivered', NULL, 89),
+(74, 3, '2025-11-10', 'delivered', NULL, 29),
+(75, 9, '2025-11-10', 'delivered', NULL, 173),
+(76, 31, '2025-11-12', 'delivered', NULL, 154),
+(77, 27, '2025-11-15', 'returned', NULL, 15),
+(78, 19, '2025-11-16', 'delivered', NULL, 212),
+(79, 9, '2025-11-18', 'delivered', NULL, 29),
+(80, 18, '2025-11-18', 'delivered', NULL, 29),
+(81, 19, '2025-11-18', 'delivered', NULL, 19),
+(82, 34, '2025-11-19', 'delivered', 'WELCOME10', 29),
+(83, 28, '2025-11-21', 'delivered', 'WELCOME10', 150),
+(84, 30, '2025-11-22', 'cancelled', NULL, 41),
+(85, 8, '2025-11-23', 'delivered', NULL, 45),
+(86, 9, '2025-11-25', 'delivered', 'BLACKFRIDAY', 197),
+(87, 30, '2025-11-25', 'delivered', 'BLACKFRIDAY', 178),
+(88, 35, '2025-11-26', 'delivered', 'BLACKFRIDAY', 288),
+(89, 5, '2025-12-02', 'delivered', NULL, 293),
+(90, 18, '2025-12-04', 'delivered', NULL, 70),
+(91, 19, '2025-12-04', 'returned', NULL, 102),
+(92, 17, '2025-12-07', 'delivered', NULL, 109),
+(93, 19, '2025-12-07', 'delivered', NULL, 25),
+(94, 32, '2025-12-09', 'delivered', NULL, 82),
+(95, 35, '2025-12-11', 'delivered', NULL, 25),
+(96, 13, '2025-12-12', 'delivered', NULL, 307),
+(97, 17, '2025-12-14', 'delivered', NULL, 294),
+(98, 17, '2025-12-16', 'delivered', NULL, 178),
+(99, 14, '2025-12-18', 'delivered', NULL, 129),
+(100, 7, '2025-12-19', 'delivered', NULL, 174),
+(101, 18, '2025-12-19', 'delivered', NULL, 178),
+(102, 25, '2025-12-21', 'cancelled', NULL, 792),
+(103, 27, '2025-12-21', 'returned', NULL, 161),
+(104, 32, '2025-12-21', 'delivered', NULL, 19),
+(105, 18, '2025-12-23', 'delivered', NULL, 199),
+(106, 34, '2025-12-24', 'returned', NULL, 319),
+(107, 8, '2025-12-25', 'delivered', NULL, 551);
+CREATE TABLE order_items (
+    order_id    INTEGER,
+    product_id  INTEGER,
+    quantity    INTEGER,
+    price       INTEGER
+);
+INSERT INTO order_items VALUES
+(1, 11, 1, 41),
+(2, 5, 1, 139),
+(3, 4, 2, 119),
+(3, 3, 2, 29),
+(4, 3, 3, 29),
+(5, 5, 1, 139),
+(6, 3, 1, 29),
+(7, 14, 2, 19),
+(7, 11, 1, 41),
+(8, 9, 1, 15),
+(9, 6, 1, 45),
+(10, 7, 1, 39),
+(11, 13, 1, 129),
+(12, 7, 1, 39),
+(13, 13, 2, 129),
+(14, 8, 2, 25),
+(14, 14, 1, 19),
+(15, 1, 1, 89),
+(16, 14, 1, 19),
+(17, 8, 2, 25),
+(17, 1, 1, 89),
+(17, 6, 1, 45),
+(18, 4, 1, 119),
+(19, 9, 3, 15),
+(20, 9, 2, 15),
+(21, 7, 1, 39),
+(22, 7, 1, 39),
+(22, 11, 1, 41),
+(23, 3, 2, 29),
+(24, 1, 1, 89),
+(25, 9, 1, 15),
+(25, 5, 2, 139),
+(25, 6, 1, 45),
+(26, 7, 1, 39),
+(26, 10, 3, 32),
+(27, 7, 1, 39),
+(28, 10, 1, 32),
+(29, 6, 1, 45),
+(30, 13, 1, 129),
+(31, 11, 1, 41),
+(32, 14, 1, 19),
+(32, 12, 1, 35),
+(32, 3, 1, 29),
+(33, 3, 1, 29),
+(34, 3, 1, 29),
+(34, 7, 1, 39),
+(34, 4, 1, 119),
+(35, 6, 1, 45),
+(36, 11, 1, 41),
+(37, 13, 1, 129),
+(38, 10, 3, 32),
+(39, 3, 1, 29),
+(40, 4, 1, 119),
+(41, 8, 1, 25),
+(42, 10, 1, 32),
+(43, 7, 1, 39),
+(43, 1, 1, 89),
+(44, 10, 1, 32),
+(45, 13, 2, 129),
+(46, 5, 1, 139),
+(46, 7, 2, 39),
+(47, 3, 1, 29),
+(47, 6, 1, 45),
+(48, 8, 2, 25),
+(48, 13, 2, 129),
+(48, 11, 1, 41),
+(49, 2, 2, 249),
+(49, 13, 2, 129),
+(50, 12, 1, 35),
+(51, 1, 1, 89),
+(51, 8, 1, 25),
+(52, 10, 1, 32),
+(53, 8, 1, 25),
+(54, 8, 1, 25),
+(54, 2, 2, 249),
+(55, 3, 3, 29),
+(56, 2, 1, 249),
+(57, 10, 1, 32),
+(57, 3, 1, 29),
+(58, 14, 1, 19),
+(59, 10, 1, 32),
+(60, 11, 1, 41),
+(61, 5, 1, 139),
+(61, 1, 2, 89),
+(62, 13, 2, 129),
+(63, 5, 3, 139),
+(64, 11, 1, 41),
+(64, 5, 2, 139),
+(65, 3, 1, 29),
+(66, 4, 3, 119),
+(67, 6, 1, 45),
+(67, 1, 1, 89),
+(68, 3, 1, 29),
+(69, 4, 1, 119),
+(69, 12, 1, 35),
+(70, 3, 1, 29),
+(70, 1, 1, 89),
+(70, 13, 2, 129),
+(71, 1, 1, 89),
+(72, 10, 1, 32),
+(72, 8, 1, 25),
+(73, 1, 1, 89),
+(74, 3, 1, 29),
+(75, 3, 1, 29),
+(75, 4, 1, 119),
+(75, 8, 1, 25),
+(76, 12, 1, 35),
+(76, 4, 1, 119),
+(77, 9, 1, 15),
+(78, 13, 1, 129),
+(78, 14, 1, 19),
+(78, 10, 2, 32),
+(79, 3, 1, 29),
+(80, 3, 1, 29),
+(81, 14, 1, 19),
+(82, 10, 1, 32),
+(83, 1, 1, 89),
+(83, 7, 2, 39),
+(84, 11, 1, 41),
+(85, 6, 1, 45),
+(86, 12, 1, 35),
+(86, 11, 2, 41),
+(86, 13, 1, 129),
+(87, 1, 2, 89),
+(87, 8, 1, 25),
+(87, 14, 1, 19),
+(88, 5, 2, 139),
+(88, 11, 2, 41),
+(89, 5, 2, 139),
+(89, 9, 1, 15),
+(90, 14, 2, 19),
+(90, 10, 1, 32),
+(91, 12, 2, 35),
+(91, 10, 1, 32),
+(92, 14, 1, 19),
+(92, 6, 2, 45),
+(93, 8, 1, 25),
+(94, 8, 2, 25),
+(94, 10, 1, 32),
+(95, 8, 1, 25),
+(96, 3, 1, 29),
+(96, 5, 2, 139),
+(97, 6, 1, 45),
+(97, 2, 1, 249),
+(98, 1, 2, 89),
+(99, 13, 1, 129),
+(100, 5, 1, 139),
+(100, 12, 1, 35),
+(101, 1, 2, 89),
+(102, 2, 3, 249),
+(102, 6, 1, 45),
+(103, 10, 1, 32),
+(103, 13, 1, 129),
+(104, 14, 1, 19),
+(105, 9, 1, 15),
+(105, 6, 1, 45),
+(105, 5, 1, 139),
+(106, 2, 1, 249),
+(106, 12, 2, 35),
+(107, 13, 3, 129),
+(107, 8, 1, 25),
+(107, 5, 1, 139);"""
+
 COURSE = {
+    # Two courses on one site: the lessons say which one they belong to ("track"; "base" when missing)
+    "tracks": [
+        {"id": "base", "title": {"en": "SQL basics", "ru": "Основы SQL"}},
+        {"id": "analyst", "title": {"en": "SQL for analysts", "ru": "SQL для аналитиков"},
+         "about": {"en": "Business questions about one online shop", "ru": "Вопросы бизнеса про один интернет-магазин"}},
+    ],
+    "seeds": {"shop": SHOP_SEED},
     "lessons": [
         {
             "id": 1,
@@ -1985,5 +2350,471 @@ INSERT INTO orders VALUES
             "title": {"en": "Indexes, Views, Transactions", "ru": "Индексы, представления, транзакции"},
             "topics": {"en": "Performance & data integrity basics", "ru": "Основы производительности и целостности данных"},
         },
+        {'id': 101,
+          'track': 'analyst',
+          'available': True,
+          'title': {'en': 'Warm-up: the shop and business questions', 'ru': 'Разминка: магазин и вопросы бизнеса'},
+          'topics': {'en': 'SELECT, WHERE, ORDER BY, LIMIT, calculated columns', 'ru': 'SELECT, WHERE, ORDER BY, LIMIT, вычисляемые столбцы'},
+          'check': 'values',
+          'theory': {'en': '<p>Welcome to the analyst course. Here you repeat SQL on real business questions about one online shop.</p>\n'
+                           '<h4>The data</h4>\n'
+                           '<ul>\n'
+                           '  <li><code>customers</code> — who our customers are: city, signup date, the channel they came from (organic, ads, referral, social).</li>\n'
+                           '  <li><code>products</code> — the catalogue: category, price and cost (what the product costs us).</li>\n'
+                           '  <li><code>orders</code> — every order of 2025: customer, date, status (delivered, cancelled, returned), promo code and amount.</li>\n'
+                           '  <li><code>order_items</code> — what is inside each order: product, quantity, price.</li>\n'
+                           '</ul>\n'
+                           '<h4>How the tasks work</h4>\n'
+                           '<p>A question comes from a colleague. Decide the table, the rows, the columns and the order yourself. The answer is checked by its values: the column names '
+                           'are up to you, but keep the order of the columns from the question.</p>',
+                     'ru': '<p>Добро пожаловать в курс для аналитиков. Здесь ты повторяешь SQL на настоящих вопросах бизнеса про один интернет-магазин.</p>\n'
+                           '<h4>Данные</h4>\n'
+                           '<ul>\n'
+                           '  <li><code>customers</code> — кто наши клиенты: город, дата регистрации, канал, из которого они пришли (organic, ads, referral, social).</li>\n'
+                           '  <li><code>products</code> — каталог: категория, цена и себестоимость (во сколько товар обходится нам).</li>\n'
+                           '  <li><code>orders</code> — все заказы 2025 года: клиент, дата, статус (delivered, cancelled, returned), промокод и сумма.</li>\n'
+                           '  <li><code>order_items</code> — что внутри каждого заказа: товар, количество, цена.</li>\n'
+                           '</ul>\n'
+                           '<h4>Как устроены задания</h4>\n'
+                           '<p>Вопрос приходит от коллеги. Таблицу, строки, столбцы и порядок решай сама. Ответ проверяется по значениям: названия столбцов — на твой выбор, но порядок '
+                           'столбцов должен быть как в вопросе.</p>'},
+          'tips': {'en': ['Before she writes SQL, ask her to say the four steps aloud: table → rows → columns → order/limit.',
+                          'Play the colleague: rephrase a question in other words and see if she finds the same query.',
+                          'Task 12 is about integer division: if she gets 0 or 1 everywhere, that is the reason.'],
+                   'ru': ['Прежде чем писать SQL, проси её проговорить четыре шага вслух: таблица → строки → столбцы → порядок/лимит.',
+                          'Играй роль коллеги: переформулируй вопрос другими словами и посмотри, найдёт ли она тот же запрос.',
+                          'Задание 12 — про целочисленное деление: если везде получается 0 или 1, причина в этом.']},
+          'tables': ['customers', 'products', 'orders', 'order_items'],
+          'seed': SHOP_SEED,
+          'seed_ref': 'shop',
+          'tasks': [{'id': 'an1.1',
+                     'text': {'en': 'The marketing team asks: which customers came to us from <b>ads</b>? Show their name and city.',
+                              'ru': 'Маркетинг спрашивает: какие клиенты пришли к нам из <b>рекламы</b> (ads)? Покажи их имя и город.'},
+                     'answer': "SELECT name, city FROM customers WHERE channel = 'ads';",
+                     'section': {'en': 'A · Meet the shop', 'ru': 'A · Знакомство с магазином'},
+                     'intro': {'en': '<p>From now on you work as an analyst of a small online shop. Questions come from colleagues in plain words, and your job is to turn them into a '
+                                     'query.</p>\n'
+                                     '<p>Read every question in four steps: <b>which table?</b> → <b>which rows?</b> (<code>WHERE</code>) → <b>which columns?</b> → <b>in what order, how '
+                                     'many?</b> (<code>ORDER BY</code>, <code>LIMIT</code>).</p>\n'
+                                     '<p>The result is checked by its values. Name the columns as you like, but keep them in the order the question asks for.</p>\n'
+                                     '<p><b>Example:</b> “Which customers live in Berlin?”</p>',
+                               'ru': '<p>Теперь ты аналитик небольшого интернет-магазина. Вопросы приходят от коллег обычными словами, а твоя работа — превратить их в запрос.</p>\n'
+                                     '<p>Читай каждый вопрос в четыре шага: <b>какая таблица?</b> → <b>какие строки?</b> (<code>WHERE</code>) → <b>какие столбцы?</b> → <b>в каком '
+                                     'порядке, сколько?</b> (<code>ORDER BY</code>, <code>LIMIT</code>).</p>\n'
+                                     '<p>Результат проверяется по значениям. Столбцы можно называть как угодно, но порядок должен быть таким, как в вопросе.</p>\n'
+                                     '<p><b>Пример:</b> «Какие клиенты живут в Берлине?»</p>'},
+                     'example': "SELECT name, channel\nFROM customers\nWHERE city = 'Berlin';"},
+                    {'id': 'an1.2',
+                     'text': {'en': 'Which products cost more than 100? Show the name and the price, the most expensive first.',
+                              'ru': 'Какие товары стоят дороже 100? Покажи название и цену, сначала самые дорогие.'},
+                     'answer': 'SELECT name, price FROM products WHERE price > 100 ORDER BY price DESC;'},
+                    {'id': 'an1.3',
+                     'text': {'en': 'Customer support wants the list of all <b>cancelled</b> orders (all columns).',
+                              'ru': 'Поддержке нужен список всех <b>отменённых</b> (cancelled) заказов (все столбцы).'},
+                     'answer': "SELECT * FROM orders WHERE status = 'cancelled';"},
+                    {'id': 'an1.4',
+                     'text': {'en': 'The CEO asks for the 5 biggest orders of the year: order number, date and amount, the biggest first.',
+                              'ru': 'Директор просит 5 самых крупных заказов года: номер заказа, дату и сумму, сначала самый крупный.'},
+                     'answer': 'SELECT order_id, order_date, amount FROM orders ORDER BY amount DESC LIMIT 5;'},
+                    {'id': 'an1.5',
+                     'text': {'en': 'Data quality check: which customers have no city filled in? Show the customer id and the name.',
+                              'ru': 'Проверка качества данных: у каких клиентов не заполнен город? Покажи id клиента и имя.'},
+                     'answer': 'SELECT customer_id, name FROM customers WHERE city IS NULL;'},
+                    {'id': 'an1.6',
+                     'text': {'en': 'Finance wants all orders of <b>December 2025</b> that were placed with a promo code (any).',
+                              'ru': 'Финансам нужны все заказы <b>декабря 2025</b>, сделанные с промокодом (любым).'},
+                     'answer': "SELECT * FROM orders WHERE promo_code IS NOT NULL AND order_date BETWEEN '2025-12-01' AND '2025-12-31';",
+                     'section': {'en': 'B · Filters in business language', 'ru': 'B · Фильтры на языке бизнеса'},
+                     'intro': {'en': '<p>Business questions often hide several conditions in one sentence. Write each one down separately, then join them with <code>AND</code> / '
+                                     '<code>OR</code>, and put brackets around every <code>OR</code>.</p>\n'
+                                     "<ul><li>“in December” → <code>order_date BETWEEN '2025-12-01' AND '2025-12-31'</code> (dates are text <code>'YYYY-MM-DD'</code>, so they compare "
+                                     'correctly);</li>\n'
+                                     '<li>“with a promo code” → <code>promo_code IS NOT NULL</code>;</li>\n'
+                                     "<li>“from ads or social” → <code>channel IN ('ads', 'social')</code>.</li></ul>\n"
+                                     '<p><b>Example:</b> “Delivered orders of the first quarter over 300”.</p>',
+                               'ru': '<p>В вопросах бизнеса в одном предложении часто спрятано несколько условий. Выпиши каждое отдельно, потом соедини их через <code>AND</code> / '
+                                     '<code>OR</code> и ставь скобки вокруг каждого <code>OR</code>.</p>\n'
+                                     "<ul><li>«в декабре» → <code>order_date BETWEEN '2025-12-01' AND '2025-12-31'</code> (даты — это текст <code>'YYYY-MM-DD'</code>, поэтому "
+                                     'сравниваются правильно);</li>\n'
+                                     '<li>«с промокодом» → <code>promo_code IS NOT NULL</code>;</li>\n'
+                                     "<li>«из рекламы или соцсетей» → <code>channel IN ('ads', 'social')</code>.</li></ul>\n"
+                                     '<p><b>Пример:</b> «Доставленные заказы первого квартала больше 300».</p>'},
+                     'example': 'SELECT order_id, order_date, amount\n'
+                                'FROM orders\n'
+                                "WHERE status = 'delivered'\n"
+                                "  AND order_date BETWEEN '2025-01-01' AND '2025-03-31'\n"
+                                '  AND amount > 300;'},
+                    {'id': 'an1.7',
+                     'text': {'en': 'Show the <b>delivered</b> orders over 200 from the second half of the year (July–December): all columns.',
+                              'ru': 'Покажи <b>доставленные</b> заказы больше 200 за второе полугодие (июль–декабрь): все столбцы.'},
+                     'answer': "SELECT * FROM orders WHERE status = 'delivered' AND amount > 200 AND order_date >= '2025-07-01';"},
+                    {'id': 'an1.8',
+                     'text': {'en': 'The buyer asks: which products from <b>Electronics</b> or <b>Sport</b> cost less than 100? Show name, category and price.',
+                              'ru': 'Закупщик спрашивает: какие товары из <b>Electronics</b> или <b>Sport</b> стоят меньше 100? Покажи название, категорию и цену.'},
+                     'answer': "SELECT name, category, price FROM products WHERE (category = 'Electronics' OR category = 'Sport') AND price < 100;"},
+                    {'id': 'an1.9',
+                     'text': {'en': 'Which customers signed up in 2025 through <b>ads</b> or <b>social</b> networks? Show name, signup date and channel.',
+                              'ru': 'Какие клиенты зарегистрировались в 2025 году через <b>рекламу</b> (ads) или <b>соцсети</b> (social)? Покажи имя, дату регистрации и канал.'},
+                     'answer': "SELECT name, signup_date, channel FROM customers WHERE signup_date >= '2025-01-01' AND channel IN ('ads', 'social');"},
+                    {'id': 'an1.10',
+                     'text': {'en': 'Logistics asks for every order that did <b>not</b> reach the customer happily: cancelled or returned. All columns.',
+                              'ru': 'Логистика просит все заказы, которые <b>не</b> дошли до клиента благополучно: отменённые или возвращённые. Все столбцы.'},
+                     'answer': "SELECT * FROM orders WHERE status <> 'delivered';"},
+                    {'id': 'an1.11',
+                     'text': {'en': 'For every product show name, price, cost and the <b>margin</b> in money: price minus cost.',
+                              'ru': 'Для каждого товара покажи название, цену, себестоимость и <b>маржу</b> в деньгах: цена минус себестоимость.'},
+                     'answer': 'SELECT name, price, cost, price - cost AS margin FROM products;',
+                     'section': {'en': 'C · Calculated columns', 'ru': 'C · Вычисляемые столбцы'},
+                     'intro': {'en': '<p>Analysts constantly calculate new columns: margin, discount, share. In <code>SELECT</code> you can use <code>+ - * /</code> and give the result a '
+                                     'name with <code>AS</code>.</p>\n'
+                                     '<p><b>Trap:</b> integer ÷ integer in SQLite (and PostgreSQL) is integer: <code>45 / 100</code> = 0. To get a percent, multiply by <code>100.0</code> '
+                                     'first: <code>45 * 100.0 / 100</code> = 45.0. <code>ROUND(x, 1)</code> keeps one digit after the point.</p>\n'
+                                     '<p><b>Example:</b> the price of each product with a 20% Black Friday discount.</p>',
+                               'ru': '<p>Аналитики постоянно считают новые столбцы: маржу, скидку, долю. В <code>SELECT</code> можно использовать <code>+ - * /</code> и называть '
+                                     'результат через <code>AS</code>.</p>\n'
+                                     '<p><b>Ловушка:</b> целое ÷ целое в SQLite (и в PostgreSQL) даёт целое: <code>45 / 100</code> = 0. Чтобы получить процент, сначала умножь на '
+                                     '<code>100.0</code>: <code>45 * 100.0 / 100</code> = 45.0. <code>ROUND(x, 1)</code> оставляет одну цифру после точки.</p>\n'
+                                     '<p><b>Пример:</b> цена каждого товара со скидкой 20% в Чёрную пятницу.</p>'},
+                     'example': 'SELECT name, price, price * 0.8 AS black_friday_price\nFROM products;'},
+                    {'id': 'an1.12',
+                     'text': {'en': "Show each product's name and its margin as a <b>percent of the price</b>, rounded to 1 decimal, the highest margin first.",
+                              'ru': 'Покажи название каждого товара и его маржу в <b>процентах от цены</b>, округлённую до 1 знака, сначала самая высокая.'},
+                     'answer': 'SELECT name, ROUND((price - cost) * 100.0 / price, 1) AS margin_pct FROM products ORDER BY margin_pct DESC;'},
+                    {'id': 'an1.13',
+                     'text': {'en': 'Which products earn us less than 50% margin? Show the name, price and cost.',
+                              'ru': 'На каких товарах маржа меньше 50%? Покажи название, цену и себестоимость.'},
+                     'answer': 'SELECT name, price, cost FROM products WHERE (price - cost) * 100.0 / price < 50;'},
+                    {'id': 'an1.14',
+                     'text': {'en': 'A manager is calling customer number 18. Show her 3 most recent orders: order number, date, status and amount.',
+                              'ru': 'Менеджер звонит клиентке номер 18. Покажи её 3 последних заказа: номер, дату, статус и сумму.'},
+                     'answer': 'SELECT order_id, order_date, status, amount FROM orders WHERE customer_id = 18 ORDER BY order_date DESC LIMIT 3;'},
+                    {'id': 'an1.15',
+                     'text': {'en': 'Which promo codes have customers actually used? Show each code once.',
+                              'ru': 'Какие промокоды клиенты реально использовали? Покажи каждый код один раз.'},
+                     'answer': 'SELECT DISTINCT promo_code FROM orders WHERE promo_code IS NOT NULL;'}]},
+         {'id': 102,
+          'track': 'analyst',
+          'available': True,
+          'title': {'en': 'Totals and averages', 'ru': 'Итоги и средние'},
+          'topics': {'en': 'COUNT, SUM, AVG, MIN, MAX, DISTINCT, shares', 'ru': 'COUNT, SUM, AVG, MIN, MAX, DISTINCT, доли'},
+          'check': 'values',
+          'theory': {'en': '<p>Most business questions are about <b>one number</b>: how many, how much, what is the average. That is what aggregate functions do.</p>\n'
+                           '<table class="ops"><thead><tr><th>Function</th><th>Meaning</th><th>Excel</th></tr></thead><tbody>\n'
+                           '<tr><td><code>COUNT(*)</code></td><td>number of rows</td><td>COUNTA</td></tr>\n'
+                           '<tr><td><code>COUNT(DISTINCT x)</code></td><td>number of different values</td><td>—</td></tr>\n'
+                           '<tr><td><code>SUM(x)</code></td><td>total</td><td>SUM</td></tr>\n'
+                           '<tr><td><code>AVG(x)</code></td><td>average</td><td>AVERAGE</td></tr>\n'
+                           '<tr><td><code>MIN(x)</code> / <code>MAX(x)</code></td><td>smallest / largest</td><td>MIN / MAX</td></tr>\n'
+                           '</tbody></table>\n'
+                           '<p>All of them skip <code>NULL</code> (except <code>COUNT(*)</code>, which counts rows). <code>WHERE</code> filters the rows before they are counted.</p>',
+                     'ru': '<p>Большинство вопросов бизнеса — про <b>одно число</b>: сколько, на какую сумму, какое среднее. Это и делают агрегатные функции.</p>\n'
+                           '<table class="ops"><thead><tr><th>Функция</th><th>Смысл</th><th>Excel</th></tr></thead><tbody>\n'
+                           '<tr><td><code>COUNT(*)</code></td><td>число строк</td><td>СЧЁТЗ</td></tr>\n'
+                           '<tr><td><code>COUNT(DISTINCT x)</code></td><td>число разных значений</td><td>—</td></tr>\n'
+                           '<tr><td><code>SUM(x)</code></td><td>сумма</td><td>СУММ</td></tr>\n'
+                           '<tr><td><code>AVG(x)</code></td><td>среднее</td><td>СРЗНАЧ</td></tr>\n'
+                           '<tr><td><code>MIN(x)</code> / <code>MAX(x)</code></td><td>минимум / максимум</td><td>МИН / МАКС</td></tr>\n'
+                           '</tbody></table>\n'
+                           '<p>Все они пропускают <code>NULL</code> (кроме <code>COUNT(*)</code>, который считает строки). <code>WHERE</code> отбирает строки до подсчёта.</p>'},
+          'tips': {'en': ['Ask “what number do you expect, roughly?” before running: analysts must notice when a result looks wrong.',
+                          'COUNT(*) vs COUNT(column) vs COUNT(DISTINCT column): let her run all three on the same column and explain the difference.',
+                          'Revenue = delivered orders only. This rule comes back in every lesson.'],
+                   'ru': ['Перед запуском спрашивай «какое число примерно ожидаешь?»: аналитик должен замечать, когда результат выглядит неправдоподобно.',
+                          'COUNT(*), COUNT(столбец) и COUNT(DISTINCT столбец): пусть запустит все три на одном столбце и объяснит разницу.',
+                          'Выручка = только доставленные заказы. Это правило будет в каждом уроке.']},
+          'tables': ['customers', 'products', 'orders', 'order_items'],
+          'seed': SHOP_SEED,
+          'seed_ref': 'shop',
+          'tasks': [{'id': 'an2.1',
+                     'text': {'en': 'How many customers do we have?', 'ru': 'Сколько у нас клиентов?'},
+                     'answer': 'SELECT COUNT(*) FROM customers;',
+                     'section': {'en': 'A · How many? COUNT', 'ru': 'A · Сколько? COUNT'},
+                     'intro': {'en': '<p>An <b>aggregate function</b> turns many rows into one number, like the sum in the Excel status bar when you select a column.</p>\n'
+                                     '<ul><li><code>COUNT(*)</code> — how many rows;</li>\n'
+                                     '<li><code>COUNT(column)</code> — how many rows where the column is <b>not</b> <code>NULL</code>;</li>\n'
+                                     '<li><code>COUNT(DISTINCT column)</code> — how many <b>different</b> values.</li></ul>\n'
+                                     "<p><code>WHERE</code> works first, so <code>SELECT COUNT(*) FROM orders WHERE status = 'delivered'</code> counts only delivered orders.</p>\n"
+                                     '<p><b>Example:</b> all three kinds of COUNT on one column.</p>',
+                               'ru': '<p><b>Агрегатная функция</b> превращает много строк в одно число, как сумма в строке состояния Excel, когда выделяешь столбец.</p>\n'
+                                     '<ul><li><code>COUNT(*)</code> — сколько строк;</li>\n'
+                                     '<li><code>COUNT(column)</code> — в скольких строках столбец <b>не</b> <code>NULL</code>;</li>\n'
+                                     '<li><code>COUNT(DISTINCT column)</code> — сколько <b>разных</b> значений.</li></ul>\n'
+                                     "<p><code>WHERE</code> работает раньше, поэтому <code>SELECT COUNT(*) FROM orders WHERE status = 'delivered'</code> считает только доставленные "
+                                     'заказы.</p>\n'
+                                     '<p><b>Пример:</b> все три вида COUNT на одном столбце.</p>'},
+                     'example': 'SELECT COUNT(*) AS all_rows,\n       COUNT(city) AS with_city,\n       COUNT(DISTINCT city) AS cities\nFROM customers;'},
+                    {'id': 'an2.2',
+                     'text': {'en': 'How many orders were <b>delivered</b>?', 'ru': 'Сколько заказов было <b>доставлено</b>?'},
+                     'answer': "SELECT COUNT(*) FROM orders WHERE status = 'delivered';"},
+                    {'id': 'an2.3',
+                     'text': {'en': 'How many orders were placed with a promo code?', 'ru': 'Сколько заказов сделано с промокодом?'},
+                     'answer': 'SELECT COUNT(promo_code) FROM orders;'},
+                    {'id': 'an2.4',
+                     'text': {'en': 'How many <b>different</b> customers have placed at least one order?', 'ru': 'Сколько <b>разных</b> клиентов сделали хотя бы один заказ?'},
+                     'answer': 'SELECT COUNT(DISTINCT customer_id) FROM orders;'},
+                    {'id': 'an2.5',
+                     'text': {'en': 'In how many different cities do our customers live? (An unknown city is not a city.)',
+                              'ru': 'В скольких разных городах живут наши клиенты? (Неизвестный город — не город.)'},
+                     'answer': 'SELECT COUNT(DISTINCT city) FROM customers;'},
+                    {'id': 'an2.6',
+                     'text': {'en': 'What is our <b>revenue</b>: the total amount of the delivered orders?', 'ru': 'Какая у нас <b>выручка</b>: общая сумма доставленных заказов?'},
+                     'answer': "SELECT SUM(amount) FROM orders WHERE status = 'delivered';",
+                     'section': {'en': 'B · How much? SUM and AVG', 'ru': 'B · Сколько денег? SUM и AVG'},
+                     'intro': {'en': '<p><code>SUM(column)</code> adds the values up, <code>AVG(column)</code> gives the average. Both skip <code>NULL</code>.</p>\n'
+                                     '<p><b>Revenue</b> usually means the money of <b>delivered</b> orders only: cancelled and returned orders bring nothing. The average amount of an '
+                                     'order is called the <b>average check</b> (AOV).</p>\n'
+                                     '<p><b>Example:</b> the total and the average amount of all cancelled orders.</p>',
+                               'ru': '<p><code>SUM(column)</code> складывает значения, <code>AVG(column)</code> даёт среднее. Обе пропускают <code>NULL</code>.</p>\n'
+                                     '<p><b>Выручка</b> обычно — это деньги только <b>доставленных</b> заказов: отменённые и возвращённые ничего не приносят. Средняя сумма заказа '
+                                     'называется <b>средним чеком</b>.</p>\n'
+                                     '<p><b>Пример:</b> общая и средняя сумма всех отменённых заказов.</p>'},
+                     'example': "SELECT SUM(amount) AS total, AVG(amount) AS average\nFROM orders\nWHERE status = 'cancelled';"},
+                    {'id': 'an2.7',
+                     'text': {'en': 'What is the <b>average check</b> of delivered orders? Round it to 2 decimals.',
+                              'ru': 'Какой <b>средний чек</b> у доставленных заказов? Округли до 2 знаков.'},
+                     'answer': "SELECT ROUND(AVG(amount), 2) FROM orders WHERE status = 'delivered';"},
+                    {'id': 'an2.8',
+                     'text': {'en': 'What was the revenue of the <b>fourth quarter</b> (October–December)?', 'ru': 'Какой была выручка в <b>четвёртом квартале</b> (октябрь–декабрь)?'},
+                     'answer': "SELECT SUM(amount) FROM orders WHERE status = 'delivered' AND order_date >= '2025-10-01';"},
+                    {'id': 'an2.9',
+                     'text': {'en': 'How much money did we lose on cancelled and returned orders?', 'ru': 'Сколько денег мы потеряли на отменённых и возвращённых заказах?'},
+                     'answer': "SELECT SUM(amount) FROM orders WHERE status IN ('cancelled', 'returned');"},
+                    {'id': 'an2.10',
+                     'text': {'en': 'The warehouse asks: how many product units were ordered in total (all orders)?',
+                              'ru': 'Склад спрашивает: сколько единиц товара было заказано всего (во всех заказах)?'},
+                     'answer': 'SELECT SUM(quantity) FROM order_items;'},
+                    {'id': 'an2.11',
+                     'text': {'en': 'Show the biggest and the smallest <b>delivered</b> order amount: two numbers.',
+                              'ru': 'Покажи самую большую и самую маленькую сумму <b>доставленного</b> заказа: два числа.'},
+                     'answer': "SELECT MAX(amount), MIN(amount) FROM orders WHERE status = 'delivered';",
+                     'section': {'en': 'C · Extremes: MIN and MAX', 'ru': 'C · Крайние значения: MIN и MAX'},
+                     'intro': {'en': '<p><code>MIN</code> and <code>MAX</code> work for numbers, texts (alphabetically) and dates (the earliest and the latest).</p>\n'
+                                     '<p>One query can return several aggregates at once: <code>SELECT MIN(price), MAX(price) FROM products</code>.</p>\n'
+                                     '<p><b>Example:</b> when did the first and the last customer sign up?</p>',
+                               'ru': '<p><code>MIN</code> и <code>MAX</code> работают с числами, текстом (по алфавиту) и датами (самая ранняя и самая поздняя).</p>\n'
+                                     '<p>Один запрос может вернуть несколько агрегатов сразу: <code>SELECT MIN(price), MAX(price) FROM products</code>.</p>\n'
+                                     '<p><b>Пример:</b> когда зарегистрировались первый и последний клиенты?</p>'},
+                     'example': 'SELECT MIN(signup_date) AS first_signup,\n       MAX(signup_date) AS last_signup\nFROM customers;'},
+                    {'id': 'an2.12',
+                     'text': {'en': 'When was the first order of the year placed, and when the last one?', 'ru': 'Когда был сделан первый заказ года, а когда последний?'},
+                     'answer': 'SELECT MIN(order_date), MAX(order_date) FROM orders;'},
+                    {'id': 'an2.13',
+                     'text': {'en': 'For the price list: the cheapest price, the most expensive price and the average price (rounded to 2 decimals).',
+                              'ru': 'Для прайс-листа: самая низкая цена, самая высокая и средняя (округлённая до 2 знаков).'},
+                     'answer': 'SELECT MIN(price), MAX(price), ROUND(AVG(price), 2) FROM products;'},
+                    {'id': 'an2.14',
+                     'text': {'en': 'A one-line report on delivered orders: number of orders, number of different customers, revenue and the average check (rounded to 2 decimals).',
+                              'ru': 'Отчёт в одну строку по доставленным заказам: число заказов, число разных клиентов, выручка и средний чек (округлённый до 2 знаков).'},
+                     'answer': "SELECT COUNT(*), COUNT(DISTINCT customer_id), SUM(amount), ROUND(AVG(amount), 2) FROM orders WHERE status = 'delivered';",
+                     'section': {'en': 'D · A small report', 'ru': 'D · Маленький отчёт'},
+                     'intro': {'en': '<p>A real report is several numbers next to each other. Put all the aggregates into one <code>SELECT</code>.</p>\n'
+                                     '<p>A <b>share</b> (percent) is “how many of them” ÷ “how many in total” × 100. A comparison is 1 or 0 (remember the logic lesson), so '
+                                     "<code>SUM(status = 'returned')</code> counts the returned orders, and <code>AVG(status = 'returned')</code> is directly their share.</p>\n"
+                                     '<p><b>Example:</b> the share of orders with a promo code, in percent.</p>',
+                               'ru': '<p>Настоящий отчёт — это несколько чисел рядом. Помести все агрегаты в один <code>SELECT</code>.</p>\n'
+                                     '<p><b>Доля</b> (процент) — это «сколько таких» ÷ «сколько всего» × 100. Сравнение — это 1 или 0 (вспомни урок логики), поэтому <code>SUM(status = '
+                                     "'returned')</code> считает возвращённые заказы, а <code>AVG(status = 'returned')</code> — это сразу их доля.</p>\n"
+                                     '<p><b>Пример:</b> доля заказов с промокодом в процентах.</p>'},
+                     'example': 'SELECT ROUND(COUNT(promo_code) * 100.0 / COUNT(*), 1) AS promo_share_pct\nFROM orders;'},
+                    {'id': 'an2.15',
+                     'text': {'en': 'What percent of all orders were <b>cancelled</b>? Round to 1 decimal.', 'ru': 'Какой процент всех заказов был <b>отменён</b>? Округли до 1 знака.'},
+                     'answer': "SELECT ROUND(SUM(status = 'cancelled') * 100.0 / COUNT(*), 1) FROM orders;"},
+                    {'id': 'an2.16',
+                     'text': {'en': 'What is the average margin of our products in money (price minus cost), rounded to 2 decimals?',
+                              'ru': 'Какая средняя маржа наших товаров в деньгах (цена минус себестоимость), с округлением до 2 знаков?'},
+                     'answer': 'SELECT ROUND(AVG(price - cost), 2) FROM products;'}]},
+         {'id': 103,
+          'track': 'analyst',
+          'available': True,
+          'title': {'en': 'Pivot tables: GROUP BY and HAVING', 'ru': 'Сводные таблицы: GROUP BY и HAVING'},
+          'topics': {'en': 'Groups, top lists, filters on groups, months', 'ru': 'Группы, топы, фильтры по группам, месяцы'},
+          'check': 'values',
+          'theory': {'en': '<p><code>GROUP BY</code> turns one number into a <b>pivot table</b>: the same aggregate, but for every group.</p>\n'
+                           '<pre class="code">SELECT column, AGGREGATE(...)\n'
+                           'FROM table\n'
+                           'WHERE row_condition\n'
+                           'GROUP BY column\n'
+                           'HAVING group_condition\n'
+                           'ORDER BY ...\n'
+                           'LIMIT n;</pre>\n'
+                           '<ul>\n'
+                           '  <li>Every column in <code>SELECT</code> is in <code>GROUP BY</code> or inside an aggregate.</li>\n'
+                           '  <li><code>WHERE</code> filters rows before grouping, <code>HAVING</code> filters groups after it.</li>\n'
+                           "  <li>The month of a date: <code>strftime('%Y-%m', date)</code>.</li>\n"
+                           '</ul>',
+                     'ru': '<p><code>GROUP BY</code> превращает одно число в <b>сводную таблицу</b>: тот же агрегат, но для каждой группы.</p>\n'
+                           '<pre class="code">SELECT column, AGGREGATE(...)\n'
+                           'FROM table\n'
+                           'WHERE row_condition\n'
+                           'GROUP BY column\n'
+                           'HAVING group_condition\n'
+                           'ORDER BY ...\n'
+                           'LIMIT n;</pre>\n'
+                           '<ul>\n'
+                           '  <li>Каждый столбец в <code>SELECT</code> либо в <code>GROUP BY</code>, либо внутри агрегата.</li>\n'
+                           '  <li><code>WHERE</code> фильтрует строки до группировки, <code>HAVING</code> — группы после.</li>\n'
+                           "  <li>Месяц даты: <code>strftime('%Y-%m', date)</code>.</li>\n"
+                           '</ul>'},
+          'tips': {'en': ['Draw the pivot table on paper first: what are the rows, what is in the cells?',
+                          'WHERE vs HAVING: ask “is this a condition on one order or on the whole customer?”',
+                          'Check the totals: the sum over all groups must equal the number from the aggregates lesson.'],
+                   'ru': ['Сначала нарисуйте сводную таблицу на бумаге: что в строках, что в клетках?',
+                          'WHERE или HAVING: спрашивай «это условие про один заказ или про клиента целиком?»',
+                          'Проверяйте итоги: сумма по всем группам должна совпасть с числом из урока про агрегаты.']},
+          'tables': ['customers', 'products', 'orders', 'order_items'],
+          'seed': SHOP_SEED,
+          'seed_ref': 'shop',
+          'tasks': [{'id': 'an3.1',
+                     'text': {'en': 'How many customers came from each channel? Show the channel and the number of customers.',
+                              'ru': 'Сколько клиентов пришло из каждого канала? Покажи канал и число клиентов.'},
+                     'answer': 'SELECT channel, COUNT(*) FROM customers GROUP BY channel;',
+                     'section': {'en': 'A · Pivot tables', 'ru': 'A · Сводные таблицы'},
+                     'intro': {'en': '<p><code>GROUP BY</code> is a <b>pivot table</b>: the rows are the groups (one per value of the column), and the aggregate is counted inside each '
+                                     'group.</p>\n'
+                                     '<pre class="code">SELECT status, COUNT(*)      -- one row per status\n'
+                                     'FROM orders\n'
+                                     'GROUP BY status;</pre>\n'
+                                     '<p>The rule: every column in <code>SELECT</code> is either in <code>GROUP BY</code> or inside an aggregate. <code>NULL</code> forms its own '
+                                     'group.</p>\n'
+                                     '<p><b>Example:</b> how many products in each category, and the most expensive one.</p>',
+                               'ru': '<p><code>GROUP BY</code> — это <b>сводная таблица</b>: строки — это группы (по одной на каждое значение столбца), а агрегат считается внутри каждой '
+                                     'группы.</p>\n'
+                                     '<pre class="code">SELECT status, COUNT(*)      -- одна строка на статус\n'
+                                     'FROM orders\n'
+                                     'GROUP BY status;</pre>\n'
+                                     '<p>Правило: каждый столбец в <code>SELECT</code> либо есть в <code>GROUP BY</code>, либо внутри агрегата. <code>NULL</code> образует свою '
+                                     'группу.</p>\n'
+                                     '<p><b>Пример:</b> сколько товаров в каждой категории и самая высокая цена.</p>'},
+                     'example': 'SELECT category, COUNT(*) AS products, MAX(price) AS max_price\nFROM products\nGROUP BY category;'},
+                    {'id': 'an3.2',
+                     'text': {'en': 'How many orders are there in each status?', 'ru': 'Сколько заказов в каждом статусе?'},
+                     'answer': 'SELECT status, COUNT(*) FROM orders GROUP BY status;'},
+                    {'id': 'an3.3',
+                     'text': {'en': 'For each category: the number of products and the average price (rounded to 2 decimals).',
+                              'ru': 'Для каждой категории: число товаров и средняя цена (округлённая до 2 знаков).'},
+                     'answer': 'SELECT category, COUNT(*), ROUND(AVG(price), 2) FROM products GROUP BY category;'},
+                    {'id': 'an3.4',
+                     'text': {'en': 'Revenue of delivered orders by promo code (orders without a code are a group too).',
+                              'ru': 'Выручка доставленных заказов по промокодам (заказы без кода — тоже группа).'},
+                     'answer': "SELECT promo_code, SUM(amount) FROM orders WHERE status = 'delivered' GROUP BY promo_code;"},
+                    {'id': 'an3.5',
+                     'text': {'en': 'Where do our customers live? Number of customers per city, the biggest city first.',
+                              'ru': 'Где живут наши клиенты? Число клиентов по городам, сначала самый большой город.'},
+                     'answer': 'SELECT city, COUNT(*) AS customers FROM customers GROUP BY city ORDER BY customers DESC;'},
+                    {'id': 'an3.6',
+                     'text': {'en': 'Who are our top 5 customers by revenue? Show customer id and revenue (delivered orders), the biggest first.',
+                              'ru': 'Кто наши топ-5 клиентов по выручке? Покажи id клиента и выручку (доставленные заказы), сначала самый крупный.'},
+                     'answer': "SELECT customer_id, SUM(amount) AS revenue FROM orders WHERE status = 'delivered' GROUP BY customer_id ORDER BY revenue DESC LIMIT 5;",
+                     'section': {'en': 'B · Groups with filters and top lists', 'ru': 'B · Группы с фильтрами и топы'},
+                     'intro': {'en': '<p>The order of work: <code>FROM</code> → <code>WHERE</code> (rows) → <code>GROUP BY</code> → aggregates → <code>ORDER BY</code> → '
+                                     '<code>LIMIT</code>.</p>\n'
+                                     '<p>So <code>WHERE</code> chooses which rows go into the pivot table, and <code>ORDER BY</code> + <code>LIMIT</code> make a “top N” from the finished '
+                                     'groups. You can sort by the name of an aggregate: <code>ORDER BY revenue DESC</code>.</p>\n'
+                                     '<p><b>Example:</b> the 3 cities with the most customers from ads.</p>',
+                               'ru': '<p>Порядок работы: <code>FROM</code> → <code>WHERE</code> (строки) → <code>GROUP BY</code> → агрегаты → <code>ORDER BY</code> → '
+                                     '<code>LIMIT</code>.</p>\n'
+                                     '<p>То есть <code>WHERE</code> выбирает, какие строки попадут в сводную таблицу, а <code>ORDER BY</code> + <code>LIMIT</code> делают «топ N» из '
+                                     'готовых групп. Сортировать можно по имени агрегата: <code>ORDER BY revenue DESC</code>.</p>\n'
+                                     '<p><b>Пример:</b> 3 города, где больше всего клиентов из рекламы.</p>'},
+                     'example': "SELECT city, COUNT(*) AS customers\nFROM customers\nWHERE channel = 'ads'\nGROUP BY city\nORDER BY customers DESC\nLIMIT 3;"},
+                    {'id': 'an3.7',
+                     'text': {'en': 'How many orders did each customer place (any status)? Customer id and number of orders, the most active first.',
+                              'ru': 'Сколько заказов сделал каждый клиент (любой статус)? Id клиента и число заказов, сначала самые активные.'},
+                     'answer': 'SELECT customer_id, COUNT(*) AS orders FROM orders GROUP BY customer_id ORDER BY orders DESC;'},
+                    {'id': 'an3.8',
+                     'text': {'en': 'The warehouse wants the 3 best-selling products: product id and the total units ordered.',
+                              'ru': 'Склад хочет 3 самых продаваемых товара: id товара и общее число заказанных единиц.'},
+                     'answer': 'SELECT product_id, SUM(quantity) AS units FROM order_items GROUP BY product_id ORDER BY units DESC LIMIT 3;'},
+                    {'id': 'an3.9',
+                     'text': {'en': 'Do promo codes change the average check? Average check of delivered orders with a code and without (rounded to 2). Hint: group by <code>promo_code IS '
+                                    'NULL</code>.',
+                              'ru': 'Меняют ли промокоды средний чек? Средний чек доставленных заказов с промокодом и без (округлённый до 2). Подсказка: группируй по <code>promo_code IS '
+                                    'NULL</code>.'},
+                     'answer': "SELECT promo_code IS NULL AS no_promo, ROUND(AVG(amount), 2) FROM orders WHERE status = 'delivered' GROUP BY promo_code IS NULL;"},
+                    {'id': 'an3.10',
+                     'text': {'en': 'Which customers placed <b>more than 3</b> orders? Customer id and number of orders.',
+                              'ru': 'Какие клиенты сделали <b>больше 3</b> заказов? Id клиента и число заказов.'},
+                     'answer': 'SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id HAVING COUNT(*) > 3;',
+                     'section': {'en': 'C · HAVING: filters on groups', 'ru': 'C · HAVING: фильтр по группам'},
+                     'intro': {'en': '<p><code>WHERE</code> filters <b>rows before</b> grouping. <code>HAVING</code> filters <b>groups after</b> grouping, so it can use aggregates: '
+                                     '<code>HAVING COUNT(*) &gt; 3</code>.</p>\n'
+                                     '<p>“Customers with revenue over 500” is <code>HAVING SUM(amount) &gt; 500</code>. “Delivered orders” is still <code>WHERE status = '
+                                     "'delivered'</code>. Many questions need both.</p>\n"
+                                     '<p><b>Example:</b> categories with at least 4 products.</p>',
+                               'ru': '<p><code>WHERE</code> фильтрует <b>строки до</b> группировки. <code>HAVING</code> фильтрует <b>группы после</b> группировки, поэтому в нём можно '
+                                     'использовать агрегаты: <code>HAVING COUNT(*) &gt; 3</code>.</p>\n'
+                                     '<p>«Клиенты с выручкой больше 500» — это <code>HAVING SUM(amount) &gt; 500</code>. А «доставленные заказы» — всё ещё <code>WHERE status = '
+                                     "'delivered'</code>. Во многих вопросах нужны оба.</p>\n"
+                                     '<p><b>Пример:</b> категории, где не меньше 4 товаров.</p>'},
+                     'example': 'SELECT category, COUNT(*) AS products\nFROM products\nGROUP BY category\nHAVING COUNT(*) >= 4;'},
+                    {'id': 'an3.11',
+                     'text': {'en': 'Which categories have an average price above 60? Category and average price (rounded to 2).',
+                              'ru': 'В каких категориях средняя цена выше 60? Категория и средняя цена (округлённая до 2).'},
+                     'answer': 'SELECT category, ROUND(AVG(price), 2) FROM products GROUP BY category HAVING AVG(price) > 60;'},
+                    {'id': 'an3.12',
+                     'text': {'en': 'Our VIP list: customers whose revenue from delivered orders is over 500. Customer id and revenue.',
+                              'ru': 'Список VIP: клиенты, у которых выручка по доставленным заказам больше 500. Id клиента и выручка.'},
+                     'answer': "SELECT customer_id, SUM(amount) FROM orders WHERE status = 'delivered' GROUP BY customer_id HAVING SUM(amount) > 500;"},
+                    {'id': 'an3.13',
+                     'text': {'en': 'Which customers have at least 2 <b>delivered</b> orders? Show only the customer id.',
+                              'ru': 'У каких клиентов не меньше 2 <b>доставленных</b> заказов? Покажи только id клиента.'},
+                     'answer': "SELECT customer_id FROM orders WHERE status = 'delivered' GROUP BY customer_id HAVING COUNT(*) >= 2;"},
+                    {'id': 'an3.14',
+                     'text': {'en': 'Monthly revenue: the month and the revenue of delivered orders, from January to December.',
+                              'ru': 'Выручка по месяцам: месяц и выручка доставленных заказов, с января по декабрь.'},
+                     'answer': "SELECT strftime('%Y-%m', order_date) AS month, SUM(amount) FROM orders WHERE status = 'delivered' GROUP BY month ORDER BY month;",
+                     'section': {'en': 'D · Grouping by several columns and by months', 'ru': 'D · Группировка по нескольким столбцам и по месяцам'},
+                     'intro': {'en': '<p>You can group by several columns: <code>GROUP BY status, promo_code</code> gives one row for every pair of values.</p>\n'
+                                     "<p>You can also group by a calculation. The month of a date is <code>strftime('%Y-%m', order_date)</code> → <code>'2025-03'</code>. (In PostgreSQL "
+                                     "the same is <code>to_char(order_date, 'YYYY-MM')</code> or <code>date_trunc('month', order_date)</code>.)</p>\n"
+                                     '<p><b>Example:</b> new customers per month of signup.</p>',
+                               'ru': '<p>Группировать можно по нескольким столбцам: <code>GROUP BY status, promo_code</code> даёт строку на каждую пару значений.</p>\n'
+                                     "<p>Можно группировать и по вычислению. Месяц даты — это <code>strftime('%Y-%m', order_date)</code> → <code>'2025-03'</code>. (В PostgreSQL то же "
+                                     "самое — <code>to_char(order_date, 'YYYY-MM')</code> или <code>date_trunc('month', order_date)</code>.)</p>\n"
+                                     '<p><b>Пример:</b> новые клиенты по месяцам регистрации.</p>'},
+                     'example': "SELECT strftime('%Y-%m', signup_date) AS month, COUNT(*) AS new_customers\nFROM customers\nGROUP BY month\nORDER BY month;"},
+                    {'id': 'an3.15',
+                     'text': {'en': 'Which month had the <b>most delivered orders</b>? The month and the number of orders, one row.',
+                              'ru': 'В каком месяце было <b>больше всего доставленных заказов</b>? Месяц и число заказов, одна строка.'},
+                     'answer': "SELECT strftime('%Y-%m', order_date) AS month, COUNT(*) AS orders FROM orders WHERE status = 'delivered' GROUP BY month ORDER BY orders DESC LIMIT 1;"},
+                    {'id': 'an3.16',
+                     'text': {'en': 'Number of orders for every pair of status and promo code.', 'ru': 'Число заказов для каждой пары: статус и промокод.'},
+                     'answer': 'SELECT status, promo_code, COUNT(*) FROM orders GROUP BY status, promo_code;'}]},
+         {'id': 104,
+          'track': 'analyst',
+          'available': False,
+          'title': {'en': 'JOIN: combining tables', 'ru': 'JOIN: соединяем таблицы'},
+          'topics': {'en': 'INNER and LEFT JOIN, VLOOKUP, duplicated rows, customers without orders', 'ru': 'INNER и LEFT JOIN, ВПР, размножение строк, клиенты без заказов'}},
+         {'id': 105,
+          'track': 'analyst',
+          'available': False,
+          'title': {'en': 'CASE: segments', 'ru': 'CASE: сегменты'},
+          'topics': {'en': 'Customer and order segments, conditional sums', 'ru': 'Сегменты клиентов и заказов, условные суммы'}},
+         {'id': 106,
+          'track': 'analyst',
+          'available': False,
+          'title': {'en': 'Dates and periods', 'ru': 'Даты и периоды'},
+          'topics': {'en': 'Days, weeks, months, “last 30 days”, PostgreSQL equivalents', 'ru': 'Дни, недели, месяцы, «последние 30 дней», аналоги в PostgreSQL'}},
+         {'id': 107,
+          'track': 'analyst',
+          'available': False,
+          'title': {'en': 'CTE: queries step by step', 'ru': 'CTE: запросы по шагам'},
+          'topics': {'en': 'WITH, subqueries, building a report in steps', 'ru': 'WITH, подзапросы, отчёт по шагам'}},
+         {'id': 108,
+          'track': 'analyst',
+          'available': False,
+          'title': {'en': 'Window functions', 'ru': 'Оконные функции'},
+          'topics': {'en': 'ROW_NUMBER, RANK, LAG, running totals, month-over-month', 'ru': 'ROW_NUMBER, RANK, LAG, накопительные суммы, рост к прошлому месяцу'}},
+         {'id': 109,
+          'track': 'analyst',
+          'available': False,
+          'title': {'en': 'Business metrics', 'ru': 'Бизнес-метрики'},
+          'topics': {'en': 'Average check, repeat purchases, retention, conversion', 'ru': 'Средний чек, повторные покупки, удержание, конверсия'}},
+         {'id': 110,
+          'track': 'analyst',
+          'available': False,
+          'title': {'en': "Final project: the shop's annual report", 'ru': 'Итоговый проект: годовой отчёт магазина'},
+          'topics': {'en': 'Ten questions from the CEO, from data to conclusions', 'ru': 'Десять вопросов директора: от данных к выводам'}},
+
     ]
 }

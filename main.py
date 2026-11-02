@@ -58,6 +58,7 @@ PROGRESS_JS = """
 /* Progress is kept per browser, as a list of solved task ids ("2.10", "2.or3", ...).
    Older versions saved task positions (0, 1, 2, ...). Task ids were numbered from
    those positions, so position n is task "<lesson>.<n+1>" and old progress carries over. */
+(window.COURSE.lessons || []).forEach(l => { if (l.seed_ref && !l.seed) l.seed = (window.COURSE.seeds || {})[l.seed_ref] });
 window.COURSE_PROGRESS = {
   key: lessonId => 'sqlt-solved-L' + lessonId,
   get(lessonId) {
@@ -77,14 +78,19 @@ window.COURSE_PROGRESS = {
 
 def public_course() -> dict:
     """The course without the answers, the explanations of prediction tasks and the teacher's tips."""
-    lessons = []
-    for num, lesson in enumerate(COURSE["lessons"], 1):
+    lessons, counters = [], {}
+    for lesson in COURSE["lessons"]:
+        track = lesson.get("track", "base")
+        counters[track] = counters.get(track, 0) + 1
         item = {k: v for k, v in lesson.items() if k not in ("tasks", "tips")}
-        item["num"] = num                      # the number shown to people: lessons can be inserted anywhere
+        item["track"] = track
+        item["num"] = counters[track]          # the number shown to people, inside its course
+        if "seed_ref" in lesson:
+            item.pop("seed", None)             # shared data is sent once, in "seeds"
         if "tasks" in lesson:
             item["tasks"] = [{k: v for k, v in t.items() if k not in ("answer", "explain")} for t in lesson["tasks"]]
         lessons.append(item)
-    return {"lessons": lessons}
+    return {"tracks": COURSE.get("tracks", []), "seeds": COURSE.get("seeds", {}), "lessons": lessons}
 
 
 def find_lesson(lesson_id: int) -> dict:
@@ -301,8 +307,10 @@ def teacher_answer(lesson_id: int, task: int) -> str:
 
 
 def _normalize(value):
-    if isinstance(value, float) and value.is_integer():
-        return int(value)
+    if isinstance(value, float):
+        value = round(value, 6)                # sums of fractions may differ in the last digits
+        if value.is_integer():
+            return int(value)
     return value
 
 
@@ -371,17 +379,31 @@ def order_groups(lesson_id: int, task: int):
     frm = re.search(r"\bfrom\b", head, re.I)
     if not (m and sel and frm):
         return None
-    keys = [re.sub(r"\s+(asc|desc)?\s*(nulls\s+(first|last))?\s*$", "", k.strip(), flags=re.I) for k in _split_top(m.group(1))]
-    sql = f"{head[:frm.start()].rstrip()}, {', '.join(keys)} {head[frm.start():]} ORDER BY {m.group(1)}"
     columns, _ = expected_result(lesson_id, task)
+    n = len(columns)
+    parsed = [re.match(r"\s*(.*?)(\s+(?:asc|desc))?(\s+nulls\s+(?:first|last))?\s*$", k, re.I | re.S) for k in _split_top(m.group(1))]
+    keys = [p.group(1) for p in parsed]
+    attempts = []
+    if not any(k.isdigit() for k in keys):      # the sort keys as extra columns of the same query
+        attempts.append(f"{head[:frm.start()].rstrip()}, {', '.join(keys)} {head[frm.start():]} ORDER BY {m.group(1)}")
+    # or the keys are names (ORDER BY revenue) or positions (ORDER BY 2) of the result's columns
+    outer = [f'"{columns[int(k) - 1]}"' if k.isdigit() and 0 < int(k) <= n else k for k in keys]
+    order = ", ".join(o + (p.group(2) or "") + (p.group(3) or "") for o, p in zip(outer, parsed))
+    attempts.append(f"SELECT *, {', '.join(outer)} FROM ({head}) ORDER BY {order}")
+    rows = None
     con = sqlite3.connect(":memory:")
     try:
         con.executescript(lesson["seed"])
-        rows = con.execute(sql).fetchall()
-    except sqlite3.Error:
-        return None
+        for sql in attempts:
+            try:
+                rows = con.execute(sql).fetchall()
+                break
+            except sqlite3.Error:
+                continue
     finally:
         con.close()
+    if rows is None:
+        return None
     n = len(columns)
     if any(len(r) != n + len(keys) for r in rows):
         return None
@@ -435,7 +457,10 @@ async def check(data: CheckData):
         got = set(data.picked or [])
         return {"ok": got == want, "wrong": len(want ^ got), "explain": task.get("explain")}
     columns, rows = expected_result(data.lesson, data.task)
-    if [c.lower() for c in columns] != [c.lower() for c in data.columns]:
+    if lesson.get("check") == "values":        # business questions: any column names, the same columns in the same order
+        if len(columns) != len(data.columns):
+            return {"ok": False, "reason": "columns", "expected": columns}
+    elif [c.lower() for c in columns] != [c.lower() for c in data.columns]:
         return {"ok": False, "reason": "columns", "expected": columns}
     if len(rows) != len(data.rows):
         return {"ok": False, "reason": "rows", "expected": len(rows)}
