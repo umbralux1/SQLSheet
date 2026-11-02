@@ -9,7 +9,7 @@ To add a lesson: fill in theory / seed / tables / tasks (every task needs an
 "answer" query) and set "available": True.
 """
 
-# The online shop of the "SQL for analysts" track. Every lesson of the track uses it;
+# The online shop of the "SQL for Analytics" track. Every lesson of the track uses it;
 # /course.js sends it once ("seeds") and the lessons point to it with "seed_ref".
 SHOP_SEED = """CREATE TABLE customers (
     customer_id  INTEGER PRIMARY KEY,
@@ -98,7 +98,7 @@ INSERT INTO orders VALUES
 (6, 8, '2025-02-17', 'delivered', 'WELCOME10', 26),
 (7, 35, '2025-02-23', 'delivered', NULL, 79),
 (8, 37, '2025-03-04', 'delivered', NULL, 15),
-(9, 25, '2025-03-05', 'delivered', 'SPRING', 40),
+(9, 25, '2025-03-05', 'delivered', 'SPRING', 41),
 (10, 9, '2025-03-09', 'delivered', 'SPRING', 35),
 (11, 37, '2025-03-10', 'delivered', NULL, 129),
 (12, 32, '2025-03-15', 'returned', NULL, 39),
@@ -370,8 +370,8 @@ INSERT INTO order_items VALUES
 COURSE = {
     # Two courses on one site: the lessons say which one they belong to ("track"; "base" when missing)
     "tracks": [
-        {"id": "base", "title": {"en": "SQL basics", "ru": "Основы SQL"}},
-        {"id": "analyst", "title": {"en": "SQL for analysts", "ru": "SQL для аналитиков"},
+        {"id": "base", "title": {"en": "SQL Foundations", "ru": "Основы SQL"}},
+        {"id": "analyst", "title": {"en": "SQL for Analytics", "ru": "SQL для аналитиков"},
          "about": {"en": "Business questions about one online shop", "ru": "Вопросы бизнеса про один интернет-магазин"}},
     ],
     "seeds": {"shop": SHOP_SEED},
@@ -2366,7 +2366,11 @@ INSERT INTO orders VALUES
                            '</ul>\n'
                            '<h4>How the tasks work</h4>\n'
                            '<p>A question comes from a colleague. Decide the table, the rows, the columns and the order yourself. The answer is checked by its values: the column names '
-                           'are up to you, but keep the order of the columns from the question.</p>',
+                           'are up to you, but keep the order of the columns from the question.</p>\n'
+                           '<h4>SQLite and PostgreSQL</h4>\n'
+                           '<p>The trainer runs SQLite. At work you will more likely meet PostgreSQL (or BigQuery, ClickHouse…). Almost everything is the same; where the syntax differs, '
+                           'the theory has a blue <b>PostgreSQL</b> note. One difference to remember from the start: PostgreSQL puts <code>NULL</code> <b>last</b> when sorting '
+                           '<code>ASC</code>, SQLite puts it first.</p>',
                      'ru': '<p>Добро пожаловать в курс для аналитиков. Здесь ты повторяешь SQL на настоящих вопросах бизнеса про один интернет-магазин.</p>\n'
                            '<h4>Данные</h4>\n'
                            '<ul>\n'
@@ -2377,7 +2381,11 @@ INSERT INTO orders VALUES
                            '</ul>\n'
                            '<h4>Как устроены задания</h4>\n'
                            '<p>Вопрос приходит от коллеги. Таблицу, строки, столбцы и порядок решай сама. Ответ проверяется по значениям: названия столбцов — на твой выбор, но порядок '
-                           'столбцов должен быть как в вопросе.</p>'},
+                           'столбцов должен быть как в вопросе.</p>\n'
+                           '<h4>SQLite и PostgreSQL</h4>\n'
+                           '<p>Тренажёр работает на SQLite. На работе скорее встретится PostgreSQL (или BigQuery, ClickHouse…). Почти всё одинаково; там, где синтаксис отличается, в '
+                           'теории есть синяя пометка <b>PostgreSQL</b>. Одно отличие стоит запомнить сразу: PostgreSQL при сортировке <code>ASC</code> ставит <code>NULL</code> <b>в '
+                           'конец</b>, а SQLite — в начало.</p>'},
           'tips': {'en': ['Before she writes SQL, ask her to say the four steps aloud: table → rows → columns → order/limit.',
                           'Play the colleague: rephrase a question in other words and see if she finds the same query.',
                           'Task 12 is about integer division: if she gets 0 or 1 everywhere, that is the reason.'],
@@ -2431,6 +2439,8 @@ INSERT INTO orders VALUES
                                      'correctly);</li>\n'
                                      '<li>“with a promo code” → <code>promo_code IS NOT NULL</code>;</li>\n'
                                      "<li>“from ads or social” → <code>channel IN ('ads', 'social')</code>.</li></ul>\n"
+                                     '<p class="pg"><b>PostgreSQL:</b> dates are a real <code>DATE</code> type, but <code>\'2025-12-01\'</code> works the same way. <code>LIKE</code> is '
+                                     "case-sensitive: <code>'a%'</code> does not find <i>Anna</i>. For a search without case use <code>ILIKE</code>.</p>\n"
                                      '<p><b>Example:</b> “Delivered orders of the first quarter over 300”.</p>',
                                'ru': '<p>В вопросах бизнеса в одном предложении часто спрятано несколько условий. Выпиши каждое отдельно, потом соедини их через <code>AND</code> / '
                                      '<code>OR</code> и ставь скобки вокруг каждого <code>OR</code>.</p>\n'
@@ -2438,6 +2448,8 @@ INSERT INTO orders VALUES
                                      'сравниваются правильно);</li>\n'
                                      '<li>«с промокодом» → <code>promo_code IS NOT NULL</code>;</li>\n'
                                      "<li>«из рекламы или соцсетей» → <code>channel IN ('ads', 'social')</code>.</li></ul>\n"
+                                     '<p class="pg"><b>PostgreSQL:</b> даты — настоящий тип <code>DATE</code>, но <code>\'2025-12-01\'</code> работает так же. <code>LIKE</code> различает '
+                                     "регистр: <code>'a%'</code> не найдёт <i>Anna</i>. Для поиска без учёта регистра есть <code>ILIKE</code>.</p>\n"
                                      '<p><b>Пример:</b> «Доставленные заказы первого квартала больше 300».</p>'},
                      'example': 'SELECT order_id, order_date, amount\n'
                                 'FROM orders\n'
@@ -2469,11 +2481,15 @@ INSERT INTO orders VALUES
                                      'name with <code>AS</code>.</p>\n'
                                      '<p><b>Trap:</b> integer ÷ integer in SQLite (and PostgreSQL) is integer: <code>45 / 100</code> = 0. To get a percent, multiply by <code>100.0</code> '
                                      'first: <code>45 * 100.0 / 100</code> = 45.0. <code>ROUND(x, 1)</code> keeps one digit after the point.</p>\n'
+                                     '<p class="pg"><b>PostgreSQL:</b> <code>ROUND(x, 1)</code> needs an exact number (<code>numeric</code>). With <code>100.0</code> in the formula it is '
+                                     'one, so the query works as is. If <code>x</code> is <code>double precision</code>, write <code>ROUND(x::numeric, 1)</code>.</p>\n'
                                      '<p><b>Example:</b> the price of each product with a 20% Black Friday discount.</p>',
                                'ru': '<p>Аналитики постоянно считают новые столбцы: маржу, скидку, долю. В <code>SELECT</code> можно использовать <code>+ - * /</code> и называть '
                                      'результат через <code>AS</code>.</p>\n'
                                      '<p><b>Ловушка:</b> целое ÷ целое в SQLite (и в PostgreSQL) даёт целое: <code>45 / 100</code> = 0. Чтобы получить процент, сначала умножь на '
                                      '<code>100.0</code>: <code>45 * 100.0 / 100</code> = 45.0. <code>ROUND(x, 1)</code> оставляет одну цифру после точки.</p>\n'
+                                     '<p class="pg"><b>PostgreSQL:</b> <code>ROUND(x, 1)</code> нужно точное число (<code>numeric</code>). Если в формуле есть <code>100.0</code>, оно '
+                                     'такое и есть, и запрос работает как есть. Если <code>x</code> имеет тип <code>double precision</code>, пиши <code>ROUND(x::numeric, 1)</code>.</p>\n'
                                      '<p><b>Пример:</b> цена каждого товара со скидкой 20% в Чёрную пятницу.</p>'},
                      'example': 'SELECT name, price, price * 0.8 AS black_friday_price\nFROM products;'},
                     {'id': 'an1.12',
@@ -2610,10 +2626,16 @@ INSERT INTO orders VALUES
                      'intro': {'en': '<p>A real report is several numbers next to each other. Put all the aggregates into one <code>SELECT</code>.</p>\n'
                                      '<p>A <b>share</b> (percent) is “how many of them” ÷ “how many in total” × 100. A comparison is 1 or 0 (remember the logic lesson), so '
                                      "<code>SUM(status = 'returned')</code> counts the returned orders, and <code>AVG(status = 'returned')</code> is directly their share.</p>\n"
+                                     '<p class="pg"><b>PostgreSQL:</b> a comparison is a real <code>boolean</code>, not 1/0, so <code>SUM(status = \'returned\')</code> gives an error. '
+                                     "Write <code>COUNT(*) FILTER (WHERE status = 'returned')</code> or <code>SUM(CASE WHEN status = 'returned' THEN 1 ELSE 0 END)</code>. Both also work "
+                                     'in SQLite, so they are the safe habit.</p>\n'
                                      '<p><b>Example:</b> the share of orders with a promo code, in percent.</p>',
                                'ru': '<p>Настоящий отчёт — это несколько чисел рядом. Помести все агрегаты в один <code>SELECT</code>.</p>\n'
                                      '<p><b>Доля</b> (процент) — это «сколько таких» ÷ «сколько всего» × 100. Сравнение — это 1 или 0 (вспомни урок логики), поэтому <code>SUM(status = '
                                      "'returned')</code> считает возвращённые заказы, а <code>AVG(status = 'returned')</code> — это сразу их доля.</p>\n"
+                                     '<p class="pg"><b>PostgreSQL:</b> сравнение — настоящий <code>boolean</code>, а не 1/0, поэтому <code>SUM(status = \'returned\')</code> даст ошибку. '
+                                     "Пиши <code>COUNT(*) FILTER (WHERE status = 'returned')</code> или <code>SUM(CASE WHEN status = 'returned' THEN 1 ELSE 0 END)</code>. Оба варианта "
+                                     'работают и в SQLite, так что это надёжная привычка.</p>\n'
                                      '<p><b>Пример:</b> доля заказов с промокодом в процентах.</p>'},
                      'example': 'SELECT ROUND(COUNT(promo_code) * 100.0 / COUNT(*), 1) AS promo_share_pct\nFROM orders;'},
                     {'id': 'an2.15',
@@ -2640,7 +2662,7 @@ INSERT INTO orders VALUES
                            '<ul>\n'
                            '  <li>Every column in <code>SELECT</code> is in <code>GROUP BY</code> or inside an aggregate.</li>\n'
                            '  <li><code>WHERE</code> filters rows before grouping, <code>HAVING</code> filters groups after it.</li>\n'
-                           "  <li>The month of a date: <code>strftime('%Y-%m', date)</code>.</li>\n"
+                           "  <li>The month of a date: <code>strftime('%Y-%m', date)</code> (PostgreSQL: <code>to_char(date, 'YYYY-MM')</code>).</li>\n"
                            '</ul>',
                      'ru': '<p><code>GROUP BY</code> превращает одно число в <b>сводную таблицу</b>: тот же агрегат, но для каждой группы.</p>\n'
                            '<pre class="code">SELECT column, AGGREGATE(...)\n'
@@ -2653,7 +2675,7 @@ INSERT INTO orders VALUES
                            '<ul>\n'
                            '  <li>Каждый столбец в <code>SELECT</code> либо в <code>GROUP BY</code>, либо внутри агрегата.</li>\n'
                            '  <li><code>WHERE</code> фильтрует строки до группировки, <code>HAVING</code> — группы после.</li>\n'
-                           "  <li>Месяц даты: <code>strftime('%Y-%m', date)</code>.</li>\n"
+                           "  <li>Месяц даты: <code>strftime('%Y-%m', date)</code> (PostgreSQL: <code>to_char(date, 'YYYY-MM')</code>).</li>\n"
                            '</ul>'},
           'tips': {'en': ['Draw the pivot table on paper first: what are the rows, what is in the cells?',
                           'WHERE vs HAVING: ask “is this a condition on one order or on the whole customer?”',
@@ -2676,6 +2698,8 @@ INSERT INTO orders VALUES
                                      'GROUP BY status;</pre>\n'
                                      '<p>The rule: every column in <code>SELECT</code> is either in <code>GROUP BY</code> or inside an aggregate. <code>NULL</code> forms its own '
                                      'group.</p>\n'
+                                     '<p class="pg"><b>PostgreSQL:</b> the rule is strict: a column that is neither in <code>GROUP BY</code> nor inside an aggregate is an error. SQLite '
+                                     'does not complain and puts some random value of the group there, so keep the rule here too.</p>\n'
                                      '<p><b>Example:</b> how many products in each category, and the most expensive one.</p>',
                                'ru': '<p><code>GROUP BY</code> — это <b>сводная таблица</b>: строки — это группы (по одной на каждое значение столбца), а агрегат считается внутри каждой '
                                      'группы.</p>\n'
@@ -2684,6 +2708,8 @@ INSERT INTO orders VALUES
                                      'GROUP BY status;</pre>\n'
                                      '<p>Правило: каждый столбец в <code>SELECT</code> либо есть в <code>GROUP BY</code>, либо внутри агрегата. <code>NULL</code> образует свою '
                                      'группу.</p>\n'
+                                     '<p class="pg"><b>PostgreSQL:</b> правило строгое: столбец, которого нет ни в <code>GROUP BY</code>, ни внутри агрегата, — это ошибка. SQLite не '
+                                     'ругается и подставляет туда случайное значение из группы, поэтому соблюдай правило и здесь.</p>\n'
                                      '<p><b>Пример:</b> сколько товаров в каждой категории и самая высокая цена.</p>'},
                      'example': 'SELECT category, COUNT(*) AS products, MAX(price) AS max_price\nFROM products\nGROUP BY category;'},
                     {'id': 'an3.2',
@@ -2740,11 +2766,15 @@ INSERT INTO orders VALUES
                                      '<code>HAVING COUNT(*) &gt; 3</code>.</p>\n'
                                      '<p>“Customers with revenue over 500” is <code>HAVING SUM(amount) &gt; 500</code>. “Delivered orders” is still <code>WHERE status = '
                                      "'delivered'</code>. Many questions need both.</p>\n"
+                                     '<p class="pg"><b>PostgreSQL:</b> <code>HAVING</code> cannot use a column\'s alias: write <code>HAVING SUM(amount) &gt; 500</code>, not <code>HAVING '
+                                     'revenue &gt; 500</code>. (SQLite allows the alias.) In <code>ORDER BY</code> the alias works in both.</p>\n'
                                      '<p><b>Example:</b> categories with at least 4 products.</p>',
                                'ru': '<p><code>WHERE</code> фильтрует <b>строки до</b> группировки. <code>HAVING</code> фильтрует <b>группы после</b> группировки, поэтому в нём можно '
                                      'использовать агрегаты: <code>HAVING COUNT(*) &gt; 3</code>.</p>\n'
                                      '<p>«Клиенты с выручкой больше 500» — это <code>HAVING SUM(amount) &gt; 500</code>. А «доставленные заказы» — всё ещё <code>WHERE status = '
                                      "'delivered'</code>. Во многих вопросах нужны оба.</p>\n"
+                                     '<p class="pg"><b>PostgreSQL:</b> в <code>HAVING</code> нельзя использовать имя столбца из <code>AS</code>: пиши <code>HAVING SUM(amount) &gt; '
+                                     '500</code>, а не <code>HAVING revenue &gt; 500</code>. (SQLite такое разрешает.) В <code>ORDER BY</code> имя работает в обоих.</p>\n'
                                      '<p><b>Пример:</b> категории, где не меньше 4 товаров.</p>'},
                      'example': 'SELECT category, COUNT(*) AS products\nFROM products\nGROUP BY category\nHAVING COUNT(*) >= 4;'},
                     {'id': 'an3.11',
@@ -2765,12 +2795,14 @@ INSERT INTO orders VALUES
                      'answer': "SELECT strftime('%Y-%m', order_date) AS month, SUM(amount) FROM orders WHERE status = 'delivered' GROUP BY month ORDER BY month;",
                      'section': {'en': 'D · Grouping by several columns and by months', 'ru': 'D · Группировка по нескольким столбцам и по месяцам'},
                      'intro': {'en': '<p>You can group by several columns: <code>GROUP BY status, promo_code</code> gives one row for every pair of values.</p>\n'
-                                     "<p>You can also group by a calculation. The month of a date is <code>strftime('%Y-%m', order_date)</code> → <code>'2025-03'</code>. (In PostgreSQL "
-                                     "the same is <code>to_char(order_date, 'YYYY-MM')</code> or <code>date_trunc('month', order_date)</code>.)</p>\n"
+                                     "<p>You can also group by a calculation. The month of a date is <code>strftime('%Y-%m', order_date)</code> → <code>'2025-03'</code>.</p>\n"
+                                     '<p class="pg"><b>PostgreSQL:</b> the month is <code>to_char(order_date, \'YYYY-MM\')</code> → <code>\'2025-03\'</code>, or '
+                                     "<code>date_trunc('month', order_date)</code> → the date <code>2025-03-01</code>. <code>strftime</code> does not exist there.</p>\n"
                                      '<p><b>Example:</b> new customers per month of signup.</p>',
                                'ru': '<p>Группировать можно по нескольким столбцам: <code>GROUP BY status, promo_code</code> даёт строку на каждую пару значений.</p>\n'
-                                     "<p>Можно группировать и по вычислению. Месяц даты — это <code>strftime('%Y-%m', order_date)</code> → <code>'2025-03'</code>. (В PostgreSQL то же "
-                                     "самое — <code>to_char(order_date, 'YYYY-MM')</code> или <code>date_trunc('month', order_date)</code>.)</p>\n"
+                                     "<p>Можно группировать и по вычислению. Месяц даты — это <code>strftime('%Y-%m', order_date)</code> → <code>'2025-03'</code>.</p>\n"
+                                     '<p class="pg"><b>PostgreSQL:</b> месяц — это <code>to_char(order_date, \'YYYY-MM\')</code> → <code>\'2025-03\'</code> или '
+                                     "<code>date_trunc('month', order_date)</code> → дата <code>2025-03-01</code>. <code>strftime</code> там нет.</p>\n"
                                      '<p><b>Пример:</b> новые клиенты по месяцам регистрации.</p>'},
                      'example': "SELECT strftime('%Y-%m', signup_date) AS month, COUNT(*) AS new_customers\nFROM customers\nGROUP BY month\nORDER BY month;"},
                     {'id': 'an3.15',

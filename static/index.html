@@ -189,6 +189,9 @@ table.sheet{border-collapse:separate;border-spacing:0;font-family:var(--f-body);
 .lesson-note .pexplain.good{background:var(--new)}
 .lesson-note .pexplain.bad{background:var(--err-bg)}
 .lesson-note .pexplain code{font-size:.9em}
+/* PostgreSQL notes in the analyst course */
+.pg{margin:10px 0;padding:8px 12px;border-left:3px solid #4a7ab0;background:rgba(74,122,176,.10);border-radius:4px;font-size:.95em}
+.pg b:first-child{color:#4a7ab0}
 .lesson-note .pexplain .tnote{color:var(--muted)}
 .lesson-note .rw-hint{font-size:13px;color:var(--muted);margin:-2px 0 8px}
 .tv-true{color:var(--accent)} .tv-false{color:var(--err)} .tv-null{color:var(--null)}
@@ -1121,7 +1124,7 @@ function renderLessons(active){
     b.onclick=()=>loadLesson(i);el.appendChild(b)});
 }
 /* ---------- the code typed in the editor is kept: per task in a lesson, as one draft otherwise ---------- */
-function trackPrefix(){                 // "SQL for analysts · " in front of "Lesson 1" in the second course
+function trackPrefix(){                 // "SQL for Analytics · " in front of "Lesson 1" in the second course
   const tr=COURSE_LESSON&&(COURSE.tracks||[]).find(t=>t.id===(COURSE_LESSON.track||'base'));
   return tr&&tr.id!=='base'?tr.title[lang]+' · ':'';
 }

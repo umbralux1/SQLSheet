@@ -59,6 +59,9 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var
 .roadmap b{font-size:13.5px;font-weight:600;line-height:1.35}
 .roadmap small{grid-column:2;font-size:12px;color:var(--muted);line-height:1.35}
 .roadmap li a:hover{background:var(--head)}
+/* PostgreSQL notes in the analyst course */
+.pg{margin:10px 0;padding:8px 12px;border-left:3px solid #4a7ab0;background:rgba(74,122,176,.10);border-radius:4px;font-size:.95em}
+.pg b:first-child{color:#4a7ab0}
 .roadmap li.track{display:grid;gap:2px;padding:12px 8px 4px;margin-top:6px;border-top:1px solid var(--line)}
 .roadmap li.track:first-child{margin-top:0;border-top:0;padding-top:2px}
 .roadmap li.track b{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
@@ -231,7 +234,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const colLetter=i=>{let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s};
 
-function lessonLabel(l){   // "Lesson 3", or "SQL for analysts · Lesson 1" in the second course
+function lessonLabel(l){   // "Lesson 3", or "SQL for Analytics · Lesson 1" in the second course
   const tr=(COURSE.tracks||[]).find(t=>t.id===(l.track||'base'));
   return (tr&&tr.id!=='base'?esc(tr.title[lang])+' · ':'')+L.lesson(l.num||l.id);
 }
