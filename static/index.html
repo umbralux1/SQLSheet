@@ -542,6 +542,10 @@ let db=null, dbReady=false, lang='en', L=T.en, view={cols:[],types:[],rows:[],ma
 /* ---------- course mode: ?lesson=1&task=3 ---------- */
 const qs=new URLSearchParams(location.search);
 const COURSE_LESSON=(window.COURSE&&COURSE.lessons.find(l=>l.available&&String(l.id)===qs.get('lesson')))||null;
+if(COURSE_LESSON){   // a lesson's task belongs to "Lessons", not to the free trainer
+  document.querySelector('.nav a[aria-current]').removeAttribute('aria-current');
+  document.querySelector('.nav a[href="lessons"]').setAttribute('aria-current','page');
+}
 let activeLesson=-1;
 const stripTags=h=>h.replace(/<[^>]+>/g,'');
 let TEACHER_ANSWERS=null;   // filled only for the logged-in teacher
