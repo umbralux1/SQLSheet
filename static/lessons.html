@@ -59,9 +59,6 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var
 .roadmap b{font-size:13.5px;font-weight:600;line-height:1.35}
 .roadmap small{grid-column:2;font-size:12px;color:var(--muted);line-height:1.35}
 .roadmap li a:hover{background:var(--head)}
-/* PostgreSQL notes in the analyst course */
-.pg{margin:10px 0;padding:8px 12px;border-left:3px solid #4a7ab0;background:rgba(74,122,176,.10);border-radius:4px;font-size:.95em}
-.pg b:first-child{color:#4a7ab0}
 .roadmap li.track{display:grid;gap:2px;padding:12px 8px 4px;margin-top:6px;border-top:1px solid var(--line)}
 .roadmap li.track:first-child{margin-top:0;border-top:0;padding-top:2px}
 .roadmap li.track b{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
@@ -207,7 +204,6 @@ details.answers pre.code{margin:0 14px 14px;border-left-color:var(--line-strong)
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-asm.js"></script>
 <script src="course.js"></script>
 <script>
 const T={
@@ -229,7 +225,7 @@ const T={
    soonText:'Этот урок ещё готовится. Сейчас доступен урок 1.', back:'Открыть урок 1', number:'число', text:'текст'}
 };
 let lang='en'; try{const s=localStorage.getItem('sqlt-lang'); if(s==='ru'||s==='en') lang=s}catch(e){}
-let L=T[lang], SQL=null;
+let L=T[lang];
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const colLetter=i=>{let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s};
@@ -269,14 +265,12 @@ function miniSheet(r){   // a query result as a small Excel-like sheet
   rows.forEach((row,k)=>{h+=`<tr><th>${k+2}</th>`+row.map(v=>typeof v==='number'?`<td class="n">${v.toLocaleString(lang==='ru'?'ru-RU':'en-US',{useGrouping:false,maximumFractionDigits:2})}</td>`:v==null?'<td class="null">NULL</td>':`<td>${esc(v)}</td>`).join('')+'</tr>'});
   return h+'</tbody></table>';
 }
-function sheet(db,table){
-  const r=db.exec(`SELECT * FROM "${table}"`)[0]; if(!r) return '';
-  const info=db.exec(`PRAGMA table_info("${table}")`)[0].values;
-  let h='<table class="sheet"><thead><tr><th></th>'+r.columns.map((_,i)=>`<th>${colLetter(i)}</th>`).join('')+'</tr></thead><tbody>';
-  h+='<tr class="hdr"><th>1</th>'+r.columns.map((c,i)=>`<td>${esc(c)}<small>${esc((info[i][2]||'').toLowerCase())}</small></td>`).join('')+'</tr>';
-  const MAX=r.values.length>16?12:r.values.length;   // long tables: the first rows are enough here, the trainer has them all
-  r.values.slice(0,MAX).forEach((row,k)=>{h+=`<tr><th>${k+2}</th>`+row.map(v=>typeof v==='number'?`<td class="n">${v.toLocaleString(lang==='ru'?'ru-RU':'en-US',{useGrouping:false,maximumFractionDigits:2})}</td>`:`<td>${esc(v==null?'NULL':v)}</td>`).join('')+'</tr>'});
-  if(r.values.length>MAX) h+=`<tr><th></th><td class="more" colspan="${r.columns.length}">${esc(L.more(r.values.length-MAX))}</td></tr>`;
+function sheet(t){   // a table of the lesson, from the results worked out ahead of time (no database on this page)
+  let h='<table class="sheet"><thead><tr><th></th>'+t.columns.map((_,i)=>`<th>${colLetter(i)}</th>`).join('')+'</tr></thead><tbody>';
+  h+='<tr class="hdr"><th>1</th>'+t.columns.map(c=>`<td>${esc(c.name)}<small>${esc(c.type)}</small></td>`).join('')+'</tr>';
+  const MAX=t.rows.length>16?12:t.rows.length;   // long tables: the first rows are enough here, the trainer has them all
+  t.rows.slice(0,MAX).forEach((row,k)=>{h+=`<tr><th>${k+2}</th>`+row.map(v=>typeof v==='number'?`<td class="n">${v.toLocaleString(lang==='ru'?'ru-RU':'en-US',{useGrouping:false,maximumFractionDigits:2})}</td>`:`<td>${esc(v==null?'NULL':v)}</td>`).join('')+'</tr>'});
+  if(t.rows.length>MAX) h+=`<tr><th></th><td class="more" colspan="${t.columns.length}">${esc(L.more(t.rows.length-MAX))}</td></tr>`;
   return h+'</tbody></table>';
 }
 
@@ -292,17 +286,12 @@ function renderLesson(){
   const total=mainIdx.length, pos={}; mainIdx.forEach((i,n)=>pos[i]=n+1); extraIdx.forEach((i,n)=>pos[i]=n+1);
   const solved={has:i=>ids.has(l.tasks[i].id), size:COURSE_PROGRESS.count(l)}, extraDone=COURSE_PROGRESS.count(l,true);
   const firstOpen=mainIdx.find(i=>!solved.has(i)), next=(firstOpen==null?mainIdx[0]:firstOpen)+1;
-  let tablesHtml=''; const exampleHtml={};
-  if(SQL){
-    const db=new SQL.Database(); db.run(l.seed);
-    tablesHtml=l.tables.map(t=>{const n=db.exec(`SELECT COUNT(*) FROM "${t}"`)[0].values[0][0];
-      return `<div class="tcard"><header><b>${esc(t)}</b><small>${L.rows(n)}</small></header><div class="sheetwrap">${sheet(db,t)}</div></div>`}).join('');
-    l.tasks.forEach((t,i)=>{ if(!t.example) return;
-      try{ const st=db.prepare(t.example), cols=st.getColumnNames(), rows=[]; while(st.step()) rows.push(st.get()); st.free();
-        exampleHtml[i]=`<div class="ex-result"><small>${L.result(rows.length)}</small><div class="sheetwrap">${miniSheet({columns:cols,values:rows})}</div></div>`;
-      }catch(e){} });
-    db.close();
-  }
+  const tablesHtml=l.tables.map(name=>{const t=l.preview.find(x=>x.name===name);
+    return `<div class="tcard"><header><b>${esc(name)}</b><small>${L.rows(t.count)}</small></header><div class="sheetwrap">${sheet(t)}</div></div>`}).join('');
+  const exampleHtml={};
+  l.tasks.forEach((t,i)=>{ const r=l.examples[t.id]; if(!r) return;
+    exampleHtml[i]=`<div class="ex-result"><small>${L.result(r.rows.length)}</small><div class="sheetwrap">${miniSheet({columns:r.columns,values:r.rows})}</div></div>`;
+  });
   const row=i=>{const t=l.tasks[i], n=pos[i];
     return `${t.section?`<li class="sect">${esc(t.section[lang])}</li>`:''}${t.intro?`<li class="intro"><div class="theory">${t.intro[lang]}</div><pre class="code">${esc(t.example||'')}</pre>${exampleHtml[i]||''}</li>`:''}
       <li class="${solved.has(i)?'done':''}"><span class="st">${solved.has(i)?'✓':n}</span>
@@ -367,7 +356,6 @@ window.addEventListener('hashchange',()=>{renderRoadmap();renderLesson();renderT
 window.addEventListener('pageshow',()=>{renderRoadmap();renderLesson();renderTeacher()});   // refresh progress when coming back from the trainer
 applyLang();
 refreshTeacher();
-if(typeof initSqlJs==='function') initSqlJs().then(s=>{SQL=s;renderLesson();renderTeacher()});
 </script>
 <script type="module">
 /* ================= collaboration on the Lessons page =================

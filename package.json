@@ -1,0 +1,9 @@
+{
+  "name": "sql-sheet-tools",
+  "private": true,
+  "type": "module",
+  "description": "Only for `make results`: runs the course's SQL on PGlite. The deployed app does not need Node.",
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.11"
+  }
+}

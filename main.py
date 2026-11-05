@@ -4,9 +4,7 @@ import json
 import os
 import re
 import secrets
-import sqlite3
 import uuid
-from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
@@ -42,8 +40,10 @@ async def lessons():
 # Course data and the teacher account
 #
 # The browser gets the course from /course.js WITHOUT the answers. Students'
-# results are checked on the server (/api/check); only the logged-in teacher
-# can read the answers (/api/answers/<lesson id>).
+# queries run on PostgreSQL in the browser (static/pg-engine.js); their results
+# are checked here (/api/check) against course_results.json, which
+# scripts/build_results.py works out on the same PostgreSQL. Only the logged-in
+# teacher can read the answers (/api/answers/<lesson id>).
 #
 # Teacher login: user "teacher", password from the TEACHER_PASSWORD environment
 # variable (default "sql2026" - change it on Render).
@@ -53,12 +53,16 @@ TEACHER_USER = "teacher"
 TEACHER_PASSWORD = os.environ.get("TEACHER_PASSWORD", "sql2026")
 SECRET_KEY = os.environ.get("SECRET_KEY") or secrets.token_hex(32)  # a random key logs everyone out on restart
 SESSION_COOKIE = "sqlt_teacher"
+RESULTS = json.loads((BASE_DIR / "course_results.json").read_text(encoding="utf-8"))
 
 PROGRESS_JS = """
 /* Progress is kept per browser, as a list of solved task ids ("2.10", "2.or3", ...).
    Older versions saved task positions (0, 1, 2, ...). Task ids were numbered from
    those positions, so position n is task "<lesson>.<n+1>" and old progress carries over. */
-(window.COURSE.lessons || []).forEach(l => { if (l.seed_ref && !l.seed) l.seed = (window.COURSE.seeds || {})[l.seed_ref] });
+(window.COURSE.lessons || []).forEach(l => {
+  if (l.seed_ref && !l.seed) l.seed = (window.COURSE.seeds || {})[l.seed_ref];
+  l.preview = (window.COURSE.previews || {})[l.seed_ref || l.id];
+});
 window.COURSE_PROGRESS = {
   key: lessonId => 'sqlt-solved-L' + lessonId,
   get(lessonId) {
@@ -89,8 +93,10 @@ def public_course() -> dict:
             item.pop("seed", None)             # shared data is sent once, in "seeds"
         if "tasks" in lesson:
             item["tasks"] = [{k: v for k, v in t.items() if k not in ("answer", "explain")} for t in lesson["tasks"]]
+        if lesson.get("available"):
+            item["examples"] = RESULTS["lessons"][str(lesson["id"])]["examples"]
         lessons.append(item)
-    return {"tracks": COURSE.get("tracks", []), "seeds": COURSE.get("seeds", {}), "lessons": lessons}
+    return {"tracks": COURSE.get("tracks", []), "seeds": COURSE.get("seeds", {}), "previews": RESULTS["previews"], "lessons": lessons}
 
 
 def find_lesson(lesson_id: int) -> dict:
@@ -149,140 +155,49 @@ async def answers(lesson_id: int, request: Request):
 
 
 # ---------------------------------------------------------------------------
-# Prediction tasks
-#   "kind": "row"  - will employee <row> pass <condition>? The student answers yes or no.
-#   "kind": "pick" - the student marks every row that passes <condition>.
-# Rows are identified by the first column of the lesson's first table (emp_id).
+# Expected results of the task kinds
+#   "row"     - will employee <row> pass <condition>? The student answers yes or no.
+#   "pick"    - the student marks every row that passes <condition>.
+#   "value"   - what does <expr> return? The student answers true, false (or null).
+#   "truth"   - a truth table: every combination of "vars", one column per "cols".
+#   "rewrite" - the student writes a condition that means the same as <expr>, but in
+#               another form ("form"). The browser works it out on every combination
+#               of values and sends the result; here it is compared with the original.
 # ---------------------------------------------------------------------------
 
 
-@lru_cache(maxsize=256)
-def passing_rows(lesson_id: int, task: int) -> tuple[tuple, ...]:
+def expected(lesson_id: int, task: int) -> dict:
+    return RESULTS["lessons"][str(lesson_id)]["tasks"][find_lesson(lesson_id)["tasks"][task]["id"]]
+
+
+def passing_rows(lesson_id: int, task: int) -> list[list]:
     """(id, name) of every row that passes the task's condition, on the original data."""
-    lesson = find_lesson(lesson_id)
-    t = lesson["tasks"][task]
-    table = t.get("table", lesson["tables"][0])
-    con = sqlite3.connect(":memory:")
-    try:
-        con.executescript(lesson["seed"])
-        rows = con.execute(f'SELECT * FROM "{table}" WHERE {t["condition"]}').fetchall()
-    finally:
-        con.close()
-    return tuple((r[0], r[1]) for r in rows)
+    return expected(lesson_id, task)["passing"]
 
 
-# ---------------------------------------------------------------------------
-# Logic tasks
-#   "kind": "value" - what does <expr> return? The student answers true, false (or null).
-#                     "given" sets the values of named variables, e.g. {"homework": 1}.
-#   "kind": "truth" - a truth table: every combination of "vars", one column per "cols".
-# ---------------------------------------------------------------------------
-
-
-def _tv(v) -> str:
-    return "true" if v == 1 else "false" if v == 0 else "null"
-
-
-def _sql_val(v) -> str:
-    return "TRUE" if v == 1 else "FALSE" if v == 0 else "NULL"
-
-
-def _as_bool(expr: str) -> str:
-    """SQLite's own view of an expression as a logical value: 1, 0 or NULL."""
-    return f"CASE WHEN ({expr}) THEN 1 WHEN NOT ({expr}) THEN 0 END"
-
-
-def truth_rows(t: dict) -> list[list]:
-    """Every combination of the variables, TRUE first (then FALSE, then NULL)."""
-    rows = [[]]
-    for _ in t["vars"]:
-        rows = [r + [v] for r in rows for v in ([1, 0, None] if t.get("nulls") else [1, 0])]
-    return rows
-
-
-@lru_cache(maxsize=256)
 def logic_value(lesson_id: int, task: int) -> str:
-    t = find_lesson(lesson_id)["tasks"][task]
-    sql = "SELECT " + _as_bool(t["expr"])
-    if t.get("given"):
-        sql += " FROM (SELECT " + ", ".join(f"{_sql_val(v)} AS {k}" for k, v in t["given"].items()) + ")"
-    con = sqlite3.connect(":memory:")
-    try:
-        return _tv(con.execute(sql).fetchone()[0])
-    finally:
-        con.close()
+    return expected(lesson_id, task)["value"]
 
 
-@lru_cache(maxsize=256)
-def truth_table(lesson_id: int, task: int) -> tuple[tuple[str, ...], ...]:
-    t = find_lesson(lesson_id)["tasks"][task]
-    values = ", ".join("(" + ", ".join(_sql_val(v) for v in r) + ")" for r in truth_rows(t))
-    sql = (f"WITH v({', '.join(t['vars'])}) AS (VALUES {values}) "
-           f"SELECT {', '.join(_as_bool(c) for c in t['cols'])} FROM v")
-    con = sqlite3.connect(":memory:")
-    try:
-        return tuple(tuple(_tv(v) for v in row) for row in con.execute(sql).fetchall())
-    finally:
-        con.close()
+def truth_table(lesson_id: int, task: int) -> list[list[str]]:
+    return expected(lesson_id, task)["table"]
 
 
-#   "kind": "rewrite" - the student writes a condition that means the same as <expr>,
-#                       but in another form ("form": "no_not_bracket" or "no_not").
-#                       It is compared on every combination of the "vars" (TRUE/FALSE)
-#                       or of the "domain" values ({"salary": [59999, 60000, 60001]}),
-#                       so the edge cases are always there.
 REWRITE_FORMS = {
     "no_not_bracket": re.compile(r"\bnot\s*\(", re.I),   # De Morgan: no NOT in front of a bracket
     "no_not": re.compile(r"\bnot\b", re.I),               # comparisons: the opposite operator instead of NOT
 }
 
 
-def _limited(con: sqlite3.Connection) -> sqlite3.Connection:
-    """The student's text runs on the server: stop anything that takes too long."""
-    con.set_progress_handler(lambda: 1, 200_000)
-    return con
-
-
-def _sql_lit(v) -> str:
-    if isinstance(v, str):
-        return "'" + v.replace("'", "''") + "'"
-    return "NULL" if v is None else str(v)     # TRUE and FALSE are 1 and 0 in SQLite
-
-
-def rewrite_cases(t: dict) -> tuple[list[str], list[list]]:
-    """The column names and every combination of values the two conditions are compared on."""
-    if t.get("vars"):
-        return t["vars"], truth_rows(t)
-    names, rows = list(t["domain"]), [[]]
-    for name in names:
-        rows = [r + [v] for r in rows for v in t["domain"][name]]
-    return names, rows
-
-
-def rewrite_rows(lesson: dict, t: dict, exprs: list[str]) -> list[tuple]:
-    """Each expression as TRUE/FALSE/NULL (1/0/None) on every row of the comparison."""
-    con = _limited(sqlite3.connect(":memory:"))
-    try:
-        names, rows = rewrite_cases(t)
-        values = ", ".join("(" + ", ".join(_sql_lit(v) for v in r) + ")" for r in rows)
-        sql = (f"WITH v({', '.join(names)}) AS (VALUES {values}) "
-               f"SELECT {', '.join(_as_bool(e) for e in exprs)} FROM v")
-        return con.execute(sql).fetchall()
-    finally:
-        con.close()
-
-
-def check_rewrite(lesson_id: int, task: int, expr: str) -> dict:
-    lesson = find_lesson(lesson_id)
-    t = lesson["tasks"][task]
+def check_rewrite(lesson_id: int, task: int, expr: str, values: list | None) -> dict:
+    t = find_lesson(lesson_id)["tasks"][task]
     expr = (expr or "").strip().rstrip(";").strip()
-    if not expr or ";" in expr or len(expr) > 500:
+    want = expected(lesson_id, task)["original"]
+    if not expr or ";" in expr or len(expr) > 500 or values is None or len(values) != len(want):
         return {"ok": False, "reason": "error"}
-    try:
-        rows = rewrite_rows(lesson, t, [t["expr"], expr])
-    except sqlite3.Error:
+    if any(v not in (True, False, None) for v in values):      # not a condition
         return {"ok": False, "reason": "error"}
-    differ = sum(1 for a, b in rows if a != b)
+    differ = sum(1 for a, b in zip(want, values) if a != b)    # 1 == True and 0 == False here
     if differ:
         return {"ok": False, "reason": "differs", "rows": differ}
     form = REWRITE_FORMS.get(t.get("form", "no_not_bracket"))
@@ -314,112 +229,19 @@ def _normalize(value):
     return value
 
 
-@lru_cache(maxsize=256)
-def expected_result(lesson_id: int, task: int) -> tuple[list[str], list[list]]:
-    lesson = find_lesson(lesson_id)
-    con = sqlite3.connect(":memory:")
-    try:
-        con.executescript(lesson["seed"])
-        cur = con.execute(lesson["tasks"][task]["answer"])
-        columns = [d[0] for d in cur.description or []]
-        rows = [[_normalize(v) for v in row] for row in cur.fetchall()]
-    finally:
-        con.close()
-    return columns, rows
-
-
 class CheckData(BaseModel):
     lesson: int
     task: int
     columns: list[str] = []
     rows: list[list] = []
-    answer: str | None = None        # "row" tasks: "yes" or "no"; "value" tasks: "true", "false" or "null"
+    answer: str | None = None        # "row" tasks: "yes" or "no"; "value" tasks: "true", "false" or "null"; "rewrite" tasks: the condition
+    values: list | None = None       # "rewrite" tasks: the condition's value on every combination
     picked: list[int] | None = None  # prediction "pick" tasks: the ids the student marked
     cells: list[list[str]] | None = None  # truth tables: "true" / "false" / "null" / "" per cell
 
 
-# ---------------------------------------------------------------------------
-# Checking sorted results
-#   Rows that are equal in every ORDER BY column may come in any order, so the
-#   student's rows are compared group by group. The answer's sort keys are read
-#   by running it again with the ORDER BY expressions as extra columns and
-#   without LIMIT/OFFSET; rows with the same keys form one group.
-# ---------------------------------------------------------------------------
-_ORDER_RE = re.compile(r"\border\s+by\s+(.+?)(?:\s+limit\s+(\d+)(?:\s+offset\s+(\d+))?)?\s*;?\s*$", re.I | re.S)
-
-
-def _split_top(text: str) -> list[str]:
-    """Split on commas that are not inside brackets or quotes."""
-    parts, depth, quote, cur = [], 0, None, ""
-    for ch in text:
-        if quote:
-            quote = None if ch == quote else quote
-        elif ch in "'\"":
-            quote = ch
-        elif ch == "(":
-            depth += 1
-        elif ch == ")":
-            depth -= 1
-        elif ch == "," and depth == 0:
-            parts.append(cur)
-            cur = ""
-            continue
-        cur += ch
-    return parts + [cur]
-
-
-@lru_cache(maxsize=256)
-def order_groups(lesson_id: int, task: int):
-    """(start, size, groups by position) for a task whose answer sorts, or None to compare exactly."""
-    lesson = find_lesson(lesson_id)
-    answer = lesson["tasks"][task]["answer"].strip()
-    m = _ORDER_RE.search(answer)
-    head = answer[:m.start()] if m else ""
-    sel = re.match(r"\s*select\s+(?!distinct\b)", head, re.I)
-    frm = re.search(r"\bfrom\b", head, re.I)
-    if not (m and sel and frm):
-        return None
-    columns, _ = expected_result(lesson_id, task)
-    n = len(columns)
-    parsed = [re.match(r"\s*(.*?)(\s+(?:asc|desc))?(\s+nulls\s+(?:first|last))?\s*$", k, re.I | re.S) for k in _split_top(m.group(1))]
-    keys = [p.group(1) for p in parsed]
-    attempts = []
-    if not any(k.isdigit() for k in keys):      # the sort keys as extra columns of the same query
-        attempts.append(f"{head[:frm.start()].rstrip()}, {', '.join(keys)} {head[frm.start():]} ORDER BY {m.group(1)}")
-    # or the keys are names (ORDER BY revenue) or positions (ORDER BY 2) of the result's columns
-    outer = [f'"{columns[int(k) - 1]}"' if k.isdigit() and 0 < int(k) <= n else k for k in keys]
-    order = ", ".join(o + (p.group(2) or "") + (p.group(3) or "") for o, p in zip(outer, parsed))
-    attempts.append(f"SELECT *, {', '.join(outer)} FROM ({head}) ORDER BY {order}")
-    rows = None
-    con = sqlite3.connect(":memory:")
-    try:
-        con.executescript(lesson["seed"])
-        for sql in attempts:
-            try:
-                rows = con.execute(sql).fetchall()
-                break
-            except sqlite3.Error:
-                continue
-    finally:
-        con.close()
-    if rows is None:
-        return None
-    n = len(columns)
-    if any(len(r) != n + len(keys) for r in rows):
-        return None
-    groups, by_pos, last = [], [], object()
-    for r in rows:
-        key = r[n:]
-        if key != last:
-            groups.append([])
-            last = key
-        groups[-1].append(json.dumps([_normalize(v) for v in r[:n]]))
-        by_pos.append(len(groups) - 1)
-    start = int(m.group(3) or 0)
-    size = len(rows) - start if m.group(2) is None else max(0, min(int(m.group(2)), len(rows) - start))
-    return start, size, tuple(tuple(g) for g in groups), tuple(by_pos)
-
-
+# Rows that are equal in every ORDER BY column may come in any order, so the student's
+# rows are compared group by group (the groups come from scripts/build_results.py).
 def sorted_rows_match(order, got: list[str]) -> bool:
     start, size, groups, by_pos = order
     if len(got) != size:
@@ -445,7 +267,7 @@ async def check(data: CheckData):
     if task.get("kind") == "value":
         return {"ok": data.answer == logic_value(data.lesson, data.task), "explain": task.get("explain")}
     if task.get("kind") == "rewrite":
-        return check_rewrite(data.lesson, data.task, data.answer)
+        return check_rewrite(data.lesson, data.task, data.answer, data.values)
     if task.get("kind") == "truth":
         want = truth_table(data.lesson, data.task)
         got = data.cells or []
@@ -456,7 +278,8 @@ async def check(data: CheckData):
         want = {r[0] for r in passing_rows(data.lesson, data.task)}
         got = set(data.picked or [])
         return {"ok": got == want, "wrong": len(want ^ got), "explain": task.get("explain")}
-    columns, rows = expected_result(data.lesson, data.task)
+    want_result = expected(data.lesson, data.task)
+    columns, rows = want_result["columns"], want_result["rows"]
     if lesson.get("check") == "values":        # business questions: any column names, the same columns in the same order
         if len(columns) != len(data.columns):
             return {"ok": False, "reason": "columns", "expected": columns}
@@ -466,10 +289,9 @@ async def check(data: CheckData):
         return {"ok": False, "reason": "rows", "expected": len(rows)}
     got = [json.dumps([_normalize(v) for v in row]) for row in data.rows]
     want = [json.dumps(row) for row in rows]
-    if re.search(r"\border\s+by\b", lesson["tasks"][data.task]["answer"], re.I):
-        order = order_groups(data.lesson, data.task)
-        if order is not None:                # rows that tie in the sort may come in any order
-            return {"ok": True} if sorted_rows_match(order, got) else {"ok": False, "reason": "values"}
+    if "order" in want_result:
+        if want_result["order"] is not None:   # rows that tie in the sort may come in any order
+            return {"ok": True} if sorted_rows_match(want_result["order"], got) else {"ok": False, "reason": "values"}
     else:
         got.sort()
         want.sort()

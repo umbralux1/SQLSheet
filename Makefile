@@ -1,6 +1,7 @@
 # SQL Sheet — everyday commands.  Run `make` to see them all.
 #
 #   make install      create venv/ and install the dependencies
+#   make results      after changing a lesson: work out its expected results on PostgreSQL
 #   make run          start the server with auto-reload
 #   make deploy       check, then push to GitHub (Render deploys from there)
 
@@ -12,7 +13,7 @@ BRANCH ?= main
 URL     = http://127.0.0.1:$(PORT)
 
 .DEFAULT_GOAL := help
-.PHONY: help install run run-lan start open check clean deploy deploy-hook status
+.PHONY: help install results run run-lan start open check clean deploy deploy-hook status
 
 help: ## Show this list
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[32mmake %-12s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -23,6 +24,10 @@ install: ## Create venv/ and install requirements.txt
 	test -d $(VENV) || python3 -m venv $(VENV)
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install -r requirements.txt
+	npm install
+
+results: ## After changing a lesson: run its SQL on PostgreSQL and save course_results.json (needs Node)
+	@$(PYTHON) scripts/build_results.py
 
 run: ## Start locally with auto-reload (port 8001, change with PORT=…)
 	$(UVICORN) main:app --reload --port $(PORT)
@@ -38,7 +43,7 @@ open: ## Open the trainer and the lessons page in the browser
 	open $(URL)/ 2>/dev/null || xdg-open $(URL)/
 	open $(URL)/lessons 2>/dev/null || xdg-open $(URL)/lessons
 
-check: ## Check the code and that every lesson answer runs
+check: ## Check the code, the lessons and that course_results.json is up to date
 	@echo "Checking…"
 	@python3 scripts/check.py
 

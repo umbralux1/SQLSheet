@@ -1,8 +1,9 @@
 """Quick checks before running or deploying. Needs only the standard library.
 
 * main.py and course.py are valid Python;
-* every lesson's seed loads, and every task answer and section example runs;
-* every task has a unique id (progress is saved by task id);
+* every task has a unique id (progress is saved by task id), its texts and explanations;
+* course_results.json is up to date: `make results` ran every query of the current course
+  on PostgreSQL (PGlite) and stopped on any that failed;
 * the course sent to browsers (/course.js) contains no answers or teacher tips.
 
 Usage: python scripts/check.py   (or: make check)
@@ -10,12 +11,11 @@ Usage: python scripts/check.py   (or: make check)
 import ast
 import json
 import re
-import sqlite3
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+sys.path[:0] = [str(ROOT), str(ROOT / "scripts")]
 errors = []
 
 
@@ -31,109 +31,54 @@ for name in ("main.py", "course.py"):
     except SyntaxError as e:
         fail(f"{name}: {e}")
 
+from build_results import OUTPUT, lesson_hash  # noqa: E402
 from course import COURSE  # noqa: E402
+
+results = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else None
+if results is None:
+    fail(f"{OUTPUT.name} is missing: run `make results`")
+else:
+    print(f"  ✓ results from {results['engine'].split(' on ')[0]}")
 
 for lesson in COURSE["lessons"]:
     if not lesson.get("available"):
         continue
     lid, tasks = lesson["id"], lesson["tasks"]
-    con = sqlite3.connect(":memory:")
-    try:
-        con.executescript(lesson["seed"])
-    except sqlite3.Error as e:
-        fail(f"lesson {lid}: seed does not load: {e}")
-        continue
     bad = 0
     ids = [t.get("id") for t in tasks]
     if None in ids or len(set(ids)) != len(ids):
         bad += 1
         fail(f"lesson {lid}: every task needs its own unique \"id\" (progress is saved by it)")
-    table = (lesson.get("tables") or [None])[0]
     for i, task in enumerate(tasks, 1):
-        if task.get("kind") in ("row", "pick"):           # prediction tasks: a condition instead of an answer
-            tname = task.get("table", table)
-            try:
-                rows = con.execute('SELECT * FROM "%s" WHERE %s' % (tname, task["condition"])).fetchall()
-                if task["kind"] == "row":
-                    key = con.execute('PRAGMA table_info("%s")' % tname).fetchone()[1]   # first column, e.g. emp_id
-                    if not con.execute('SELECT 1 FROM "%s" WHERE %s = ?' % (tname, key), (task["row"],)).fetchone():
-                        bad += 1
-                        fail(f"lesson {lid}, task {i}: row {task['row']} does not exist")
-            except (sqlite3.Error, KeyError) as e:
-                bad += 1
-                fail(f"lesson {lid}, task {i}: condition fails: {e}")
-            if not all(k in task.get("explain", {}) for k in ("en", "ru")):
-                bad += 1
-                fail(f"lesson {lid}, task {i}: prediction task needs an en and ru explanation")
-        elif task.get("kind") == "rewrite":               # the answer must mean the same as "expr", in the asked form
-            try:
-                if task.get("vars"):
-                    names, combos = task["vars"], [[]]
-                    for _ in names:
-                        combos = [r + [v] for r in combos for v in (1, 0)]
-                else:
-                    names, combos = list(task["domain"]), [[]]
-                    for n in names:
-                        combos = [r + [v] for r in combos for v in task["domain"][n]]
-                lit = lambda v: "'" + v.replace("'", "''") + "'" if isinstance(v, str) else str(v)
-                values = ", ".join("(" + ", ".join(lit(v) for v in r) + ")" for r in combos)
-                both = ", ".join("CASE WHEN (%s) THEN 1 WHEN NOT (%s) THEN 0 END" % (e, e) for e in (task["expr"], task["answer"]))
-                rows = con.execute("WITH v(%s) AS (VALUES %s) SELECT %s FROM v" % (", ".join(names), values, both)).fetchall()
-                if any(a != b for a, b in rows):
-                    bad += 1
-                    fail(f"lesson {lid}, task {i}: the answer does not mean the same as the expression")
-                pattern = r"\bnot\b" if task.get("form") == "no_not" else r"\bnot\s*\("
-                if re.search(pattern, task["answer"], re.I):
-                    bad += 1
-                    fail(f"lesson {lid}, task {i}: the answer does not have the asked form")
-            except (sqlite3.Error, KeyError) as e:
-                bad += 1
-                fail(f"lesson {lid}, task {i}: rewrite task fails: {e}")
-            if not all(k in task.get("explain", {}) for k in ("en", "ru")):
-                bad += 1
-                fail(f"lesson {lid}, task {i}: rewrite task needs an en and ru explanation")
-        elif task.get("kind") in ("value", "truth"):     # logic tasks: an expression instead of an answer
-            exprs = [task.get("expr")] if task["kind"] == "value" else task.get("cols", [])
-            names = list(task.get("given", {})) if task["kind"] == "value" else task.get("vars", [])
-            try:
-                if not all(exprs):
-                    raise KeyError("expr / cols")
-                frm = (" FROM (SELECT " + ", ".join("1 AS %s" % n for n in names) + ")") if names else ""
-                for e in exprs:
-                    con.execute("SELECT (%s)%s" % (e, frm)).fetchall()
-            except (sqlite3.Error, KeyError) as e:
-                bad += 1
-                fail(f"lesson {lid}, task {i}: expression fails: {e}")
-            if task["kind"] == "value" and not all(k in task.get("explain", {}) for k in ("en", "ru")):
-                bad += 1
-                fail(f"lesson {lid}, task {i}: \"value\" task needs an en and ru explanation")
-        elif "answer" not in task:
+        kind = task.get("kind")
+        needed = {"row": "condition", "pick": "condition", "rewrite": "answer", "value": "expr", "truth": "cols"}.get(kind, "answer")
+        if needed not in task:
             bad += 1
-            fail(f"lesson {lid}, task {i}: no answer")
-        for field in ("answer", "example"):
-            if field in task and not (field == "answer" and task.get("kind") == "rewrite"):   # a rewrite answer is a condition
-                try:
-                    con.execute(task[field]).fetchall()
-                except sqlite3.Error as e:
-                    bad += 1
-                    fail(f"lesson {lid}, task {i}: {field} fails: {e}")
+            fail(f"lesson {lid}, task {i}: no {needed}")
+        if (kind in ("row", "pick", "rewrite", "value")) and not all(k in task.get("explain", {}) for k in ("en", "ru")):
+            bad += 1
+            fail(f"lesson {lid}, task {i}: this kind of task needs an en and ru explanation")
         for key in ("en", "ru"):
             if key not in task["text"]:
                 bad += 1
                 fail(f"lesson {lid}, task {i}: missing {key} text")
+    if results is not None and results["lessons"].get(str(lid), {}).get("hash") != lesson_hash(lesson):
+        bad += 1
+        fail(f"lesson {lid}: changed since the results were worked out: run `make results`")
     if not bad:
-        print(f"  ✓ lesson {lid}: {len(tasks)} tasks, answers and examples run")
+        print(f"  ✓ lesson {lid}: {len(tasks)} tasks")
 
 # The public course must not leak answers or tips (same code as /course.js).
-source = (ROOT / "main.py").read_text(encoding="utf-8")
-start, end = source.index("def public_course"), source.index("def find_lesson")
-namespace = {"COURSE": COURSE}
-exec(source[start:end], namespace)
-public = json.dumps(namespace["public_course"]())
-if '"answer"' in public or '"tips"' in public or '"explain"' in public:
-    fail("/course.js would contain answers, explanations or tips")
-else:
-    print("  ✓ /course.js has no answers, explanations or tips")
+if results is not None:
+    source = (ROOT / "main.py").read_text(encoding="utf-8")
+    start, end = source.index("def public_course"), source.index("def find_lesson")
+    namespace = {"COURSE": COURSE, "RESULTS": results}
+    exec(source[start:end], namespace)
+    public = json.dumps(namespace["public_course"]())
+    if re.search(r'"(answer|tips|explain)"', public):
+        fail("/course.js would contain answers, explanations or tips")
+    else:
+        print("  ✓ /course.js has no answers, explanations or tips")
 
 if errors:
     print(f"\n{len(errors)} problem(s) found.")

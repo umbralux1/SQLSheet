@@ -492,8 +492,7 @@ INSERT INTO books VALUES
                           'calculations, mostly without tables.</p>\n'
                           '<h4>Logical values</h4>\n'
                           '<ul>\n'
-                          "  <li>A comparison (<code>5 &gt; 3</code>, <code>city = 'Paris'</code>) gives <code>TRUE</code> or <code>FALSE</code>. In SQLite <code>TRUE</code> is 1 and "
-                          '<code>FALSE</code> is 0.</li>\n'
+                          "  <li>A comparison (<code>5 &gt; 3</code>, <code>city = 'Paris'</code>) gives <code>TRUE</code> or <code>FALSE</code>. PostgreSQL has a real type for them: <code>boolean</code>.</li>\n"
                           '  <li><code>AND</code> — <code>TRUE</code> only if both sides are <code>TRUE</code>. <code>OR</code> — <code>TRUE</code> if at least one side is. '
                           '<code>NOT</code> — the opposite.</li>\n'
                           '</ul>\n'
@@ -510,8 +509,7 @@ INSERT INTO books VALUES
                           'основном без таблиц.</p>\n'
                           '<h4>Логические значения</h4>\n'
                           '<ul>\n'
-                          "  <li>Сравнение (<code>5 &gt; 3</code>, <code>city = 'Paris'</code>) даёт <code>TRUE</code> или <code>FALSE</code>. В SQLite <code>TRUE</code> — это 1, а "
-                          '<code>FALSE</code> — 0.</li>\n'
+                          "  <li>Сравнение (<code>5 &gt; 3</code>, <code>city = 'Paris'</code>) даёт <code>TRUE</code> или <code>FALSE</code>. В PostgreSQL для них есть настоящий тип: <code>boolean</code>.</li>\n"
                           '  <li><code>AND</code> — <code>TRUE</code>, только если обе стороны <code>TRUE</code>. <code>OR</code> — <code>TRUE</code>, если хотя бы одна. <code>NOT</code> '
                           '— наоборот.</li>\n'
                           '</ul>\n'
@@ -562,26 +560,26 @@ INSERT INTO books VALUES
                     'kind': 'value',
                     'expr': '5 > 3',
                     'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
-                    'explain': {'en': '5 is greater than 3, so the answer is “yes”: <code>TRUE</code>. In the grid it is <code>1</code>.',
-                                'ru': '5 больше 3, значит ответ «да»: <code>TRUE</code>. В таблице это <code>1</code>.'},
+                    'explain': {'en': '5 is greater than 3, so the answer is “yes”: <code>TRUE</code>. In the grid it is <code>true</code>.',
+                                'ru': '5 больше 3, значит ответ «да»: <code>TRUE</code>. В таблице это <code>true</code>.'},
                     'section': {'en': 'A · TRUE and FALSE', 'ru': 'A · TRUE и FALSE'},
                     'intro': {'en': '<p>A comparison is a question with two possible answers: yes or no. In SQL the answer is a <b>logical value</b> (boolean): <code>TRUE</code> or '
                                     '<code>FALSE</code>. <code>5 &gt; 3</code> <i>is</i> the value <code>TRUE</code>, just like <code>2 + 3</code> <i>is</i> the value '
                                     '<code>5</code>.</p>\n'
-                                    '<p>SQLite keeps <code>TRUE</code> as <code>1</code> and <code>FALSE</code> as <code>0</code>, so in the result you will see 1 and 0.</p>\n'
+                                    '<p>PostgreSQL has a special type for them, <code>boolean</code>. In the result you will see <code>true</code> and <code>false</code>.</p>\n'
                                     '<p><b>Example:</b> two comparisons at once.</p>',
                               'ru': '<p>Сравнение — это вопрос, на который есть два ответа: да или нет. В SQL ответ — это <b>логическое значение</b> (boolean): <code>TRUE</code> или '
                                     '<code>FALSE</code>. <code>5 &gt; 3</code> — <i>это и есть</i> значение <code>TRUE</code>, так же как <code>2 + 3</code> — это значение '
                                     '<code>5</code>.</p>\n'
-                                    '<p>SQLite хранит <code>TRUE</code> как <code>1</code>, а <code>FALSE</code> как <code>0</code>, поэтому в результате ты увидишь 1 и 0.</p>\n'
+                                    '<p>В PostgreSQL для них есть особый тип, <code>boolean</code>. В результате ты увидишь <code>true</code> и <code>false</code>.</p>\n'
                                     '<p><b>Пример:</b> два сравнения сразу.</p>'},
                     'example': 'SELECT 5 > 3 AS first, 2 = 7 AS second;'},
                    {'id': 'lg.2',
                     'kind': 'value',
                     'expr': "'Paris' = 'Berlin'",
                     'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
-                    'explain': {'en': 'The texts are different, so they are not equal: <code>FALSE</code> (in the grid <code>0</code>).',
-                                'ru': 'Тексты разные, значит они не равны: <code>FALSE</code> (в таблице <code>0</code>).'}},
+                    'explain': {'en': 'The texts are different, so they are not equal: <code>FALSE</code> (in the grid <code>false</code>).',
+                                'ru': 'Тексты разные, значит они не равны: <code>FALSE</code> (в таблице <code>false</code>).'}},
                    {'id': 'lg.3',
                     'kind': 'value',
                     'expr': '10 <> 10',
@@ -709,11 +707,11 @@ INSERT INTO books VALUES
                              'ru': "Выведи <code>first_name</code>, <code>city</code> и столбец <code>is_paris</code>, который показывает, из <code>'Paris'</code> ли сотрудник."},
                     'answer': "SELECT first_name, city, city = 'Paris' AS is_paris FROM employees;",
                     'section': {'en': 'C · A comparison is a column', 'ru': 'C · Сравнение — это столбец'},
-                    'intro': {'en': '<p>A comparison can be a column of the result. Then every row gets its own answer, 1 or 0, like a helper column in Excel with '
+                    'intro': {'en': '<p>A comparison can be a column of the result. Then every row gets its own answer, true or false, like a helper column in Excel with '
                                     '<code>=C2&gt;60000</code>.</p>\n'
                                     '<p><code>WHERE</code> does the same comparison for every row and keeps only the rows where the answer is 1 (<code>TRUE</code>).</p>\n'
                                     '<p><b>Example:</b> who earns more than 60000.</p>',
-                              'ru': '<p>Сравнение может быть столбцом результата. Тогда у каждой строки свой ответ, 1 или 0, как вспомогательный столбец в Excel с формулой '
+                              'ru': '<p>Сравнение может быть столбцом результата. Тогда у каждой строки свой ответ, true или false, как вспомогательный столбец в Excel с формулой '
                                     '<code>=C2&gt;60000</code>.</p>\n'
                                     '<p><code>WHERE</code> делает то же сравнение для каждой строки и оставляет только строки, где ответ 1 (<code>TRUE</code>).</p>\n'
                                     '<p><b>Пример:</b> кто зарабатывает больше 60000.</p>'},
@@ -1158,16 +1156,12 @@ INSERT INTO books VALUES
                                 'ru': 'Без уроков (последние 4 строки) всегда <code>FALSE</code>. С уроками — <code>FALSE</code> только когда нет ни солнца, ни зонта.'}},
                    {'id': 'lg.39',
                     'kind': 'value',
-                    'expr': "1 = 1 AND 'Berlin'",
+                    'expr': "'Berlin' = 'Berlin' AND 1 = 2",
                     'text': {'en': 'What does this expression return?', 'ru': 'Что вернёт это выражение?'},
-                    'explain': {'en': "<code>'Berlin'</code> is not a comparison. SQLite turns it into the number 0, that is <code>FALSE</code>. <code>TRUE AND FALSE</code> = "
-                                      '<code>FALSE</code>.',
-                                'ru': "<code>'Berlin'</code> — это не сравнение. SQLite превращает его в число 0, то есть <code>FALSE</code>. <code>TRUE AND FALSE</code> = "
-                                      '<code>FALSE</code>.'},
+                    'explain': {'en': "Each side is a whole comparison: <code>'Berlin' = 'Berlin'</code> is <code>TRUE</code> and <code>1 = 2</code> is <code>FALSE</code>. <code>TRUE AND FALSE</code> = <code>FALSE</code>.",
+                                'ru': "Каждая сторона — целое сравнение: <code>'Berlin' = 'Berlin'</code> это <code>TRUE</code>, а <code>1 = 2</code> это <code>FALSE</code>. <code>TRUE AND FALSE</code> = <code>FALSE</code>."},
                     'section': {'en': 'I · Traps: text and NULL', 'ru': 'I · Ловушки: текст и NULL'},
-                    'intro': {'en': "<p><b>Text instead of a comparison.</b> When SQLite needs a logical value and gets text, it turns the text into a number: <code>'Berlin'</code> "
-                                    "becomes 0, that is <code>FALSE</code>. That is why <code>city = 'Paris' OR 'Berlin'</code> gives no error: it means <code>city = 'Paris' OR "
-                                    'FALSE</code>, and Berlin is lost.</p>\n'
+                    'intro': {'en': "<p><b>Text instead of a comparison.</b> <code>city = 'Paris' OR 'Berlin'</code> reads naturally, but both sides of <code>OR</code> must be logical values. PostgreSQL tries to read <code>'Berlin'</code> as one and stops with the error <code>invalid input syntax for type boolean</code>. Write the whole comparison on both sides: <code>city = 'Paris' OR city = 'Berlin'</code>.</p>\n"
                                     '<p><b>NULL is “unknown”.</b> It is the third logical value:</p>\n'
                                     '<ul>\n'
                                     '<li><code>TRUE AND NULL</code> = <code>NULL</code> (it depends on the unknown part), but <code>FALSE AND NULL</code> = <code>FALSE</code> (one '
@@ -1177,9 +1171,7 @@ INSERT INTO books VALUES
                                     '<li><code>WHERE</code> keeps only <code>TRUE</code> rows, so the rows with <code>NULL</code> are dropped.</li>\n'
                                     '</ul>\n'
                                     '<p><b>Example:</b></p>',
-                              'ru': "<p><b>Текст вместо сравнения.</b> Когда SQLite нужно логическое значение, а там текст, он превращает текст в число: <code>'Berlin'</code> становится "
-                                    "0, то есть <code>FALSE</code>. Поэтому <code>city = 'Paris' OR 'Berlin'</code> не даёт ошибки: это значит <code>city = 'Paris' OR FALSE</code>, и "
-                                    'Берлин теряется.</p>\n'
+                              'ru': "<p><b>Текст вместо сравнения.</b> <code>city = 'Paris' OR 'Berlin'</code> звучит естественно, но обе стороны <code>OR</code> должны быть логическими значениями. PostgreSQL пытается прочитать <code>'Berlin'</code> как логическое значение и останавливается с ошибкой <code>invalid input syntax for type boolean</code>. Пиши сравнение целиком с обеих сторон: <code>city = 'Paris' OR city = 'Berlin'</code>.</p>\n"
                                     '<p><b>NULL — это «неизвестно».</b> Третье логическое значение:</p>\n'
                                     '<ul>\n'
                                     '<li><code>TRUE AND NULL</code> = <code>NULL</code> (зависит от неизвестной части), а <code>FALSE AND NULL</code> = <code>FALSE</code> (одного '
@@ -1189,13 +1181,11 @@ INSERT INTO books VALUES
                                     '<li><code>WHERE</code> оставляет только строки с <code>TRUE</code>, поэтому строки с <code>NULL</code> отбрасываются.</li>\n'
                                     '</ul>\n'
                                     '<p><b>Пример:</b></p>'},
-                    'example': "SELECT 1 = 2 OR 'Paris' AS text_trap, FALSE OR NULL AS false_or_null;"},
+                    'example': 'SELECT TRUE OR NULL AS true_or_null, FALSE OR NULL AS false_or_null;'},
                    {'id': 'lg.40',
-                    'text': {'en': "Show <code>first_name</code>, <code>city</code> and two columns: <code>wrong</code> = <code>city = 'Paris' OR 'Berlin'</code> and <code>right</code> = "
-                                   "<code>city = 'Paris' OR city = 'Berlin'</code>. Look at the employees from Berlin.",
-                             'ru': "Выведи <code>first_name</code>, <code>city</code> и два столбца: <code>wrong</code> = <code>city = 'Paris' OR 'Berlin'</code> и <code>right</code> = "
-                                   "<code>city = 'Paris' OR city = 'Berlin'</code>. Посмотри на сотрудников из Берлина."},
-                    'answer': "SELECT first_name, city,\n       city = 'Paris' OR 'Berlin' AS wrong,\n       city = 'Paris' OR city = 'Berlin' AS right\nFROM employees;"},
+                    'text': {'en': "First run <code>SELECT city = 'Paris' OR 'Berlin' FROM employees;</code> and read the error. Then fix it: show <code>first_name</code>, <code>city</code> and the column <code>paris_or_berlin</code> = <code>city = 'Paris' OR city = 'Berlin'</code>.",
+                             'ru': "Сначала выполни <code>SELECT city = 'Paris' OR 'Berlin' FROM employees;</code> и прочитай ошибку. Потом исправь: выведи <code>first_name</code>, <code>city</code> и столбец <code>paris_or_berlin</code> = <code>city = 'Paris' OR city = 'Berlin'</code>."},
+                    'answer': "SELECT first_name, city,\n       city = 'Paris' OR city = 'Berlin' AS paris_or_berlin\nFROM employees;"},
                    {'id': 'lg.41',
                     'kind': 'value',
                     'expr': 'TRUE AND NULL',
@@ -1325,7 +1315,7 @@ WHERE condition;</pre>
                     "If task 10 is hard, use section <b>B+</b>: ten more <code>OR</code> tasks. Show both wrong versions from its theory and ask the student to predict their row counts first.",
                     "<b>Extra practice</b> (50 tasks) repeats the lesson's topics and is optional. Good for homework or for a student who finished early.",
                     "<b>Extra AND / OR / NOT</b> introduces De Morgan's law: <code>NOT (A OR B)</code> equals <code>NOT A AND NOT B</code>. Ask the student to write each task both ways and compare the row counts.",
-                    "<b>Extra LIKE</b>: <code>_</code> is exactly one character and <code>%</code> is any number. In this trainer (SQLite) <code>LIKE</code> ignores letter case, so <code>'%i%'</code> also finds Ivan. Other databases may differ.",
+                    "<b>Extra LIKE</b>: <code>_</code> is exactly one character and <code>%</code> is any number. In PostgreSQL <code>LIKE</code> is case-sensitive, so <code>'%i%'</code> does not find Ivan. <code>ILIKE</code> ignores letter case.",
                     "<b>Extra NULL</b>, the last task: <code>bonus &lt; 4000</code> alone skips the employees with no bonus, because a comparison with NULL is never true. That is why <code>bonus IS NULL OR …</code> is needed.",
                 ],
                 "ru": [
@@ -1337,7 +1327,7 @@ WHERE condition;</pre>
                     "Если задание 10 даётся тяжело, переходи к разделу <b>B+</b>: ещё десять заданий на <code>OR</code>. Покажи обе ошибки из его теории и попроси сначала предсказать, сколько строк они вернут.",
                     "<b>Дополнительная практика</b> (50 заданий) повторяет темы урока и не обязательна. Подходит для домашней работы или для ученика, который закончил раньше.",
                     "<b>Доп. AND / OR / NOT</b> знакомит с законом де Моргана: <code>NOT (A OR B)</code> равно <code>NOT A AND NOT B</code>. Попроси записать каждое задание обоими способами и сравнить число строк.",
-                    "<b>Доп. LIKE</b>: <code>_</code> — ровно один символ, <code>%</code> — любое количество. В этом тренажёре (SQLite) <code>LIKE</code> не различает регистр, поэтому <code>'%i%'</code> находит и Ivan. В других СУБД может быть иначе.",
+                    "<b>Доп. LIKE</b>: <code>_</code> — ровно один символ, <code>%</code> — любое количество. В PostgreSQL <code>LIKE</code> различает регистр, поэтому <code>'%i%'</code> не находит Ivan. <code>ILIKE</code> регистр не различает.",
                     "<b>Доп. NULL</b>, последнее задание: одно условие <code>bonus &lt; 4000</code> пропустит сотрудников без бонуса, потому что сравнение с NULL никогда не верно. Поэтому нужно <code>bonus IS NULL OR …</code>.",
                 ],
             },
@@ -2046,7 +2036,7 @@ LIMIT n OFFSET m;</pre>
 </ul>
 <h4>NULL in sorting</h4>
 <ul>
-  <li>In our trainer (SQLite) <code>NULL</code> is smaller than any value: <b>first</b> with <code>ASC</code>, <b>last</b> with <code>DESC</code>. MySQL does the same, PostgreSQL and Oracle do the opposite.</li>
+  <li>In PostgreSQL <code>NULL</code> is larger than any value: <b>last</b> with <code>ASC</code>, <b>first</b> with <code>DESC</code>. Oracle does the same, MySQL and SQLite do the opposite.</li>
   <li><code>NULLS FIRST</code> / <code>NULLS LAST</code> after the direction put <code>NULL</code> where you want.</li>
 </ul>
 <h4>LIMIT and OFFSET</h4>
@@ -2072,7 +2062,7 @@ LIMIT n OFFSET m;</pre>
 </ul>
 <h4>NULL при сортировке</h4>
 <ul>
-  <li>В нашем тренажёре (SQLite) <code>NULL</code> меньше любого значения: <b>в начале</b> при <code>ASC</code> и <b>в конце</b> при <code>DESC</code>. В MySQL так же, в PostgreSQL и Oracle наоборот.</li>
+  <li>В PostgreSQL <code>NULL</code> больше любого значения: <b>в конце</b> при <code>ASC</code> и <b>в начале</b> при <code>DESC</code>. В Oracle так же, в MySQL и SQLite наоборот.</li>
   <li><code>NULLS FIRST</code> / <code>NULLS LAST</code> после направления ставят <code>NULL</code> куда нужно.</li>
 </ul>
 <h4>LIMIT и OFFSET</h4>
@@ -2088,7 +2078,7 @@ LIMIT n OFFSET m;</pre>
                 "en": [
                     "<b>Predict before running.</b> In section B ask where the <code>NULL</code> rows will be, then run and compare.",
                     "<b>Swap the keys.</b> In tasks 9–10 swap the two <code>ORDER BY</code> columns and ask what changes before running.",
-                    "<b>LIMIT without ORDER BY.</b> In SQLite <code>SELECT * FROM products LIMIT 3;</code> usually returns the first rows of the table, so it looks fine. Explain that it is luck: another database, or the same one after changes, may return other rows.",
+                    "<b>LIMIT without ORDER BY.</b> In PostgreSQL <code>SELECT * FROM products LIMIT 3;</code> usually returns the first rows of the table, so it looks fine. Explain that it is luck: another database, or the same one after changes, may return other rows.",
                     "<b>OFFSET arithmetic.</b> “Skip 3, take 3” = rows 4, 5, 6. Students often read <code>LIMIT 3 OFFSET 3</code> as “rows 3 to 3”.",
                     "<b>DESC scope.</b> Point at <code>ORDER BY a DESC, b</code> and ask: is <code>b</code> ascending or descending?",
                     "The <b>Explain condition</b> button works only for <code>WHERE</code>; it does not explain sorting.",
@@ -2096,7 +2086,7 @@ LIMIT n OFFSET m;</pre>
                 "ru": [
                     "<b>Предсказание до запуска.</b> В разделе B спрашивай, где окажутся строки с <code>NULL</code>, потом запускай и сравнивайте.",
                     "<b>Поменяй столбцы местами.</b> В задачах 9–10 поменяй два столбца в <code>ORDER BY</code> и спроси, что изменится, до запуска.",
-                    "<b>LIMIT без ORDER BY.</b> В SQLite <code>SELECT * FROM products LIMIT 3;</code> обычно возвращает первые строки таблицы, и кажется, что всё правильно. Объясни, что это везение: другая база или эта же после изменений вернёт другие строки.",
+                    "<b>LIMIT без ORDER BY.</b> В PostgreSQL <code>SELECT * FROM products LIMIT 3;</code> обычно возвращает первые строки таблицы, и кажется, что всё правильно. Объясни, что это везение: другая база или эта же после изменений вернёт другие строки.",
                     "<b>Счёт с OFFSET.</b> «Пропусти 3, возьми 3» = строки 4, 5, 6. Часто <code>LIMIT 3 OFFSET 3</code> читают как «строки с 3 по 3».",
                     "<b>DESC действует на один столбец.</b> Покажи <code>ORDER BY a DESC, b</code> и спроси: <code>b</code> по возрастанию или по убыванию?",
                     "Кнопка <b>«Разобрать условие»</b> работает только для <code>WHERE</code>, сортировку она не объясняет.",
@@ -2169,9 +2159,9 @@ INSERT INTO orders VALUES
                 # Section B
                 {"id": "3.5",
                  "section": {"en": "B · NULL in sorting", "ru": "B · NULL при сортировке"},
-                 "intro": {"en": "<p>Where does <code>NULL</code> go? Every database decides for itself. In our trainer (SQLite) <code>NULL</code> counts as <b>smaller than any value</b>: it comes <b>first</b> with <code>ASC</code> and <b>last</b> with <code>DESC</code>. MySQL does the same, PostgreSQL and Oracle do the opposite.</p>\n<p>To choose the place yourself, write <code>NULLS FIRST</code> or <code>NULLS LAST</code> after the direction.</p>\n<p><b>Example:</b> orders from the biggest discount to the smallest, but orders without a discount first.</p>",
-                           "ru": "<p>Куда попадает <code>NULL</code>? Каждая база решает сама. В нашем тренажёре (SQLite) <code>NULL</code> считается <b>меньше любого значения</b>: он идёт <b>в начале</b> при <code>ASC</code> и <b>в конце</b> при <code>DESC</code>. В MySQL так же, в PostgreSQL и Oracle наоборот.</p>\n<p>Чтобы выбрать место самой, напиши <code>NULLS FIRST</code> или <code>NULLS LAST</code> после направления.</p>\n<p><b>Пример:</b> заказы от самой большой скидки к самой маленькой, но заказы без скидки — в начале.</p>"},
-                 "example": "SELECT order_id, customer, discount\nFROM orders\nORDER BY discount DESC NULLS FIRST;",
+                 "intro": {"en": "<p>Where does <code>NULL</code> go? Every database decides for itself. In PostgreSQL <code>NULL</code> counts as <b>larger than any value</b>: it comes <b>last</b> with <code>ASC</code> and <b>first</b> with <code>DESC</code>. Oracle does the same, MySQL and SQLite do the opposite.</p>\n<p>To choose the place yourself, write <code>NULLS FIRST</code> or <code>NULLS LAST</code> after the direction.</p>\n<p><b>Example:</b> orders from the biggest discount to the smallest, with the orders without a discount at the end.</p>",
+                           "ru": "<p>Куда попадает <code>NULL</code>? Каждая база решает сама. В PostgreSQL <code>NULL</code> считается <b>больше любого значения</b>: он идёт <b>в конце</b> при <code>ASC</code> и <b>в начале</b> при <code>DESC</code>. В Oracle так же, в MySQL и SQLite наоборот.</p>\n<p>Чтобы выбрать место самой, напиши <code>NULLS FIRST</code> или <code>NULLS LAST</code> после направления.</p>\n<p><b>Пример:</b> заказы от самой большой скидки к самой маленькой, а заказы без скидки — в конце.</p>"},
+                 "example": "SELECT order_id, customer, discount\nFROM orders\nORDER BY discount DESC NULLS LAST;",
                  "text": {"en": "Get all products sorted by <code>supplier</code> from A to Z. Where did the products without a supplier end up?", "ru": "Выведи все товары, отсортированные по <code>supplier</code> от A до Z. Где оказались товары без поставщика?"},
                  "answer": "SELECT * FROM products ORDER BY supplier ASC;"},
                 {"id": "3.6",
@@ -2181,8 +2171,8 @@ INSERT INTO orders VALUES
                  "text": {"en": "Get all orders sorted by <code>discount</code> from the biggest to the smallest. Where are the orders without a discount now?", "ru": "Выведи все заказы, отсортированные по <code>discount</code> от самой большой скидки к самой маленькой. Где теперь заказы без скидки?"},
                  "answer": "SELECT * FROM orders ORDER BY discount DESC;"},
                 {"id": "3.8",
-                 "text": {"en": "Get all products sorted by <code>stock</code> from the smallest to the largest, but with the products whose stock is unknown (<code>NULL</code>) at the end.", "ru": "Выведи все товары, отсортированные по <code>stock</code> от меньшего к большему, но товары с неизвестным остатком (<code>NULL</code>) — в конце."},
-                 "answer": "SELECT * FROM products ORDER BY stock ASC NULLS LAST;"},
+                 "text": {"en": "Get all products sorted by <code>stock</code> from the smallest to the largest, but with the products whose stock is unknown (<code>NULL</code>) at the start.", "ru": "Выведи все товары, отсортированные по <code>stock</code> от меньшего к большему, но товары с неизвестным остатком (<code>NULL</code>) — в начале."},
+                 "answer": "SELECT * FROM products ORDER BY stock ASC NULLS FIRST;"},
 
                 # Section C
                 {"id": "3.9",
@@ -2277,8 +2267,8 @@ INSERT INTO orders VALUES
                  "text": {"en": "Skip the 4 most expensive products and get the next 2 (the 5th and the 6th most expensive).", "ru": "Пропусти 4 самых дорогих товара и выведи следующие 2 (пятый и шестой по дороговизне)."},
                  "answer": "SELECT * FROM products ORDER BY price DESC LIMIT 2 OFFSET 4;"},
                 {"id": "3.32",
-                 "text": {"en": "Get the 3 products with the biggest <code>stock</code> among the products that have a supplier.", "ru": "Выведи 3 товара с самым большим <code>stock</code> среди товаров, у которых есть поставщик."},
-                 "answer": "SELECT * FROM products\nWHERE supplier IS NOT NULL\nORDER BY stock DESC\nLIMIT 3;"},
+                 "text": {"en": "Get the 3 products with the biggest <code>stock</code> among the products that have a supplier. Products with an unknown stock do not count: put them at the end.", "ru": "Выведи 3 товара с самым большим <code>stock</code> среди товаров, у которых есть поставщик. Товары с неизвестным остатком не считаются: поставь их в конец."},
+                 "answer": "SELECT * FROM products\nWHERE supplier IS NOT NULL\nORDER BY stock DESC NULLS LAST\nLIMIT 3;"},
                 {"id": "3.33",
                  "text": {"en": "Get the 2 oldest orders of the customers whose name starts with <code>'C'</code>.", "ru": "Выведи 2 самых старых заказа покупателей, чьё имя начинается на <code>'C'</code>."},
                  "answer": "SELECT * FROM orders\nWHERE customer LIKE 'C%'\nORDER BY order_date ASC\nLIMIT 2;"},
@@ -2367,10 +2357,8 @@ INSERT INTO orders VALUES
                            '<h4>How the tasks work</h4>\n'
                            '<p>A question comes from a colleague. Decide the table, the rows, the columns and the order yourself. The answer is checked by its values: the column names '
                            'are up to you, but keep the order of the columns from the question.</p>\n'
-                           '<h4>SQLite and PostgreSQL</h4>\n'
-                           '<p>The trainer runs SQLite. At work you will more likely meet PostgreSQL (or BigQuery, ClickHouse…). Almost everything is the same; where the syntax differs, '
-                           'the theory has a blue <b>PostgreSQL</b> note. One difference to remember from the start: PostgreSQL puts <code>NULL</code> <b>last</b> when sorting '
-                           '<code>ASC</code>, SQLite puts it first.</p>',
+                           '<h4>PostgreSQL</h4>\n'
+                           '<p>The trainer runs real PostgreSQL right in your browser, the database you are most likely to meet at work. Other analytical databases (BigQuery, ClickHouse…) are close, but some functions differ.</p>',
                      'ru': '<p>Добро пожаловать в курс для аналитиков. Здесь ты повторяешь SQL на настоящих вопросах бизнеса про один интернет-магазин.</p>\n'
                            '<h4>Данные</h4>\n'
                            '<ul>\n'
@@ -2382,10 +2370,8 @@ INSERT INTO orders VALUES
                            '<h4>Как устроены задания</h4>\n'
                            '<p>Вопрос приходит от коллеги. Таблицу, строки, столбцы и порядок решай сама. Ответ проверяется по значениям: названия столбцов — на твой выбор, но порядок '
                            'столбцов должен быть как в вопросе.</p>\n'
-                           '<h4>SQLite и PostgreSQL</h4>\n'
-                           '<p>Тренажёр работает на SQLite. На работе скорее встретится PostgreSQL (или BigQuery, ClickHouse…). Почти всё одинаково; там, где синтаксис отличается, в '
-                           'теории есть синяя пометка <b>PostgreSQL</b>. Одно отличие стоит запомнить сразу: PostgreSQL при сортировке <code>ASC</code> ставит <code>NULL</code> <b>в '
-                           'конец</b>, а SQLite — в начало.</p>'},
+                           '<h4>PostgreSQL</h4>\n'
+                           '<p>Тренажёр работает на настоящем PostgreSQL прямо в браузере: скорее всего, именно эта база встретится на работе. Другие аналитические базы (BigQuery, ClickHouse…) похожи, но некоторые функции там другие.</p>'},
           'tips': {'en': ['Before she writes SQL, ask her to say the four steps aloud: table → rows → columns → order/limit.',
                           'Play the colleague: rephrase a question in other words and see if she finds the same query.',
                           'Task 12 is about integer division: if she gets 0 or 1 everywhere, that is the reason.'],
@@ -2435,21 +2421,17 @@ INSERT INTO orders VALUES
                      'section': {'en': 'B · Filters in business language', 'ru': 'B · Фильтры на языке бизнеса'},
                      'intro': {'en': '<p>Business questions often hide several conditions in one sentence. Write each one down separately, then join them with <code>AND</code> / '
                                      '<code>OR</code>, and put brackets around every <code>OR</code>.</p>\n'
-                                     "<ul><li>“in December” → <code>order_date BETWEEN '2025-12-01' AND '2025-12-31'</code> (dates are text <code>'YYYY-MM-DD'</code>, so they compare "
-                                     'correctly);</li>\n'
+                                     "<ul><li>“in December” → <code>order_date BETWEEN '2025-12-01' AND '2025-12-31'</code> (the column has the real type <code>DATE</code>, and PostgreSQL reads the text <code>'YYYY-MM-DD'</code> as a date);</li>\n"
                                      '<li>“with a promo code” → <code>promo_code IS NOT NULL</code>;</li>\n'
                                      "<li>“from ads or social” → <code>channel IN ('ads', 'social')</code>.</li></ul>\n"
-                                     '<p class="pg"><b>PostgreSQL:</b> dates are a real <code>DATE</code> type, but <code>\'2025-12-01\'</code> works the same way. <code>LIKE</code> is '
-                                     "case-sensitive: <code>'a%'</code> does not find <i>Anna</i>. For a search without case use <code>ILIKE</code>.</p>\n"
+                                     "<p><code>LIKE</code> is case-sensitive: <code>'a%'</code> does not find <i>Anna</i>. For a search without case use <code>ILIKE</code>.</p>\n"
                                      '<p><b>Example:</b> “Delivered orders of the first quarter over 300”.</p>',
                                'ru': '<p>В вопросах бизнеса в одном предложении часто спрятано несколько условий. Выпиши каждое отдельно, потом соедини их через <code>AND</code> / '
                                      '<code>OR</code> и ставь скобки вокруг каждого <code>OR</code>.</p>\n'
-                                     "<ul><li>«в декабре» → <code>order_date BETWEEN '2025-12-01' AND '2025-12-31'</code> (даты — это текст <code>'YYYY-MM-DD'</code>, поэтому "
-                                     'сравниваются правильно);</li>\n'
+                                     "<ul><li>«в декабре» → <code>order_date BETWEEN '2025-12-01' AND '2025-12-31'</code> (у столбца настоящий тип <code>DATE</code>, а текст <code>'YYYY-MM-DD'</code> PostgreSQL читает как дату);</li>\n"
                                      '<li>«с промокодом» → <code>promo_code IS NOT NULL</code>;</li>\n'
                                      "<li>«из рекламы или соцсетей» → <code>channel IN ('ads', 'social')</code>.</li></ul>\n"
-                                     '<p class="pg"><b>PostgreSQL:</b> даты — настоящий тип <code>DATE</code>, но <code>\'2025-12-01\'</code> работает так же. <code>LIKE</code> различает '
-                                     "регистр: <code>'a%'</code> не найдёт <i>Anna</i>. Для поиска без учёта регистра есть <code>ILIKE</code>.</p>\n"
+                                     "<p><code>LIKE</code> различает регистр: <code>'a%'</code> не найдёт <i>Anna</i>. Для поиска без учёта регистра есть <code>ILIKE</code>.</p>\n"
                                      '<p><b>Пример:</b> «Доставленные заказы первого квартала больше 300».</p>'},
                      'example': 'SELECT order_id, order_date, amount\n'
                                 'FROM orders\n'
@@ -2479,16 +2461,16 @@ INSERT INTO orders VALUES
                      'section': {'en': 'C · Calculated columns', 'ru': 'C · Вычисляемые столбцы'},
                      'intro': {'en': '<p>Analysts constantly calculate new columns: margin, discount, share. In <code>SELECT</code> you can use <code>+ - * /</code> and give the result a '
                                      'name with <code>AS</code>.</p>\n'
-                                     '<p><b>Trap:</b> integer ÷ integer in SQLite (and PostgreSQL) is integer: <code>45 / 100</code> = 0. To get a percent, multiply by <code>100.0</code> '
+                                     '<p><b>Trap:</b> integer ÷ integer is integer: <code>45 / 100</code> = 0. To get a percent, multiply by <code>100.0</code> '
                                      'first: <code>45 * 100.0 / 100</code> = 45.0. <code>ROUND(x, 1)</code> keeps one digit after the point.</p>\n'
-                                     '<p class="pg"><b>PostgreSQL:</b> <code>ROUND(x, 1)</code> needs an exact number (<code>numeric</code>). With <code>100.0</code> in the formula it is '
+                                     '<p><code>ROUND(x, 1)</code> needs an exact number (<code>numeric</code>). With <code>100.0</code> in the formula it is '
                                      'one, so the query works as is. If <code>x</code> is <code>double precision</code>, write <code>ROUND(x::numeric, 1)</code>.</p>\n'
                                      '<p><b>Example:</b> the price of each product with a 20% Black Friday discount.</p>',
                                'ru': '<p>Аналитики постоянно считают новые столбцы: маржу, скидку, долю. В <code>SELECT</code> можно использовать <code>+ - * /</code> и называть '
                                      'результат через <code>AS</code>.</p>\n'
-                                     '<p><b>Ловушка:</b> целое ÷ целое в SQLite (и в PostgreSQL) даёт целое: <code>45 / 100</code> = 0. Чтобы получить процент, сначала умножь на '
+                                     '<p><b>Ловушка:</b> целое ÷ целое даёт целое: <code>45 / 100</code> = 0. Чтобы получить процент, сначала умножь на '
                                      '<code>100.0</code>: <code>45 * 100.0 / 100</code> = 45.0. <code>ROUND(x, 1)</code> оставляет одну цифру после точки.</p>\n'
-                                     '<p class="pg"><b>PostgreSQL:</b> <code>ROUND(x, 1)</code> нужно точное число (<code>numeric</code>). Если в формуле есть <code>100.0</code>, оно '
+                                     '<p><code>ROUND(x, 1)</code> нужно точное число (<code>numeric</code>). Если в формуле есть <code>100.0</code>, оно '
                                      'такое и есть, и запрос работает как есть. Если <code>x</code> имеет тип <code>double precision</code>, пиши <code>ROUND(x::numeric, 1)</code>.</p>\n'
                                      '<p><b>Пример:</b> цена каждого товара со скидкой 20% в Чёрную пятницу.</p>'},
                      'example': 'SELECT name, price, price * 0.8 AS black_friday_price\nFROM products;'},
@@ -2624,23 +2606,15 @@ INSERT INTO orders VALUES
                      'answer': "SELECT COUNT(*), COUNT(DISTINCT customer_id), SUM(amount), ROUND(AVG(amount), 2) FROM orders WHERE status = 'delivered';",
                      'section': {'en': 'D · A small report', 'ru': 'D · Маленький отчёт'},
                      'intro': {'en': '<p>A real report is several numbers next to each other. Put all the aggregates into one <code>SELECT</code>.</p>\n'
-                                     '<p>A <b>share</b> (percent) is “how many of them” ÷ “how many in total” × 100. A comparison is 1 or 0 (remember the logic lesson), so '
-                                     "<code>SUM(status = 'returned')</code> counts the returned orders, and <code>AVG(status = 'returned')</code> is directly their share.</p>\n"
-                                     '<p class="pg"><b>PostgreSQL:</b> a comparison is a real <code>boolean</code>, not 1/0, so <code>SUM(status = \'returned\')</code> gives an error. '
-                                     "Write <code>COUNT(*) FILTER (WHERE status = 'returned')</code> or <code>SUM(CASE WHEN status = 'returned' THEN 1 ELSE 0 END)</code>. Both also work "
-                                     'in SQLite, so they are the safe habit.</p>\n'
+                                     "<p>A <b>share</b> (percent) is “how many of them” ÷ “how many in total” × 100. A comparison is a <code>boolean</code>, not a number (remember the logic lesson), so <code>SUM(status = 'returned')</code> gives an error. Count with <code>COUNT(*) FILTER (WHERE status = 'returned')</code> or <code>SUM(CASE WHEN status = 'returned' THEN 1 ELSE 0 END)</code>.</p>\n"
                                      '<p><b>Example:</b> the share of orders with a promo code, in percent.</p>',
                                'ru': '<p>Настоящий отчёт — это несколько чисел рядом. Помести все агрегаты в один <code>SELECT</code>.</p>\n'
-                                     '<p><b>Доля</b> (процент) — это «сколько таких» ÷ «сколько всего» × 100. Сравнение — это 1 или 0 (вспомни урок логики), поэтому <code>SUM(status = '
-                                     "'returned')</code> считает возвращённые заказы, а <code>AVG(status = 'returned')</code> — это сразу их доля.</p>\n"
-                                     '<p class="pg"><b>PostgreSQL:</b> сравнение — настоящий <code>boolean</code>, а не 1/0, поэтому <code>SUM(status = \'returned\')</code> даст ошибку. '
-                                     "Пиши <code>COUNT(*) FILTER (WHERE status = 'returned')</code> или <code>SUM(CASE WHEN status = 'returned' THEN 1 ELSE 0 END)</code>. Оба варианта "
-                                     'работают и в SQLite, так что это надёжная привычка.</p>\n'
+                                     "<p><b>Доля</b> (процент) — это «сколько таких» ÷ «сколько всего» × 100. Сравнение — это <code>boolean</code>, а не число (вспомни урок логики), поэтому <code>SUM(status = 'returned')</code> даст ошибку. Считай через <code>COUNT(*) FILTER (WHERE status = 'returned')</code> или <code>SUM(CASE WHEN status = 'returned' THEN 1 ELSE 0 END)</code>.</p>\n"
                                      '<p><b>Пример:</b> доля заказов с промокодом в процентах.</p>'},
                      'example': 'SELECT ROUND(COUNT(promo_code) * 100.0 / COUNT(*), 1) AS promo_share_pct\nFROM orders;'},
                     {'id': 'an2.15',
                      'text': {'en': 'What percent of all orders were <b>cancelled</b>? Round to 1 decimal.', 'ru': 'Какой процент всех заказов был <b>отменён</b>? Округли до 1 знака.'},
-                     'answer': "SELECT ROUND(SUM(status = 'cancelled') * 100.0 / COUNT(*), 1) FROM orders;"},
+                     'answer': "SELECT ROUND(COUNT(*) FILTER (WHERE status = 'cancelled') * 100.0 / COUNT(*), 1) FROM orders;"},
                     {'id': 'an2.16',
                      'text': {'en': 'What is the average margin of our products in money (price minus cost), rounded to 2 decimals?',
                               'ru': 'Какая средняя маржа наших товаров в деньгах (цена минус себестоимость), с округлением до 2 знаков?'},
@@ -2662,7 +2636,7 @@ INSERT INTO orders VALUES
                            '<ul>\n'
                            '  <li>Every column in <code>SELECT</code> is in <code>GROUP BY</code> or inside an aggregate.</li>\n'
                            '  <li><code>WHERE</code> filters rows before grouping, <code>HAVING</code> filters groups after it.</li>\n'
-                           "  <li>The month of a date: <code>strftime('%Y-%m', date)</code> (PostgreSQL: <code>to_char(date, 'YYYY-MM')</code>).</li>\n"
+                           "  <li>The month of a date: <code>to_char(date, 'YYYY-MM')</code>.</li>\n"
                            '</ul>',
                      'ru': '<p><code>GROUP BY</code> превращает одно число в <b>сводную таблицу</b>: тот же агрегат, но для каждой группы.</p>\n'
                            '<pre class="code">SELECT column, AGGREGATE(...)\n'
@@ -2675,7 +2649,7 @@ INSERT INTO orders VALUES
                            '<ul>\n'
                            '  <li>Каждый столбец в <code>SELECT</code> либо в <code>GROUP BY</code>, либо внутри агрегата.</li>\n'
                            '  <li><code>WHERE</code> фильтрует строки до группировки, <code>HAVING</code> — группы после.</li>\n'
-                           "  <li>Месяц даты: <code>strftime('%Y-%m', date)</code> (PostgreSQL: <code>to_char(date, 'YYYY-MM')</code>).</li>\n"
+                           "  <li>Месяц даты: <code>to_char(date, 'YYYY-MM')</code>.</li>\n"
                            '</ul>'},
           'tips': {'en': ['Draw the pivot table on paper first: what are the rows, what is in the cells?',
                           'WHERE vs HAVING: ask “is this a condition on one order or on the whole customer?”',
@@ -2698,8 +2672,7 @@ INSERT INTO orders VALUES
                                      'GROUP BY status;</pre>\n'
                                      '<p>The rule: every column in <code>SELECT</code> is either in <code>GROUP BY</code> or inside an aggregate. <code>NULL</code> forms its own '
                                      'group.</p>\n'
-                                     '<p class="pg"><b>PostgreSQL:</b> the rule is strict: a column that is neither in <code>GROUP BY</code> nor inside an aggregate is an error. SQLite '
-                                     'does not complain and puts some random value of the group there, so keep the rule here too.</p>\n'
+                                     '<p>The rule is strict: a column that is neither in <code>GROUP BY</code> nor inside an aggregate is an error.</p>\n'
                                      '<p><b>Example:</b> how many products in each category, and the most expensive one.</p>',
                                'ru': '<p><code>GROUP BY</code> — это <b>сводная таблица</b>: строки — это группы (по одной на каждое значение столбца), а агрегат считается внутри каждой '
                                      'группы.</p>\n'
@@ -2708,8 +2681,7 @@ INSERT INTO orders VALUES
                                      'GROUP BY status;</pre>\n'
                                      '<p>Правило: каждый столбец в <code>SELECT</code> либо есть в <code>GROUP BY</code>, либо внутри агрегата. <code>NULL</code> образует свою '
                                      'группу.</p>\n'
-                                     '<p class="pg"><b>PostgreSQL:</b> правило строгое: столбец, которого нет ни в <code>GROUP BY</code>, ни внутри агрегата, — это ошибка. SQLite не '
-                                     'ругается и подставляет туда случайное значение из группы, поэтому соблюдай правило и здесь.</p>\n'
+                                     '<p>Правило строгое: столбец, которого нет ни в <code>GROUP BY</code>, ни внутри агрегата, — это ошибка.</p>\n'
                                      '<p><b>Пример:</b> сколько товаров в каждой категории и самая высокая цена.</p>'},
                      'example': 'SELECT category, COUNT(*) AS products, MAX(price) AS max_price\nFROM products\nGROUP BY category;'},
                     {'id': 'an3.2',
@@ -2766,15 +2738,13 @@ INSERT INTO orders VALUES
                                      '<code>HAVING COUNT(*) &gt; 3</code>.</p>\n'
                                      '<p>“Customers with revenue over 500” is <code>HAVING SUM(amount) &gt; 500</code>. “Delivered orders” is still <code>WHERE status = '
                                      "'delivered'</code>. Many questions need both.</p>\n"
-                                     '<p class="pg"><b>PostgreSQL:</b> <code>HAVING</code> cannot use a column\'s alias: write <code>HAVING SUM(amount) &gt; 500</code>, not <code>HAVING '
-                                     'revenue &gt; 500</code>. (SQLite allows the alias.) In <code>ORDER BY</code> the alias works in both.</p>\n'
+                                     '<p><code>HAVING</code> cannot use a column\'s alias: write <code>HAVING SUM(amount) &gt; 500</code>, not <code>HAVING revenue &gt; 500</code>. In <code>ORDER BY</code> the alias works.</p>\n'
                                      '<p><b>Example:</b> categories with at least 4 products.</p>',
                                'ru': '<p><code>WHERE</code> фильтрует <b>строки до</b> группировки. <code>HAVING</code> фильтрует <b>группы после</b> группировки, поэтому в нём можно '
                                      'использовать агрегаты: <code>HAVING COUNT(*) &gt; 3</code>.</p>\n'
                                      '<p>«Клиенты с выручкой больше 500» — это <code>HAVING SUM(amount) &gt; 500</code>. А «доставленные заказы» — всё ещё <code>WHERE status = '
                                      "'delivered'</code>. Во многих вопросах нужны оба.</p>\n"
-                                     '<p class="pg"><b>PostgreSQL:</b> в <code>HAVING</code> нельзя использовать имя столбца из <code>AS</code>: пиши <code>HAVING SUM(amount) &gt; '
-                                     '500</code>, а не <code>HAVING revenue &gt; 500</code>. (SQLite такое разрешает.) В <code>ORDER BY</code> имя работает в обоих.</p>\n'
+                                     '<p>В <code>HAVING</code> нельзя использовать имя столбца из <code>AS</code>: пиши <code>HAVING SUM(amount) &gt; 500</code>, а не <code>HAVING revenue &gt; 500</code>. В <code>ORDER BY</code> имя работает.</p>\n'
                                      '<p><b>Пример:</b> категории, где не меньше 4 товаров.</p>'},
                      'example': 'SELECT category, COUNT(*) AS products\nFROM products\nGROUP BY category\nHAVING COUNT(*) >= 4;'},
                     {'id': 'an3.11',
@@ -2792,23 +2762,19 @@ INSERT INTO orders VALUES
                     {'id': 'an3.14',
                      'text': {'en': 'Monthly revenue: the month and the revenue of delivered orders, from January to December.',
                               'ru': 'Выручка по месяцам: месяц и выручка доставленных заказов, с января по декабрь.'},
-                     'answer': "SELECT strftime('%Y-%m', order_date) AS month, SUM(amount) FROM orders WHERE status = 'delivered' GROUP BY month ORDER BY month;",
+                     'answer': "SELECT to_char(order_date, 'YYYY-MM') AS month, SUM(amount) FROM orders WHERE status = 'delivered' GROUP BY month ORDER BY month;",
                      'section': {'en': 'D · Grouping by several columns and by months', 'ru': 'D · Группировка по нескольким столбцам и по месяцам'},
                      'intro': {'en': '<p>You can group by several columns: <code>GROUP BY status, promo_code</code> gives one row for every pair of values.</p>\n'
-                                     "<p>You can also group by a calculation. The month of a date is <code>strftime('%Y-%m', order_date)</code> → <code>'2025-03'</code>.</p>\n"
-                                     '<p class="pg"><b>PostgreSQL:</b> the month is <code>to_char(order_date, \'YYYY-MM\')</code> → <code>\'2025-03\'</code>, or '
-                                     "<code>date_trunc('month', order_date)</code> → the date <code>2025-03-01</code>. <code>strftime</code> does not exist there.</p>\n"
+                                     "<p>You can also group by a calculation. The month of a date is <code>to_char(order_date, 'YYYY-MM')</code> → <code>'2025-03'</code>, or <code>date_trunc('month', order_date)</code> → the moment <code>2025-03-01 00:00</code>.</p>\n"
                                      '<p><b>Example:</b> new customers per month of signup.</p>',
                                'ru': '<p>Группировать можно по нескольким столбцам: <code>GROUP BY status, promo_code</code> даёт строку на каждую пару значений.</p>\n'
-                                     "<p>Можно группировать и по вычислению. Месяц даты — это <code>strftime('%Y-%m', order_date)</code> → <code>'2025-03'</code>.</p>\n"
-                                     '<p class="pg"><b>PostgreSQL:</b> месяц — это <code>to_char(order_date, \'YYYY-MM\')</code> → <code>\'2025-03\'</code> или '
-                                     "<code>date_trunc('month', order_date)</code> → дата <code>2025-03-01</code>. <code>strftime</code> там нет.</p>\n"
+                                     "<p>Можно группировать и по вычислению. Месяц даты — это <code>to_char(order_date, 'YYYY-MM')</code> → <code>'2025-03'</code> или <code>date_trunc('month', order_date)</code> → момент <code>2025-03-01 00:00</code>.</p>\n"
                                      '<p><b>Пример:</b> новые клиенты по месяцам регистрации.</p>'},
-                     'example': "SELECT strftime('%Y-%m', signup_date) AS month, COUNT(*) AS new_customers\nFROM customers\nGROUP BY month\nORDER BY month;"},
+                     'example': "SELECT to_char(signup_date, 'YYYY-MM') AS month, COUNT(*) AS new_customers\nFROM customers\nGROUP BY month\nORDER BY month;"},
                     {'id': 'an3.15',
                      'text': {'en': 'Which month had the <b>most delivered orders</b>? The month and the number of orders, one row.',
                               'ru': 'В каком месяце было <b>больше всего доставленных заказов</b>? Месяц и число заказов, одна строка.'},
-                     'answer': "SELECT strftime('%Y-%m', order_date) AS month, COUNT(*) AS orders FROM orders WHERE status = 'delivered' GROUP BY month ORDER BY orders DESC LIMIT 1;"},
+                     'answer': "SELECT to_char(order_date, 'YYYY-MM') AS month, COUNT(*) AS orders FROM orders WHERE status = 'delivered' GROUP BY month ORDER BY orders DESC LIMIT 1;"},
                     {'id': 'an3.16',
                      'text': {'en': 'Number of orders for every pair of status and promo code.', 'ru': 'Число заказов для каждой пары: статус и промокод.'},
                      'answer': 'SELECT status, promo_code, COUNT(*) FROM orders GROUP BY status, promo_code;'}]},
@@ -2826,7 +2792,7 @@ INSERT INTO orders VALUES
           'track': 'analyst',
           'available': False,
           'title': {'en': 'Dates and periods', 'ru': 'Даты и периоды'},
-          'topics': {'en': 'Days, weeks, months, “last 30 days”, PostgreSQL equivalents', 'ru': 'Дни, недели, месяцы, «последние 30 дней», аналоги в PostgreSQL'}},
+          'topics': {'en': 'Days, weeks, months, “last 30 days”', 'ru': 'Дни, недели, месяцы, «последние 30 дней»'}},
          {'id': 107,
           'track': 'analyst',
           'available': False,

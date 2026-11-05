@@ -2,7 +2,7 @@
 
 **English** · [Русский](#русский)
 
-An SQL trainer that runs a real SQLite database in the browser (sql.js) and shows
+An SQL trainer that runs real PostgreSQL in the browser ([PGlite](https://pglite.dev), PostgreSQL compiled to WebAssembly) and shows
 query results as a spreadsheet: column letters, row numbers, a formula bar,
 sum/average/count for the selection, and highlighting of inserted and updated rows.
 
@@ -21,7 +21,8 @@ Everything is in the `Makefile`; run `make` to see the list.
 | `make run-lan` | Start for other computers on your network and print the address to share |
 | `make start` | Start like Render does, without reload |
 | `make open` | Open the trainer and the lessons page in the browser |
-| `make check` | Check the code, that every lesson answer and example runs, and that answers stay hidden |
+| `make results` | After changing a lesson: run all its SQL on PostgreSQL and save the expected results to `course_results.json` (needs Node); commit that file |
+| `make check` | Check the code and the lessons, that `course_results.json` is up to date, and that answers stay hidden |
 | `make deploy` | Run the checks, refuse if something is not committed, then push to GitHub; Render deploys from there |
 | `make deploy-hook` | Ask Render to redeploy right away (`RENDER_DEPLOY_HOOK=<url> make deploy-hook`) |
 | `make status` | Show uncommitted files and commits not pushed yet |
@@ -35,8 +36,13 @@ uvicorn main:app --reload            # http://127.0.0.1:8000/
 uvicorn main:app --reload --port 8001  # if port 8000 is taken
 ```
 
-You can also open `static/index.html` directly in a browser.
-An internet connection is required: the SQLite engine and fonts load from a CDN.
+An internet connection is required: the PostgreSQL engine and fonts load from a CDN.
+
+The deployed app needs only Python. Node is used only by `make results`: the server has no
+database and checks a student's result against `course_results.json`, worked out on the same
+PGlite version as the browser uses (`package.json` and `static/pg-worker.js` must name the same one).
+Pages reach the database only through `static/pg-engine.js`, so a lesson that needs several real
+connections can get a server-backed engine with the same methods.
 
 ## Structure
 
@@ -51,9 +57,19 @@ the theory, its tables, tasks and answers for teachers. **Solve** opens the trai
 with that lesson's database (`/?lesson=1&task=3`); after **Run** the result is
 checked against the reference answer. Progress is saved in the browser.
 
-All course content lives in `static/course.js`. To add a lesson, fill in its
+All course content lives in `course.py`. To add a lesson, fill in its
 `theory`, `seed`, `tables` and `tasks` (each task needs an `answer` query) and set
 `available: true`.
+
+**After any change to a lesson's data, answers, examples or conditions:**
+
+1. Run `make results`. It runs all the course's SQL on PostgreSQL and rewrites
+   `course_results.json`. If a query fails, it names the task and does not write the file.
+2. Commit `course_results.json` together with `course.py`. The server checks students'
+   results against this file, so without it they would be checked against the old answers.
+
+If you forget, `make check` fails with "run `make results`", and so does `make deploy`,
+because it runs the check first. Changes to texts alone do not need this.
 
 ### Teacher account
 
@@ -88,8 +104,7 @@ pointers are shared.
 The server keeps a log of every shared action and sends actions to everyone in
 the same order, so all participants end up with identical databases; someone who
 joins later replays the log. Rooms are kept in the server's memory and disappear
-when the last person leaves or the server restarts. Collaboration needs the server;
-opening `static/index.html` directly works in single-user mode.
+when the last person leaves or the server restarts.
 
 ## Deploy to Render
 
@@ -122,7 +137,7 @@ Notes:
 
 ## Русский
 
-Тренажёр SQL: запросы выполняются в настоящей SQLite прямо в браузере (sql.js),
+Тренажёр SQL: запросы выполняются в настоящем PostgreSQL прямо в браузере ([PGlite](https://pglite.dev), PostgreSQL в WebAssembly),
 а результат показывается как лист Excel — буквы столбцов, номера строк, строка формул,
 сумма/среднее по выделению, подсветка добавленных и изменённых строк.
 
@@ -137,7 +152,9 @@ source venv/bin/activate
 uvicorn main:app --reload --port 8001
 ```
 
-Открой http://127.0.0.1:8001/ — или просто открой `static/index.html` в браузере.
+Открой http://127.0.0.1:8001/. Нужен интернет: движок PostgreSQL и шрифты загружаются с CDN.
+
+Развёрнутому приложению нужен только Python. Node нужен только для `make results`.
 
 ### Совместная работа
 
@@ -180,8 +197,18 @@ uvicorn main:app --reload --port 8001
 `/lessons` — страница курса: план из 13 тем, а для готовых уроков теория, таблицы,
 задания и ответы для преподавателя. Кнопка **Решить** открывает тренажёр с базой урока
 (`/?lesson=1&task=3`), и после **Выполнить** результат сверяется с эталонным ответом.
-Весь контент курса — в `static/course.js`: чтобы добавить урок, заполни `theory`,
+Весь контент курса — в `course.py`: чтобы добавить урок, заполни `theory`,
 `seed`, `tables`, `tasks` (у каждого задания нужен `answer`) и поставь `available: true`.
+
+**После любого изменения данных, ответов, примеров или условий урока:**
+
+1. Запусти `make results`. Команда прогонит весь SQL курса на PostgreSQL и перезапишет
+   `course_results.json`. Если запрос падает, она назовёт задание и не запишет файл.
+2. Закоммить `course_results.json` вместе с `course.py`. Сервер сверяет результаты учеников
+   с этим файлом, и без него они будут проверяться по старым ответам.
+
+Если забыть, `make check` упадёт с сообщением «run `make results`», а с ним и `make deploy`,
+потому что он сначала запускает проверку. Для правки только текстов это не нужно.
 
 ### Преподаватель
 
@@ -195,5 +222,5 @@ uvicorn main:app --reload --port 8001
 
 Все команды в `Makefile`, список — `make`. Основные: `make install` (окружение и зависимости),
 `make run` (запуск на порту 8001), `make run-lan` (запуск для других компьютеров в сети),
-`make check` (проверка кода и всех ответов уроков), `make deploy` (проверка, затем push
+`make results` (после изменения урока: прогнать его SQL на PostgreSQL и сохранить эталоны в `course_results.json`, нужен Node), `make check` (проверка кода, уроков и актуальности эталонов), `make deploy` (проверка, затем push
 на GitHub, откуда Render развернёт новую версию).
