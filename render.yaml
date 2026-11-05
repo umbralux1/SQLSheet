@@ -4,7 +4,6 @@ services:
     name: sql-sheet
     runtime: python
     plan: free
-    region: frankfurt             # the same region as the database: the internal address works only there
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /healthz
@@ -12,22 +11,9 @@ services:
     # Collaboration rooms are kept in memory, so keep exactly one instance.
     numInstances: 1
     envVars:
-      # The default account of the database below: it creates the student role and the rooms' databases.
-      - key: DATABASE_ADMIN_URL
-        fromDatabase:
-          name: sql-sheet-db
-          property: connectionString
       # Teacher password for /lessons. Render asks for the value when the Blueprint is created.
       - key: TEACHER_PASSWORD
         sync: false
       # Signs the teacher's login cookie; a fixed value keeps teachers logged in across restarts.
       - key: SECRET_KEY
         generateValue: true
-
-databases:
-  # A free database expires 30 days after creation. Everything in it is disposable: see README.
-  - name: sql-sheet-db
-    plan: free
-    region: frankfurt
-    postgresMajorVersion: "18"    # course_results.json is worked out on 18
-    ipAllowList: []               # internal connections only; the service does not need the public address

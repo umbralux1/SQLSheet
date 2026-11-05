@@ -2358,7 +2358,7 @@ INSERT INTO orders VALUES
                            '<p>A question comes from a colleague. Decide the table, the rows, the columns and the order yourself. The answer is checked by its values: the column names '
                            'are up to you, but keep the order of the columns from the question.</p>\n'
                            '<h4>PostgreSQL</h4>\n'
-                           '<p>The trainer runs real PostgreSQL, the database you are most likely to meet at work. Other analytical databases (BigQuery, ClickHouse…) are close, but some functions differ.</p>',
+                           '<p>The trainer runs real PostgreSQL right in your browser, the database you are most likely to meet at work. Other analytical databases (BigQuery, ClickHouse…) are close, but some functions differ.</p>',
                      'ru': '<p>Добро пожаловать в курс для аналитиков. Здесь ты повторяешь SQL на настоящих вопросах бизнеса про один интернет-магазин.</p>\n'
                            '<h4>Данные</h4>\n'
                            '<ul>\n'
@@ -2371,7 +2371,7 @@ INSERT INTO orders VALUES
                            '<p>Вопрос приходит от коллеги. Таблицу, строки, столбцы и порядок решай сама. Ответ проверяется по значениям: названия столбцов — на твой выбор, но порядок '
                            'столбцов должен быть как в вопросе.</p>\n'
                            '<h4>PostgreSQL</h4>\n'
-                           '<p>Тренажёр работает на настоящем PostgreSQL: скорее всего, именно эта база встретится на работе. Другие аналитические базы (BigQuery, ClickHouse…) похожи, но некоторые функции там другие.</p>'},
+                           '<p>Тренажёр работает на настоящем PostgreSQL прямо в браузере: скорее всего, именно эта база встретится на работе. Другие аналитические базы (BigQuery, ClickHouse…) похожи, но некоторые функции там другие.</p>'},
           'tips': {'en': ['Before she writes SQL, ask her to say the four steps aloud: table → rows → columns → order/limit.',
                           'Play the colleague: rephrase a question in other words and see if she finds the same query.',
                           'Task 12 is about integer division: if she gets 0 or 1 everywhere, that is the reason.'],

@@ -2,7 +2,7 @@
 
 **English** · [Русский](#русский)
 
-An SQL trainer that runs students' queries on a real PostgreSQL server and shows
+An SQL trainer that runs real PostgreSQL in the browser ([PGlite](https://pglite.dev), PostgreSQL compiled to WebAssembly) and shows
 query results as a spreadsheet: column letters, row numbers, a formula bar,
 sum/average/count for the selection, and highlighting of inserted and updated rows.
 
@@ -17,12 +17,11 @@ Everything is in the `Makefile`; run `make` to see the list.
 | Command | What it does |
 |---|---|
 | `make install` | Create `venv/` and install the dependencies |
-| `make db` | Start PostgreSQL locally in Docker (needed by `make run` and `make results`) |
 | `make run` | Start locally with auto-reload on http://127.0.0.1:8001 (`PORT=8002 make run` for another port) |
 | `make run-lan` | Start for other computers on your network and print the address to share |
 | `make start` | Start like Render does, without reload |
 | `make open` | Open the trainer and the lessons page in the browser |
-| `make results` | After changing a lesson: run all its SQL on PostgreSQL and save the expected results to `course_results.json`; commit that file |
+| `make results` | After changing a lesson: run all its SQL on PostgreSQL and save the expected results to `course_results.json` (needs Node); commit that file |
 | `make check` | Check the code and the lessons, that `course_results.json` is up to date, and that answers stay hidden |
 | `make deploy` | Run the checks, refuse if something is not committed, then push to GitHub; Render deploys from there |
 | `make deploy-hook` | Ask Render to redeploy right away (`RENDER_DEPLOY_HOOK=<url> make deploy-hook`) |
@@ -32,15 +31,18 @@ Everything is in the `Makefile`; run `make` to see the list.
 ## Run
 
 ```bash
-make db     # PostgreSQL 18 in Docker
-make run    # http://127.0.0.1:8001/
+source venv/bin/activate
+uvicorn main:app --reload            # http://127.0.0.1:8000/
+uvicorn main:app --reload --port 8001  # if port 8000 is taken
 ```
 
-The app finds PostgreSQL through `DATABASE_ADMIN_URL`; the `Makefile` points it at the local
-container. That account must be able to create roles and databases. Every room gets one database,
-owned by the low-privilege role `sheet_student`, so students cannot read server files or create
-roles. Pages reach the database only through `static/pg-engine.js`, which calls `/api/db`.
-A query stops after 20 seconds. Results are checked against `course_results.json`.
+An internet connection is required: the PostgreSQL engine and fonts load from a CDN.
+
+The deployed app needs only Python. Node is used only by `make results`: the server has no
+database and checks a student's result against `course_results.json`, worked out on the same
+PGlite version as the browser uses (`package.json` and `static/pg-worker.js` must name the same one).
+Pages reach the database only through `static/pg-engine.js`, so a lesson that needs several real
+connections can get a server-backed engine with the same methods.
 
 ## Structure
 
@@ -99,23 +101,10 @@ pointers are shared.
 3. The address bar gets a `?room=…` part. Click **Copy invite link** and send it.
    Everyone with the same link is in the same room.
 
-A room has one database, and each participant has their own connection to it. A
-query runs once, on the connection of whoever pressed **Run**; everyone sees its
-result and the new tables. An open transaction belongs to the person who began it:
-others do not see its changes and wait on its locks, as in real PostgreSQL.
-
-- Joining or reloading keeps the room's data. Closing a tab ends that person's
-  connection and rolls back their open transaction; the database stays.
-- Opening another lesson, **Reset** and switching the language put the seed data
-  back for the whole room and end everyone's open transactions.
-- Each student's progress and typed queries are kept in their own browser, so
-  replacing the room's data loses nothing. A solved task counts for everyone in the room.
-- A database with nobody connected is removed after 24 hours, or sooner when there
-  are more than 30.
-
-The room's live state (editor text, cursors, the log of shared actions) is kept in
-the server's memory and disappears when the last person leaves or the server
-restarts. The database stays on PostgreSQL.
+The server keeps a log of every shared action and sends actions to everyone in
+the same order, so all participants end up with identical databases; someone who
+joins later replays the log. Rooms are kept in the server's memory and disappear
+when the last person leaves or the server restarts.
 
 ## Deploy to Render
 
@@ -125,9 +114,8 @@ pins Python 3.11.
 
 1. Push the project to GitHub (or GitLab / Bitbucket).
 2. In the Render dashboard choose **New → Blueprint** and pick the repository.
-   Render reads `render.yaml`, creates the `sql-sheet` web service and the free PostgreSQL 18 database
-   `sql-sheet-db`, connects them, and asks for `TEACHER_PASSWORD`.
-3. Wait for the first deploy, then open `https://<name>.onrender.com` and open a lesson.
+   Render reads `render.yaml` and creates the `sql-sheet` web service.
+3. Wait for the first deploy, then open `https://<name>.onrender.com`.
 
 Without the Blueprint, create a **Web Service** by hand with:
 
@@ -137,25 +125,19 @@ Without the Blueprint, create a **Web Service** by hand with:
 | Build Command | `pip install -r requirements.txt` |
 | Start Command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
 | Health Check Path | `/healthz` |
-| Environment | `DATABASE_ADMIN_URL` (the database's internal URL), `TEACHER_PASSWORD`, `SECRET_KEY` |
 
 Notes:
 - Keep **one instance**. Collaboration rooms live in the server's memory, so two
   instances would split people into different rooms.
 - On the **free plan** the service sleeps after 15 minutes without traffic and
-  the next visit takes about a minute to wake it. A restart clears all rooms and the page
-  reconnects by itself. A room's database stays on PostgreSQL, but open transactions are lost.
-- Render's free PostgreSQL **expires 30 days after creation**, and is deleted 14 days later. Students lose
-  nothing, because progress is kept in the browser. To renew it, delete `sql-sheet-db` in the dashboard
-  (a workspace can have only one free database), then sync the Blueprint to create it again.
-- The database's account must be able to create roles and databases. If lessons say "Could not reach the
-  database server", the service's log names the real error.
+  the next visit takes a few seconds to wake it. A restart clears all rooms;
+  the database in each browser is unaffected and the page reconnects by itself.
 
 ---
 
 ## Русский
 
-Тренажёр SQL: запросы выполняются на настоящем сервере PostgreSQL,
+Тренажёр SQL: запросы выполняются в настоящем PostgreSQL прямо в браузере ([PGlite](https://pglite.dev), PostgreSQL в WebAssembly),
 а результат показывается как лист Excel — буквы столбцов, номера строк, строка формул,
 сумма/среднее по выделению, подсветка добавленных и изменённых строк.
 
@@ -166,13 +148,13 @@ Notes:
 ### Запуск
 
 ```bash
-make db     # PostgreSQL 18 в Docker
-make run
+source venv/bin/activate
+uvicorn main:app --reload --port 8001
 ```
 
-Открой http://127.0.0.1:8001/. Адрес PostgreSQL задаёт `DATABASE_ADMIN_URL`; `Makefile` указывает
-на локальный контейнер. Этой учётной записи нужны права создавать роли и базы. У каждой комнаты
-одна база, ею владеет роль с минимальными правами `sheet_student`. Запрос останавливается через 20 секунд.
+Открой http://127.0.0.1:8001/. Нужен интернет: движок PostgreSQL и шрифты загружаются с CDN.
+
+Развёрнутому приложению нужен только Python. Node нужен только для `make results`.
 
 ### Совместная работа
 
@@ -194,37 +176,21 @@ make run
 3. В адресе появится `?room=…`. Нажми **Скопировать ссылку** и отправь её.
    Все, кто открыл одну ссылку, работают в одной комнате.
 
-У комнаты одна база, и у каждого участника своё соединение с ней. Запрос выполняется
-один раз, в соединении того, кто нажал **Выполнить**; все видят его результат и новые таблицы.
-Открытая транзакция принадлежит тому, кто её начал: другие не видят её изменений и ждут
-её блокировок, как в настоящем PostgreSQL.
-
-- Вход и перезагрузка страницы сохраняют данные комнаты. Закрытие вкладки завершает
-  соединение этого человека и откатывает его открытую транзакцию; база остаётся.
-- Переход на другой урок, **сброс** и смена языка возвращают исходные данные всей комнате
-  и завершают открытые транзакции всех участников.
-- Прогресс и набранные запросы каждого ученика хранятся в его браузере, поэтому замена
-  данных комнаты ничего не стирает. Решённая задача засчитывается всем в комнате.
-- База, к которой никто не подключён, удаляется через 24 часа, а если баз больше 30, то раньше.
-
-Текущее состояние комнаты (текст редактора, курсоры, журнал общих действий) хранится в памяти
-сервера и пропадает, когда все вышли или сервер перезапустился. База остаётся в PostgreSQL.
+Сервер ведёт журнал общих действий и раздаёт их всем в одном порядке, поэтому
+базы у всех участников одинаковые; кто подключился позже, проигрывает журнал.
+Комнаты хранятся в памяти сервера и пропадают, когда все вышли или сервер
+перезапустился.
 
 ### Развёртывание на Render
 
 1. Залей проект на GitHub.
-2. В Render: **New → Blueprint**, выбери репозиторий. Render прочитает `render.yaml`, создаст сервис
-   и бесплатную базу PostgreSQL 18 `sql-sheet-db`, свяжет их и спросит `TEACHER_PASSWORD`.
-3. После первого деплоя открой `https://<имя>.onrender.com` и зайди в урок.
+2. В Render: **New → Blueprint**, выбери репозиторий. Render прочитает `render.yaml`
+   и сам создаст сервис.
+3. После первого деплоя открой `https://<имя>.onrender.com`.
 
 Держи **один экземпляр** сервиса: комнаты хранятся в памяти. На бесплатном плане
-сервис засыпает через 15 минут без посетителей и просыпается примерно за минуту;
-при перезапуске комнаты очищаются. База комнаты остаётся в PostgreSQL, но открытые транзакции теряются.
-Бесплатная база Render **истекает через 30 дней** после создания, а ещё через 14 дней удаляется. Студенты
-ничего не теряют: прогресс хранится в браузере. Чтобы продлить, удали `sql-sheet-db` в панели (бесплатная
-база на рабочее пространство только одна) и синхронизируй Blueprint: он создаст базу заново.
-Роль базы должна уметь создавать роли и базы. Если уроки пишут «Could not reach the database server»,
-настоящая ошибка есть в логе сервиса.
+сервис засыпает через 15 минут без посетителей и просыпается за несколько секунд;
+при перезапуске комнаты очищаются.
 
 ### Уроки
 
@@ -256,5 +222,5 @@ make run
 
 Все команды в `Makefile`, список — `make`. Основные: `make install` (окружение и зависимости),
 `make run` (запуск на порту 8001), `make run-lan` (запуск для других компьютеров в сети),
-`make db` (PostgreSQL в Docker), `make results` (после изменения урока: прогнать его SQL на PostgreSQL и сохранить эталоны в `course_results.json`), `make check` (проверка кода, уроков и актуальности эталонов), `make deploy` (проверка, затем push
+`make results` (после изменения урока: прогнать его SQL на PostgreSQL и сохранить эталоны в `course_results.json`, нужен Node), `make check` (проверка кода, уроков и актуальности эталонов), `make deploy` (проверка, затем push
 на GitHub, откуда Render развернёт новую версию).

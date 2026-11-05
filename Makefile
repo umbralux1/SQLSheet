@@ -1,7 +1,6 @@
 # SQL Sheet — everyday commands.  Run `make` to see them all.
 #
 #   make install      create venv/ and install the dependencies
-#   make db           start PostgreSQL locally (Docker)
 #   make results      after changing a lesson: work out its expected results on PostgreSQL
 #   make run          start the server with auto-reload
 #   make deploy       check, then push to GitHub (Render deploys from there)
@@ -13,11 +12,8 @@ UVICORN = $(VENV)/bin/uvicorn
 BRANCH ?= main
 URL     = http://127.0.0.1:$(PORT)
 
-# The local PostgreSQL from docker-compose.yml, unless another one is named.
-export DATABASE_ADMIN_URL ?= postgresql://postgres:dev@127.0.0.1:5544/postgres
-
 .DEFAULT_GOAL := help
-.PHONY: help install db results run run-lan start open check clean deploy deploy-hook status
+.PHONY: help install results run run-lan start open check clean deploy deploy-hook status
 
 help: ## Show this list
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[32mmake %-12s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -28,14 +24,12 @@ install: ## Create venv/ and install requirements.txt
 	test -d $(VENV) || python3 -m venv $(VENV)
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install -r requirements.txt
+	npm install
 
-db: ## Start PostgreSQL locally in Docker (needed by run and results)
-	docker compose up -d --wait
-
-results: ## After changing a lesson: run its SQL on PostgreSQL and save course_results.json (needs make db)
+results: ## After changing a lesson: run its SQL on PostgreSQL and save course_results.json (needs Node)
 	@$(PYTHON) scripts/build_results.py
 
-run: ## Start locally with auto-reload (port 8001, change with PORT=…; needs make db)
+run: ## Start locally with auto-reload (port 8001, change with PORT=…)
 	$(UVICORN) main:app --reload --port $(PORT)
 
 run-lan: ## Start for other computers on your network (collaboration)

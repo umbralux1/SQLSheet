@@ -1,36 +1,56 @@
-/* The page's one way to the database. A room has one database on the server (pg_engine.py), and
-   this page has its own connection to it, so its open transaction is its own:
+/* The page's one way to the database. Lessons call only these methods and never PGlite itself,
+   so a lesson that needs a real server (several connections at once) can get another engine
+   with the same methods:
 
-     open(key, lang, seed)  -> {lang, reset}: on the page's start. Data stays if the room already
-                               holds lesson `key`; otherwise everyone's data becomes the seed
-     reset(key, lang, seed) -> {lang, reset}: back to only the seed's data, for everyone in the room
      run(sql)    -> [{columns, rows, returnsRows, affected}, ...], one per statement
+     reset(seed) -> back to a database with only the seed's data
      tables()    -> [{name, columns: [{name, type, pk}], count, rows}, ...]
 
-   A failed call rejects with PostgreSQL's message, hint, code and position. When the server no
-   longer has the room's database, the error has lost = true, and the caller reseeds. */
+   PGlite cannot enforce statement_timeout, so a query that runs too long is stopped by
+   throwing the whole thread away. The data goes with it: the error has timedOut = true,
+   and the caller reseeds. */
 class PgEngine {
-  constructor(room) {
-    this.room = room;
-    const bytes = crypto.getRandomValues(new Uint8Array(16));   // randomUUID needs https; make run-lan is http
-    this.client = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-    addEventListener('pagehide', () => navigator.sendBeacon('/api/db/close',
-      new Blob([JSON.stringify({ room: this.room, client: this.client })], { type: 'application/json' })));
+  constructor({ timeoutMs = 20000 } = {}) {
+    this.timeoutMs = timeoutMs;
+    this.nextId = 1;
+    this.waiting = new Map();
+    this.startWorker();
   }
 
-  async call(body) {
-    const response = await fetch('/api/db', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ room: this.room, client: this.client, ...body }),
+  startWorker() {
+    this.worker = new Worker('static/pg-worker.js', { type: 'module' });
+    this.worker.onmessage = ({ data }) => {
+      const call = this.waiting.get(data.id);
+      if (!call) return;
+      this.waiting.delete(data.id);
+      clearTimeout(call.timer);
+      if (data.error) call.reject(Object.assign(new Error(data.error.message), data.error));
+      else call.resolve(data.result);
+    };
+    this.worker.onerror = e => this.failAll(new Error(e.message || 'the engine did not load'));
+  }
+
+  failAll(error) {
+    this.waiting.forEach(call => { clearTimeout(call.timer); call.reject(error) });
+    this.waiting.clear();
+  }
+
+  restart() {
+    this.worker.terminate();
+    this.failAll(Object.assign(new Error('The query ran too long and was stopped.'), { timedOut: true }));
+    this.startWorker();
+  }
+
+  call(op, args, limited) {
+    return new Promise((resolve, reject) => {
+      const id = this.nextId++;
+      const timer = limited ? setTimeout(() => this.restart(), this.timeoutMs) : null;
+      this.waiting.set(id, { resolve, reject, timer });
+      this.worker.postMessage({ id, op, ...args });
     });
-    const data = await response.json();
-    if (data.error) throw Object.assign(new Error(data.error.message), data.error);
-    return data.result;
   }
 
-  open(key, lang, seed) { return this.call({ op: 'open', key, lang, sql: seed }) }
-  reset(key, lang, seed) { return this.call({ op: 'reset', key, lang, sql: seed }) }
-  run(sql) { return this.call({ op: 'run', sql }) }
-  tables() { return this.call({ op: 'tables' }) }
+  run(sql) { return this.call('run', { sql }, true) }
+  reset(seed) { return this.call('reset', { seed }, false) }   // the first call also waits for the engine to start
+  tables() { return this.call('tables', {}, true) }
 }
