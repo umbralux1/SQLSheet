@@ -411,6 +411,7 @@ const T = {
   legNew:'new', legChg:'changed', error:'Error: ',
   hNoTable:' — check the table name in the list on the left.',
   hNoCol:' — there is no such column. Click a column name on the left to insert it.',
+  hDoubleQuotes:x=>` — text goes in single quotes: '${x}'. Double quotes are for table and column names, so PostgreSQL looks for a column called ${x}.`,
   hSyntax:' — check commas, quotes and clause order (SELECT → FROM → WHERE → GROUP BY → ORDER BY).',
   hAborted:' — finish the transaction first: ROLLBACK;', tooLong:'The query ran too long and was stopped. The database was reset to the original data.',
   time:'Time', ms:'ms', rows:'Rows', cols:'Columns', shown:n=>` (showing ${n})`,
@@ -463,6 +464,7 @@ const T = {
   legNew:'новые', legChg:'изменённые', error:'Ошибка: ',
   hNoTable:' — проверь имя таблицы в списке слева.',
   hNoCol:' — такого столбца нет. Нажми на имя столбца слева, чтобы вставить его.',
+  hDoubleQuotes:x=>` — текст пишется в одинарных кавычках: '${x}'. Двойные кавычки — для имён таблиц и столбцов, поэтому PostgreSQL ищет столбец ${x}.`,
   hSyntax:' — проверь запятые, кавычки и порядок слов (SELECT → FROM → WHERE → GROUP BY → ORDER BY).',
   hAborted:' — сначала заверши транзакцию: ROLLBACK;', tooLong:'Запрос выполнялся слишком долго и был остановлен. База сброшена к исходным данным.',
   time:'Время', ms:'мс', rows:'Строк', cols:'Столбцов', shown:n=>` (показано ${n})`,
@@ -937,7 +939,7 @@ async function run(given){
   try{ res=await db.run(src); }
   catch(e){
     if(e.timedOut){ await resetDb(); renderSchema(); clearResult(); showMsg('err',L.tooLong); return; }
-    showMsg('err',L.error+e.message+hintFor(e.message)+(e.hint?` (${e.hint})`:'')); $('st-time').textContent=''; return;
+    showMsg('err',L.error+e.message+hintFor(e.message,src)+(e.hint?` (${e.hint})`:'')); $('st-time').textContent=''; return;
   }
   const ms=(performance.now()-t0).toFixed(1), changed=res.filter(r=>!r.returnsRows).reduce((n,r)=>n+r.affected,0);
   await refreshTables();
@@ -968,9 +970,10 @@ async function run(given){
   addCaseTip(src);
   updateWhyBtn();
 }
-function hintFor(m){
+function hintFor(m,src){
   if(/^relation ".*" does not exist/.test(m)) return L.hNoTable;
-  if(/^column ".*" does not exist/.test(m)) return L.hNoCol;
+  const noCol=m.match(/^column "(.*)" does not exist/);
+  if(noCol) return src.includes(`"${noCol[1]}"`)?L.hDoubleQuotes(noCol[1]):L.hNoCol;
   if(/^syntax error/.test(m)) return L.hSyntax;
   if(/current transaction is aborted/.test(m)) return L.hAborted;
   return '';
