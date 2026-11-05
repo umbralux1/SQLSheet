@@ -124,11 +124,10 @@ the service, `requirements.txt` lists the dependencies and `.python-version`
 pins Python 3.11.
 
 1. Push the project to GitHub (or GitLab / Bitbucket).
-2. Create a PostgreSQL 18 database, for example a free [Neon](https://neon.com) project, and copy
-   its direct connection URL. Its role must be able to create roles and databases.
-3. In the Render dashboard choose **New → Blueprint** and pick the repository.
-   Render reads `render.yaml`, creates the `sql-sheet` web service and asks for `DATABASE_ADMIN_URL`.
-4. Wait for the first deploy, then open `https://<name>.onrender.com`.
+2. In the Render dashboard choose **New → Blueprint** and pick the repository.
+   Render reads `render.yaml`, creates the `sql-sheet` web service and the free PostgreSQL 18 database
+   `sql-sheet-db`, connects them, and asks for `TEACHER_PASSWORD`.
+3. Wait for the first deploy, then open `https://<name>.onrender.com` and open a lesson.
 
 Without the Blueprint, create a **Web Service** by hand with:
 
@@ -138,7 +137,7 @@ Without the Blueprint, create a **Web Service** by hand with:
 | Build Command | `pip install -r requirements.txt` |
 | Start Command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
 | Health Check Path | `/healthz` |
-| Environment | `DATABASE_ADMIN_URL`, `TEACHER_PASSWORD`, `SECRET_KEY` |
+| Environment | `DATABASE_ADMIN_URL` (the database's internal URL), `TEACHER_PASSWORD`, `SECRET_KEY` |
 
 Notes:
 - Keep **one instance**. Collaboration rooms live in the server's memory, so two
@@ -146,7 +145,11 @@ Notes:
 - On the **free plan** the service sleeps after 15 minutes without traffic and
   the next visit takes about a minute to wake it. A restart clears all rooms and the page
   reconnects by itself. A room's database stays on PostgreSQL, but open transactions are lost.
-- Render's free PostgreSQL expires after 30 days, so it does not suit this service.
+- Render's free PostgreSQL **expires 30 days after creation**, and is deleted 14 days later. Students lose
+  nothing, because progress is kept in the browser. To renew it, delete `sql-sheet-db` in the dashboard
+  (a workspace can have only one free database), then sync the Blueprint to create it again.
+- The database's account must be able to create roles and databases. If lessons say "Could not reach the
+  database server", the service's log names the real error.
 
 ---
 
@@ -210,16 +213,18 @@ make run
 ### Развёртывание на Render
 
 1. Залей проект на GitHub.
-2. Создай базу PostgreSQL 18, например бесплатный проект [Neon](https://neon.com), и скопируй
-   прямой адрес подключения. Его роль должна уметь создавать роли и базы.
-3. В Render: **New → Blueprint**, выбери репозиторий. Render прочитает `render.yaml`,
-   создаст сервис и спросит `DATABASE_ADMIN_URL`.
-4. После первого деплоя открой `https://<имя>.onrender.com`.
+2. В Render: **New → Blueprint**, выбери репозиторий. Render прочитает `render.yaml`, создаст сервис
+   и бесплатную базу PostgreSQL 18 `sql-sheet-db`, свяжет их и спросит `TEACHER_PASSWORD`.
+3. После первого деплоя открой `https://<имя>.onrender.com` и зайди в урок.
 
 Держи **один экземпляр** сервиса: комнаты хранятся в памяти. На бесплатном плане
 сервис засыпает через 15 минут без посетителей и просыпается примерно за минуту;
 при перезапуске комнаты очищаются. База комнаты остаётся в PostgreSQL, но открытые транзакции теряются.
-Бесплатная база Render истекает через 30 дней, поэтому здесь она не подходит.
+Бесплатная база Render **истекает через 30 дней** после создания, а ещё через 14 дней удаляется. Студенты
+ничего не теряют: прогресс хранится в браузере. Чтобы продлить, удали `sql-sheet-db` в панели (бесплатная
+база на рабочее пространство только одна) и синхронизируй Blueprint: он создаст базу заново.
+Роль базы должна уметь создавать роли и базы. Если уроки пишут «Could not reach the database server»,
+настоящая ошибка есть в логе сервиса.
 
 ### Уроки
 

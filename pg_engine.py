@@ -386,6 +386,7 @@ def open_room(room_id: str, key: str, lang: str, seed: str, force: bool = False)
                           .format(database, pgsql.Literal(json.dumps({"key": key, "lang": lang}))))
             return {"lang": lang, "reset": True}
     except psycopg.Error as e:
+        print(f"open_room failed: {type(e).__name__}: {e}", flush=True)     # the page's message hides e.g. missing rights
         raise EngineError("Could not reach the database server. Try again in a moment.") from e
 
 

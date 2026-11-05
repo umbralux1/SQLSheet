@@ -42,8 +42,7 @@ The repo has no automated tests. `make db` starts PostgreSQL. `make check` check
 
 ## Open as of 2026-11-05
 
-- Production is not set up. Plan: Render free for the app, Neon free for the database (`DATABASE_ADMIN_URL`; Render's free PostgreSQL expires after 30 days, so it was rejected). Neither has been tried with this code; measure Neon's wake-up time and `CREATE DATABASE` time. A reseed uses `pg_terminate_backend` through the admin account, also untried on Neon, and each student holds one connection.
+- Production is not deployed yet. Decision: Render free for both the app and the database, described in `render.yaml` (Frankfurt, PostgreSQL 18, internal connections only). The free database expires after 30 days and must be recreated by hand; this is accepted because the database is disposable. The code needs an admin account with `CREATEDB` and `CREATEROLE`: tested on a local server with such a non-superuser role (seed, reseed with an open transaction, all course SQL), but Render's docs do not state its default account's rights, so the first deploy has to confirm them.
 - The site has no login for students: anyone with its address can run SQL as `sheet_student`. A shared password was suggested and not decided. All rooms use that one role, so a student can also end other rooms' connections with `pg_terminate_backend`.
 - Concurrency lessons (locks, isolation levels) are not built yet. The page shows nothing while a query waits on another student's lock (up to 20 s), and `tables()` on the waiting side can wait too.
-- The branch `feat/server-postgres` is local only; `main` is untouched.
 - Branch `feat/pglite` is merged and can be deleted.
