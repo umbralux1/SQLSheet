@@ -8,8 +8,9 @@ import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import psycopg
 
@@ -304,43 +305,51 @@ async def check(data: CheckData):
 
 
 # ---------------------------------------------------------------------------
-# Students' queries: each browser tab has its own database on PostgreSQL (pg_engine.py).
-# Plain `def`: these block on the database, so FastAPI runs them in a thread.
+# Students' queries: each room has one database on PostgreSQL (pg_engine.py), and each student
+# (a browser tab, `client`) has their own connection to it. These calls block on the database,
+# so they run in a thread: one student waiting on another's lock holds up nobody else.
 # ---------------------------------------------------------------------------
-SESSION_ID = re.compile(r"[0-9a-f]{32}")
+class DbClient(BaseModel):
+    room: str = Field(min_length=1, max_length=100)
+    client: str = Field(pattern=r"^[0-9a-f]{32}$")
 
 
-class DbCall(BaseModel):
+class DbCall(DbClient):
     op: str
     sql: str = ""
+    key: str = Field(default="", max_length=100)     # "open", "reset": which lesson's data
+    lang: str = Field(default="en", max_length=10)   # "open", "reset": the language of that data
 
 
-@app.post("/api/db/{session_id}")
-def database(session_id: str, call: DbCall):
-    if not SESSION_ID.fullmatch(session_id):
-        raise HTTPException(status_code=404, detail="Unknown session")
-    try:
-        if call.op == "run":
-            return {"result": pg_engine.run(session_id, call.sql)}
-        if call.op == "reset":
-            pg_engine.reset(session_id, call.sql)
-            return {"result": None}
-        if call.op == "tables":
-            return {"result": pg_engine.tables(session_id)}
-    except pg_engine.SessionLost:
-        return JSONResponse({"error": {"message": "The database of this page is gone.", "lost": True}}, status_code=409)
-    except pg_engine.EngineError as e:
-        return JSONResponse({"error": e.info}, status_code=400)
+def db_action(call: DbCall):
+    if call.op == "run":
+        return pg_engine.run(call.room, call.client, call.sql)
+    if call.op == "tables":
+        return pg_engine.tables(call.room, call.client)
+    if call.op in ("open", "reset"):
+        return pg_engine.open_room(call.room, call.key, call.lang, call.sql, force=call.op == "reset")
     raise HTTPException(status_code=404, detail="Unknown operation")
 
 
-@app.post("/api/db/{session_id}/close")
-def close_database(session_id: str):
-    if SESSION_ID.fullmatch(session_id):
-        try:
-            pg_engine.close(session_id)
-        except (psycopg.Error, pg_engine.EngineError):
-            pass                               # the sweep drops it later
+@app.post("/api/db")
+async def database(call: DbCall):
+    try:
+        result = await run_in_threadpool(db_action, call)
+    except pg_engine.SessionLost:
+        return JSONResponse({"error": {"message": "The database of this room is gone.", "lost": True}}, status_code=409)
+    except pg_engine.EngineError as e:
+        return JSONResponse({"error": e.info}, status_code=400)
+    if call.op in ("open", "reset") and result["reset"]:
+        await tell_room(call.room, json.dumps({"type": "db-reset", "client": call.client}))
+    return {"result": result}
+
+
+@app.post("/api/db/close")
+def close_connection(call: DbClient):
+    try:
+        pg_engine.disconnect(call.room, call.client)
+    except psycopg.Error:
+        pass
     return Response(status_code=204)
 
 
@@ -358,8 +367,9 @@ async def say_hello(name: str):
 # ---------------------------------------------------------------------------
 # Real-time collaboration
 #
-# Each room is relayed by the server. Every browser replays the room's actions on
-# its own database, so the participants' databases stay identical.
+# Each room is relayed by the server, separately for each page ("room~page"). All
+# pages of a room share one database. A write runs once, on the connection of the
+# student who pressed Run; the others receive the result and re-read the tables.
 #   * binary frames are Yjs updates for the shared editor text: stored, so late
 #     joiners get the current text, and forwarded to everyone else;
 #   * {"type": "presence"} - a user's name, colour, editor cursor and selected
@@ -367,13 +377,17 @@ async def say_hello(name: str):
 #   * {"type": "pointer"} - mouse position: forwarded only;
 #   * {"type": "page"} - shared navigation between pages (go to a URL, scroll,
 #     pick a lesson): forwarded only, so a newcomer is never redirected;
-#   * {"type": "event"} - a shared action (run a query, reset the database,
-#     switch sheet, lesson, language, semicolon mode). The server numbers it,
-#     appends it to the room log and sends it to EVERYONE, sender included,
-#     so all browsers apply actions in the same order and keep identical
-#     databases. Newcomers replay the log.
-# Rooms live in memory and are dropped when the last person leaves.
+#   * {"type": "event"} - a shared action (a query's result, switch sheet, lesson,
+#     language). The server numbers it and sends it to EVERYONE, sender included,
+#     so all browsers apply actions in the same order. Most also go to the room
+#     log, which newcomers replay; NOT_REPLAYED ones are about a moment that has
+#     passed, and a newcomer reads the database as it is now;
+#   * {"type": "db-reset"} - comes from the server when the room's database was
+#     reseeded, to every page of the room.
+# Rooms live in memory and are dropped when the last person leaves. Their
+# databases stay on PostgreSQL.
 # ---------------------------------------------------------------------------
+NOT_REPLAYED = {"run", "why"}
 
 
 class Room:
@@ -399,6 +413,13 @@ async def broadcast(room: Room, message: bytes | str, exclude: WebSocket | None 
                 await client.send_text(message)
         except Exception:
             room.clients.pop(client, None)
+
+
+async def tell_room(room_id: str, message: str) -> None:
+    """To every page of the room: the keys of `rooms` are "room~page"."""
+    for name, room in list(rooms.items()):
+        if name.rsplit("~", 1)[0] == room_id:
+            await broadcast(room, message)
 
 
 @app.websocket("/ws/{room_id}")
@@ -441,7 +462,8 @@ async def collaborate(ws: WebSocket, room_id: str, cid: str = ""):
             elif kind == "event":
                 room.seq += 1
                 data["seq"] = room.seq
-                room.log.append(data)
+                if data.get("kind") not in NOT_REPLAYED:
+                    room.log.append(data)
                 await broadcast(room, json.dumps(data))
     except WebSocketDisconnect:
         pass

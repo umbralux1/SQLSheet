@@ -34,22 +34,26 @@ class PgError(Exception):
 
 
 class Pg:
-    SESSION = "build-results"
+    ROOM = "build-results"
+    CLIENT = "build"
 
     def __init__(self) -> None:
         import pg_engine                # not at the top: scripts/check.py imports this file with no packages installed
         self.engine = pg_engine
 
+    def reset(self, seed: str) -> None:
+        self.engine.open_room(self.ROOM, "build", "en", seed, force=True)
+
     def call(self, op: str, **args):
         try:
             if op == "version":
-                self.engine.reset(self.SESSION, "")
-                return self.engine.run(self.SESSION, "SELECT version()")[0]["rows"][0][0]
+                self.reset("")
+                return self.engine.run(self.ROOM, self.CLIENT, "SELECT version()")[0]["rows"][0][0]
             if op == "run":
-                return self.engine.run(self.SESSION, args["sql"])
+                return self.engine.run(self.ROOM, self.CLIENT, args["sql"])
             if op == "reset":
-                return self.engine.reset(self.SESSION, args["seed"])
-            return self.engine.tables(self.SESSION)
+                return self.reset(args["seed"])
+            return self.engine.tables(self.ROOM, self.CLIENT)
         except self.engine.EngineError as e:
             raise PgError(str(e)) from e
 
@@ -58,7 +62,7 @@ class Pg:
         return self.call("run", sql=sql)[-1]
 
     def close(self) -> None:
-        self.engine.close(self.SESSION)
+        self.engine.drop_room(self.ROOM)
 
 
 def normalize(value):

@@ -412,7 +412,8 @@ const T = {
   hNoTable:' — check the table name in the list on the left.',
   hNoCol:' — there is no such column. Click a column name on the left to insert it.',
   hSyntax:' — check commas, quotes and clause order (SELECT → FROM → WHERE → GROUP BY → ORDER BY).',
-  hAborted:' — finish the transaction first: ROLLBACK;', sessionLost:'The server no longer had this page\'s database, so it was created again with the original data. Run the query again.',
+  tooBig:'Someone ran a query with a result too big to send to everyone. Only they can see it.',
+  hAborted:' — finish the transaction first: ROLLBACK;', sessionLost:'The server no longer had this room\'s database, so it was created again with the original data. Run the query again.',
   time:'Time', ms:'ms', rows:'Rows', cols:'Columns', shown:n=>` (showing ${n})`,
   empty:'Result is empty — run a query with SELECT',
   avg:'Average', count:'Count', sum:'Sum', number:'number', text:'text',
@@ -464,7 +465,8 @@ const T = {
   hNoTable:' — проверь имя таблицы в списке слева.',
   hNoCol:' — такого столбца нет. Нажми на имя столбца слева, чтобы вставить его.',
   hSyntax:' — проверь запятые, кавычки и порядок слов (SELECT → FROM → WHERE → GROUP BY → ORDER BY).',
-  hAborted:' — сначала заверши транзакцию: ROLLBACK;', sessionLost:'На сервере больше нет базы этой страницы, поэтому она создана заново с исходными данными. Запусти запрос ещё раз.',
+  tooBig:'Кто-то выполнил запрос со слишком большим результатом, чтобы отправить его всем. Он виден только этому человеку.',
+  hAborted:' — сначала заверши транзакцию: ROLLBACK;', sessionLost:'На сервере больше нет базы этой комнаты, поэтому она создана заново с исходными данными. Запусти запрос ещё раз.',
   time:'Время', ms:'мс', rows:'Строк', cols:'Столбцов', shown:n=>` (показано ${n})`,
   empty:'Результат пуст — выполни запрос с SELECT',
   avg:'Среднее', count:'Количество', sum:'Сумма', number:'число', text:'текст',
@@ -574,6 +576,13 @@ function defaultLesson(){
 }
 function startLesson(){ return COURSE_LESSON&&activeLesson>=0?activeLesson:defaultLesson() }
 function seedSQL(){ return COURSE_LESSON?COURSE_LESSON.seed:SEED[lang] }
+const seedKey=()=>COURSE_LESSON?'L'+COURSE_LESSON.id:'free';   // the room's data stays until another lesson opens
+/* The room comes first: the database belongs to it. Everyone with the same link is in the same room. */
+const ROOM=(()=>{
+  const p=new URLSearchParams(location.search); let r=p.get('room');
+  if(!r){r=Math.random().toString(36).slice(2,8);p.set('room',r);history.replaceState(null,'',location.pathname+'?'+p+location.hash)}
+  return r;
+})();
 let runCount=0;
 /* ---------- prediction tasks: "will this person pass?" (row) and "mark who passes" (pick) ---------- */
 let pickState=new Set(), lastExplain=null;
@@ -673,11 +682,11 @@ function rewriteSQL(t,mine){              // both conditions side by side, for e
   return `WITH v(${names.join(', ')}) AS (VALUES ${rows.map(r=>'('+r.map(lit).join(', ')+')').join(', ')})\n`+
          `SELECT ${names.map(n=>`${n} AS "${n}"`).join(', ')},\n       ${t.expr} AS original,\n       ${mine} AS yours\nFROM v;`;
 }
-async function runRewrite(t,src){
+async function runRewrite(t,src,told){
   const mine=src.replace(/;+\s*$/,'').trim(); if(!mine) return;
   if(/^select\b/i.test(mine)){ showMsg('err',L.rewriteNoSelect); return; }
   if(mine.includes(';')){ showMsg('err',L.rewriteError); return; }
-  await run(rewriteSQL(t,mine));
+  await run(rewriteSQL(t,mine),told);
   if($('msg').classList.contains('err')) return;     // run() already shows PostgreSQL's error
   checkRewrite(mine,lastResult.rows.map(r=>r[r.length-1]));
 }
@@ -900,7 +909,7 @@ ta.addEventListener('paste',blockPaste);
 ta.addEventListener('drop',blockPaste);
 ta.addEventListener('beforeinput',e=>{ if(e.inputType==='insertFromPaste'||e.inputType==='insertFromDrop'||e.inputType==='insertFromPasteAsQuotation') blockPaste(e); });
 ta.addEventListener('keydown',e=>{
-  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();serial(()=>run())}
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();serial(userRun)}
   else if(e.key==='Tab'){e.preventDefault();const s=ta.selectionStart;ta.setRangeText('  ',s,ta.selectionEnd,'end');highlight()}
 });
 
@@ -922,24 +931,43 @@ const marksByTable={};
    already in its turn calls the next step directly: waiting for its own turn would never end. */
 let queue=Promise.resolve();
 function serial(step){ const p=queue.then(step); queue=p.catch(()=>{}); return p }
-async function run(given){
+/* The room shares one database, so a query runs once: here, for the student who pressed Run, on
+   their connection. The others get its outcome and show it through run() as well. Queries the page
+   makes up by itself (revealing a task's answer) only read, so every page runs its own. */
+let announceRun=()=>{};                     // the collaboration module sets this
+async function userRun(){
+  const src=ta.value, outcome={};
+  await run(src,outcome);
+  announceRun(src,outcome);
+}
+/* outcome: what happened, filled in here; with remote = true, someone else's, and nothing runs. */
+async function run(given,outcome){
   runCount++;
   whyOn=false; whyResult=null; whySrc=null; updateWhyBtn();
   const src=(typeof given==='string'?given:ta.value).trim(); if(!src) return;
   const rw=COURSE_LESSON&&activeLesson>=0&&COURSE_LESSON.tasks[activeLesson];
-  if(rw&&rw.kind==='rewrite'&&!src.startsWith('WITH v(')) return runRewrite(rw,src);   // the editor holds a condition, not a query
+  if(rw&&rw.kind==='rewrite'&&!src.startsWith('WITH v(')) return runRewrite(rw,src,outcome);   // the editor holds a condition, not a query
   const noSemi=missingSemi(src);
   if(noSemi&&semiMode==='strict'){showMsg('err',L.semiErr);$('st-time').textContent='';return}
   const dml=[...src.matchAll(/\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+"?(\w+)"?/gi)].map(m=>m[1].toLowerCase());
   const snaps={}; dml.forEach(t=>{if(tables().includes(t)) snaps[t]=snapshot(t)});
-  const t0=performance.now();
+  const remote=outcome&&outcome.remote, t0=performance.now();
   let res;
-  try{ res=await db.run(src); }
+  try{
+    if(remote&&outcome.err) throw outcome.err;
+    res=remote?outcome.res:await db.run(src);
+    if(outcome&&!remote) outcome.res=res;
+  }
   catch(e){
     if(e.lost){ await resetDb(); renderSchema(); clearResult(); showMsg('err',L.sessionLost); return; }
+    if(outcome&&!remote) outcome.err={message:e.message,hint:e.hint};
     showMsg('err',L.error+e.message+hintFor(e.message)+(e.hint?` (${e.hint})`:'')); $('st-time').textContent=''; return;
   }
-  const ms=(performance.now()-t0).toFixed(1), changed=res.filter(r=>!r.returnsRows).reduce((n,r)=>n+r.affected,0);
+  if(!res){                                 // someone else's: too big to send around, or nothing ran
+    await refreshTables(); renderSchema(); renderTabs(); if(outcome.big) showMsg('ok',L.tooBig); return;
+  }
+  const ms=remote?outcome.ms:(performance.now()-t0).toFixed(1), changed=res.filter(r=>!r.returnsRows).reduce((n,r)=>n+r.affected,0);
+  if(outcome&&!remote) outcome.ms=ms;
   await refreshTables();
   $('st-time').innerHTML=`${L.time}: <b>${ms} ${L.ms}</b>`;
   let touched=null;
@@ -1353,8 +1381,9 @@ async function toggleWhy(){
 }
 
 /* ---------- boot ---------- */
-async function resetDb(){await db.reset(seedSQL());await refreshTables();for(const k in marksByTable)delete marksByTable[k];lastResult=null;tab='__result';whyOn=false;whyResult=null;whySrc=null}
-$('run').onclick=()=>serial(()=>run());
+async function resetDb(){await db.reset(seedKey(),lang,seedSQL());await afterReset()}
+async function afterReset(){await refreshTables();for(const k in marksByTable)delete marksByTable[k];lastResult=null;tab='__result';whyOn=false;whyResult=null;whySrc=null}
+$('run').onclick=()=>serial(userRun);
 document.addEventListener('click',e=>{ const b=e.target.closest('.why-btn'); if(b&&!b.disabled) serial(toggleWhy) });
 ['msg','note'].forEach(id=>$(id).addEventListener('click',e=>{const b=e.target.closest('[data-lesson-go]');if(b&&!b.disabled)serial(()=>loadLesson(+b.dataset.lessonGo))}));
 $('note').addEventListener('click',e=>{
@@ -1375,8 +1404,12 @@ grid.innerHTML=`<div class="boot">${L.preparing}</div>`;
 serial(async()=>{
   try{
     if(typeof PgEngine!=='function') throw new Error(L.engineMissing);
-    db=new PgEngine();
-    await resetDb();
+    db=new PgEngine(ROOM);
+    const opened=await db.open(seedKey(),lang,seedSQL());
+    if(!COURSE_LESSON&&opened.lang!==lang){   // only here the data depends on the language: the room's stays
+      lang=opened.lang; try{localStorage.setItem('sqlt-lang',lang)}catch(e){}; applyLang();
+    }
+    await afterReset();
     let draft=null;try{draft=localStorage.getItem('sqlt-draft-'+lang)}catch(e){}
     if(draft&&!COURSE_LESSON){ta.value=draft;highlight();renderLessons(-1);renderSchema();clearResult()}
     else loadLesson(defaultLesson());
@@ -1397,9 +1430,7 @@ if(/^https?:$/.test(location.protocol)) start();
 
 function start(){
   /* ---------- room & identity ---------- */
-  const params=new URLSearchParams(location.search);
-  let room=params.get('room');
-  if(!room){room=Math.random().toString(36).slice(2,8);params.set('room',room);history.replaceState(null,'',location.pathname+'?'+params+location.hash)}
+  const room=ROOM;
 
   const doc=new Y.Doc(), ytext=doc.getText('sql'), cid=String(doc.clientID);
   let myName=''; try{myName=sessionStorage.getItem('sqlt-name')||''}catch(e){}   // per tab, so two tabs are two different people
@@ -1407,7 +1438,7 @@ function start(){
   let myColor=''; try{myColor=sessionStorage.getItem('sqlt-color')||''}catch(e){}
   if(!myColor){myColor=COLORS[doc.clientID%COLORS.length];try{sessionStorage.setItem('sqlt-color',myColor)}catch(e){}}
   const me={name:myName,color:myColor};
-  // each page has its own shared state, so the room on the server is room + page
+  // each page has its own editor text and task, so the room on the server is room + page; the database is the room's
   const ctx=COURSE_LESSON?'L'+COURSE_LESSON.id:'free';
   const peers=new Map();
   let ws=null, state='connecting', synced=false, applyingRemote=false, epoch=null, lastSeq=0;
@@ -1431,6 +1462,12 @@ function start(){
   /* ---------- shared actions: send to the server, apply when it echoes back ---------- */
   function emit(action){ ws.send(JSON.stringify({type:'event',cid,...action})) }
   function emitTask(i){ emit({kind:'lesson',i,id:COURSE_LESSON&&COURSE_LESSON.tasks[i]?COURSE_LESSON.tasks[i].id:null}) }
+  const MAX_SENT_RESULT=4*1024*1024;        // the server's WebSocket limit is 16 MB
+  announceRun=(src,outcome)=>{
+    if(!live()) return;
+    const small=JSON.stringify(outcome).length<=MAX_SENT_RESULT;
+    emit({kind:'run',src,outcome:small?outcome:{big:true,ms:outcome.ms}});
+  };
 
   /* ---------- everyone in the room must run the same version of the course ---------- */
   const courseVersion=(()=>{ const s=JSON.stringify((window.COURSE?COURSE.lessons:[]).map(l=>(l.tasks||[]).map(t=>t.id)));
@@ -1444,12 +1481,10 @@ function start(){
   }
   document.addEventListener('click',e=>{
     if(!live()) return;
-    const t=e.target.closest('.why-btn,#run,#reset,.lang button,.seg button,#tabs button,.tname,#lessons button,[data-lesson-go],#note [data-emp],#note [data-yn],#note [data-cell],#pick-check,#pick-reveal,#truth-check,#truth-reveal');
+    const t=e.target.closest('.why-btn,.lang button,.seg button,#tabs button,.tname,#lessons button,[data-lesson-go],#note [data-emp],#note [data-yn],#note [data-cell],#pick-check,#pick-reveal,#truth-check,#truth-reveal');
     if(!t) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if(t.classList.contains('why-btn')){ if(!t.disabled) emit({kind:'why'}); }
-    else if(t.id==='run') emit({kind:'run',src:ta.value});
-    else if(t.id==='reset') emit({kind:'reset'});
     else if(t.dataset.lang) emit({kind:'lang',lang:t.dataset.lang});
     else if(t.closest('#tabs')) emit({kind:'tab',id:t.dataset.id});
     else if(t.classList.contains('tname')) emit({kind:'tab',id:t.childNodes[0].textContent.trim()});
@@ -1464,10 +1499,6 @@ function start(){
     else if(t.dataset.lessonGo) emitTask(+t.dataset.lessonGo);
     else emitTask(t.dataset.i!=null?+t.dataset.i:[...t.parentElement.children].indexOf(t));
   },true);
-  document.addEventListener('keydown',e=>{
-    if(!live()||e.target!==ta) return;
-    if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();e.stopImmediatePropagation();emit({kind:'run',src:ta.value})}
-  },true);
 
   async function applyAction(a,mine){
     switch(a.kind){
@@ -1476,9 +1507,8 @@ function start(){
         if(a.semi&&a.semi!==semiMode) setSemi(a.semi);
         if(a.lang&&a.lang!==lang){ await adoptLang(a.lang); renderLessons(-1); $('note').innerHTML=''; clearResult(); }
         return;
-      case 'run': await run(a.src); return;
+      case 'run': if(!mine) await run(a.src,{...a.outcome,remote:true}); return;
       case 'why': await toggleWhy(); return;
-      case 'reset': await resetDb(); renderSchema(); clearResult(); showMsg('ok',L.resetDone+' '+L.ready); return;
       case 'semi': setSemi(a.mode); return;
       case 'tab': openTab(a.id); return;
       case 'lang':
@@ -1506,7 +1536,7 @@ function start(){
       }
     }
   }
-  async function adoptLang(next){ lang=next; try{localStorage.setItem('sqlt-lang',lang)}catch(e){}; applyLang(); await resetDb(); }
+  function adoptLang(next){ lang=next; try{localStorage.setItem('sqlt-lang',lang)}catch(e){}; applyLang(); }  // whoever switched it reseeds the room
 
   /* ---------- editor text (Yjs) ---------- */
   function pushLocal(){
@@ -1670,13 +1700,12 @@ function start(){
         // editor text
         if(ytext.length===0&&ta.value){synced=true;pushLocal()}
         else if(ytext.toString()!==ta.value){applyingRemote=true;ta.value=ytext.toString();orig.highlight();applyingRemote=false}
-        // shared actions
-        const rebuild=msg.epoch!==epoch;            // new room or first connect: rebuild from the log
-        if(rebuild){ epoch=msg.epoch; lastSeq=0; }
+        // shared actions; the data itself is read from the room's database
+        if(msg.epoch!==epoch){ epoch=msg.epoch; lastSeq=0; }    // new room or first connect
         const missed=msg.log.filter(a=>a.seq>lastSeq);
         if(missed.length) lastSeq=missed[missed.length-1].seq;
         serial(async()=>{
-          if(rebuild&&msg.log.length){ await resetDb(); renderSchema(); clearResult(); }
+          await refreshTables(); renderTabs(); renderSchema();
           for(const a of missed) await applyAction(a,false);
           synced=true; state='live';
           if(!msg.log.length) emit({kind:'init',lang,semi:semiMode});   // first one here sets the room's language and mode
@@ -1686,6 +1715,8 @@ function start(){
       }else if(msg.type==='event'){
         if(msg.seq<=lastSeq) return; lastSeq=msg.seq;
         serial(()=>applyAction(msg,msg.cid===cid));
+      }else if(msg.type==='db-reset'){              // someone reseeded the room; this page's transaction ended too
+        if(msg.client!==db.client) serial(async()=>{ await afterReset(); renderSchema(); clearResult(); showMsg('ok',L.resetDone+' '+L.ready); });
       }else if(msg.type==='presence'&&msg.cid!==cid){
         if(msg.v!==courseVersion) showUpdateBanner();   // the other person has a different version of the site
         const known=peers.has(msg.cid); peers.set(msg.cid,msg);

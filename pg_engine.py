@@ -2,13 +2,17 @@
 (expected results), so a student's rows and the expected rows always come out in the same format.
 Change value conversion only here, then run `make results`.
 
-Every browser tab gets its own database, owned by one low-privilege role. The address of the server
-comes from DATABASE_ADMIN_URL; that account only creates and drops the databases.
+Every collaboration room has one database, owned by one low-privilege role, and every student (a
+browser tab) in the room has their own connection to it, so one student's open transaction is not
+another's. The address of the server comes from DATABASE_ADMIN_URL; that account only creates and
+drops the databases and ends connections when a room is reseeded.
 
 Databases outlive this process, because a free Render service restarts whenever it wakes up. A
-session reconnects to its database after that; its open transaction and settings are gone.
+student reconnects after that; their open transaction and settings are gone. Nothing of the
+student's lives only here: progress is kept in the browser, so a database can always be reseeded.
 """
 import hashlib
+import json
 import os
 import re
 import threading
@@ -23,7 +27,7 @@ PREFIX = "sheet_"
 STATEMENT_TIMEOUT_S = 20
 HARD_LIMIT_S = STATEMENT_TIMEOUT_S + 5       # a student can turn statement_timeout off
 ROW_LIMIT = 5000                             # rows of each table sent to the sheets
-MAX_AGE_S = 24 * 60 * 60                     # a tab that closed without saying so
+MAX_AGE_S = 24 * 60 * 60                     # a room nobody is connected to
 MAX_DATABASES = 30
 IDLE_CLOSE_S = 10 * 60                       # lets a hosted server suspend; the database stays
 PING_AFTER_S = 60                            # a suspended server has dropped the connection
@@ -38,7 +42,7 @@ class EngineError(Exception):
 
 
 class SessionLost(Exception):
-    """The tab's database is gone. The page starts again from the seed."""
+    """The room's database is gone. The page starts again from the seed."""
 
 
 def _admin_url() -> str:
@@ -180,18 +184,27 @@ def read_tables(conn: psycopg.Connection) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Sessions: one database per browser tab
+# Rooms: one database per room, one connection per student
 # ---------------------------------------------------------------------------
-class _Session:
-    def __init__(self, database: str, conn: psycopg.Connection) -> None:
+class _Room:
+    def __init__(self, database: str) -> None:
         self.database = database
+        self.lock = threading.Lock()         # held while reseeding: nobody connects meanwhile
+        self.epoch = object()                # replaced by a reseed, which ends every connection
+
+
+class _Student:
+    def __init__(self, room: _Room, conn: psycopg.Connection) -> None:
+        self.room = room
+        self.epoch = room.epoch
         self.conn = conn
-        self.lock = threading.Lock()
+        self.lock = threading.Lock()         # one action at a time on this connection
         self.used = time.monotonic()
 
 
-_sessions: dict[str, _Session] = {}
-_sessions_lock = threading.Lock()
+_rooms: dict[str, _Room] = {}
+_students: dict[tuple[str, str], _Student] = {}
+_registry_lock = threading.Lock()
 _role_ready = False
 
 
@@ -211,26 +224,31 @@ def _ensure_role(admin: psycopg.Connection) -> None:
     _role_ready = True
 
 
-def _db_prefix(session_id: str) -> str:
-    return f"{PREFIX}{hashlib.sha256(session_id.encode()).hexdigest()[:24]}_"
+def _db_prefix(room_id: str) -> str:
+    return f"{PREFIX}{hashlib.sha256(room_id.encode()).hexdigest()[:24]}_"
 
 
-def _find_database(admin: psycopg.Connection, session_id: str) -> str | None:
-    row = admin.execute("SELECT datname FROM pg_database WHERE starts_with(datname, %s)", [_db_prefix(session_id)]).fetchone()
+def _find_database(admin: psycopg.Connection, room_id: str) -> str | None:
+    row = admin.execute("SELECT datname FROM pg_database WHERE starts_with(datname, %s)", [_db_prefix(room_id)]).fetchone()
     return row[0] if row else None
 
 
 def _sweep(admin: psycopg.Connection) -> None:
-    """Drops databases of tabs that left without closing them, and connections nobody is using."""
+    """Drops old databases of rooms nobody is connected to, and connections nobody is using.
+    This is the only thing that removes a room's database: leaving a room keeps it, so a reload
+    or a returning student finds the data."""
     now = time.monotonic()
-    for sid, s in list(_sessions.items()):
+    for key, s in list(_students.items()):
         if now - s.used > IDLE_CLOSE_S and s.lock.acquire(blocking=False):
             try:
                 s.conn.close()
-                del _sessions[sid]
+                del _students[key]
             finally:
                 s.lock.release()
-    active = {s.database for s in _sessions.values()}
+    active = {s.room.database for s in _students.values()}
+    for room_id, room in list(_rooms.items()):
+        if room.database not in active:
+            del _rooms[room_id]
     names = [r[0] for r in admin.execute("SELECT datname FROM pg_database WHERE starts_with(datname, %s)", [PREFIX])]
     created = {}
     for name in names:
@@ -244,62 +262,89 @@ def _sweep(admin: psycopg.Connection) -> None:
             admin.execute(pgsql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(pgsql.Identifier(name)))
 
 
-def _open(session_id: str, create: bool) -> _Session:
-    url = _admin_url()
-    with _sessions_lock:
-        session = _sessions.get(session_id)
-        if session:
-            return session
-        with _connect(url) as admin:
+def _room(room_id: str, create: bool) -> _Room:
+    """create=True always asks the server, so a database that disappeared is made again."""
+    with _registry_lock:
+        room = _rooms.get(room_id)
+        if room and not create:
+            return room
+        with _connect(_admin_url()) as admin:
             _ensure_role(admin)
-            database = _find_database(admin, session_id)
+            database = _find_database(admin, room_id)
             if not database:
                 if not create:
                     raise SessionLost
                 _sweep(admin)
-                database = f"{_db_prefix(session_id)}{int(time.time())}"
+                database = f"{_db_prefix(room_id)}{int(time.time())}"
                 # The builtin locale sorts by code point on every host, so results do not depend on the OS.
                 admin.execute(pgsql.SQL("CREATE DATABASE {} OWNER {} TEMPLATE template0 ENCODING 'UTF8' "
                                         "LOCALE_PROVIDER builtin BUILTIN_LOCALE 'C.UTF-8' LOCALE 'C'")
                               .format(pgsql.Identifier(database), pgsql.Identifier(STUDENT_ROLE)))
-        conn = _connect(url, dbname=database, user=STUDENT_ROLE, password=_student_password())
-        session = _sessions[session_id] = _Session(database, conn)
-        return session
+        if room and room.database == database:
+            return room
+        room = _rooms[room_id] = _Room(database)
+        return room
 
 
-def _call(session_id: str, create: bool, work):
-    """One action on the tab's database, one at a time, on a connection that is known to be alive."""
+def _connect_student(database: str) -> psycopg.Connection:
+    return _connect(_admin_url(), dbname=database, user=STUDENT_ROLE, password=_student_password())
+
+
+def _student(room_id: str, client: str) -> _Student:
+    room = _room(room_id, False)
+    key = (room_id, client)
+    with room.lock:                                         # waits for a reseed to finish
+        with _registry_lock:
+            student = _students.get(key)
+            if student and student.room is room and student.epoch is room.epoch:
+                return student
+            _students.pop(key, None)
+        if student:
+            student.conn.close()
+        conn = _connect_student(room.database)
+        with _registry_lock:
+            student = _students[key] = _Student(room, conn)
+        return student
+
+
+def _call(room_id: str, client: str, work):
+    """One action on this student's connection, one at a time, on a connection known to be alive."""
     try:
-        session = _open(session_id, create)
+        try:
+            student = _student(room_id, client)
+        except psycopg.OperationalError:
+            with _registry_lock:
+                _rooms.pop(room_id, None)                   # its database may be gone: ask the server
+            student = _student(room_id, client)
     except psycopg.OperationalError as e:
         raise EngineError("Could not reach the database server. Try again in a moment.") from e
-    with session.lock:
-        conn = session.conn
-        if conn.closed or time.monotonic() - session.used > PING_AFTER_S:
+    with student.lock:
+        conn = student.conn
+        if conn.closed or time.monotonic() - student.used > PING_AFTER_S:
             try:
                 conn.execute("SELECT 1")
             except psycopg.Error:
                 if conn.closed or conn.broken:
-                    _forget(session_id, conn)
-                    return _call(session_id, create, work)  # nothing of the student's has run yet
+                    _forget(room_id, client, conn)
+                    return _call(room_id, client, work)     # nothing of the student's has run yet
                 # otherwise inside a failed transaction: alive
-        session.used = time.monotonic()
+        student.used = time.monotonic()
         try:
             return work(conn)
         except psycopg.Error as e:
-            _forget(session_id, conn)                       # run_sql lets only a broken connection through
+            _forget(room_id, client, conn)                  # run_sql lets only a broken connection through
             raise EngineError("The connection to the database was lost. Run the query again.") from e
         finally:
-            session.used = time.monotonic()
+            student.used = time.monotonic()
 
 
-def _forget(session_id: str, conn: psycopg.Connection) -> None:
-    with _sessions_lock:
-        _sessions.pop(session_id, None)
+def _forget(room_id: str, client: str, conn: psycopg.Connection) -> None:
+    with _registry_lock:
+        _students.pop((room_id, client), None)
     conn.close()
 
 
-def run(session_id: str, text: str) -> list[dict]:
+def run(room_id: str, client: str, text: str) -> list[dict]:
     def work(conn):
         watchdog = threading.Timer(HARD_LIMIT_S, conn.cancel)
         watchdog.start()
@@ -307,28 +352,65 @@ def run(session_id: str, text: str) -> list[dict]:
             return run_sql(conn, text)
         finally:
             watchdog.cancel()
-    return _call(session_id, False, work)
+    return _call(room_id, client, work)
 
 
-def reset(session_id: str, seed: str) -> None:
-    def work(conn):
-        clear_database(conn)
-        run_sql(conn, seed)
-    _call(session_id, True, work)
+def tables(room_id: str, client: str) -> list[dict]:
+    return _call(room_id, client, read_tables)
 
 
-def tables(session_id: str) -> list[dict]:
-    return _call(session_id, False, read_tables)
+def open_room(room_id: str, key: str, lang: str, seed: str, force: bool = False) -> dict:
+    """Makes the room's database hold the lesson called `key`. Data stays when it already does, so
+    joining or reloading changes nothing; another lesson, or force, reseeds it for everyone in the
+    room: every connection ends, and with it every open transaction. A reseed needs them gone,
+    because an open transaction would keep it waiting on its locks.
+
+    The lesson and the language of the data are kept as a comment on the database, so they survive
+    a server restart. Returns {"lang": language of the data, "reset": whether it was reseeded}."""
+    try:
+        room = _room(room_id, True)
+        with room.lock, _connect(_admin_url()) as admin:
+            database = pgsql.Identifier(room.database)
+            comment = admin.execute("SELECT shobj_description(oid, 'pg_database') FROM pg_database WHERE datname = %s",
+                                    [room.database]).fetchone()
+            holds = json.loads(comment[0]) if comment and comment[0] else None
+            if holds and holds["key"] == key and not force:
+                return {"lang": holds["lang"], "reset": False}
+            room.epoch = object()
+            admin.execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = %s", [room.database])
+            admin.execute(pgsql.SQL("COMMENT ON DATABASE {} IS NULL").format(database))     # a failed seed is not a seeded room
+            with _connect_student(room.database) as conn:
+                clear_database(conn)
+                run_sql(conn, seed)
+            admin.execute(pgsql.SQL("COMMENT ON DATABASE {} IS {}")
+                          .format(database, pgsql.Literal(json.dumps({"key": key, "lang": lang}))))
+            return {"lang": lang, "reset": True}
+    except psycopg.Error as e:
+        raise EngineError("Could not reach the database server. Try again in a moment.") from e
 
 
-def close(session_id: str) -> None:
-    """The tab is gone: its database goes too."""
-    url = _admin_url()
-    with _sessions_lock:
-        session = _sessions.pop(session_id, None)
-        if session:
-            session.conn.close()
-        with _connect(url) as admin:
-            database = _find_database(admin, session_id)
+def disconnect(room_id: str, client: str) -> None:
+    """The student left: their connection ends, and any open transaction rolls back. The database
+    stays for the others and for a reload; only the sweep removes it."""
+    with _registry_lock:
+        student = _students.pop((room_id, client), None)
+    if not student:
+        return
+    try:
+        student.conn.cancel()                               # a query may be waiting on a lock
+    except psycopg.Error:
+        pass
+    with student.lock:
+        student.conn.close()
+
+
+def drop_room(room_id: str) -> None:
+    """For scripts/build_results.py, which needs its database only while it runs."""
+    with _registry_lock:
+        _rooms.pop(room_id, None)
+        for key in [k for k in _students if k[0] == room_id]:
+            _students.pop(key).conn.close()
+        with _connect(_admin_url()) as admin:
+            database = _find_database(admin, room_id)
             if database:
                 admin.execute(pgsql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(pgsql.Identifier(database)))

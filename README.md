@@ -37,9 +37,9 @@ make run    # http://127.0.0.1:8001/
 ```
 
 The app finds PostgreSQL through `DATABASE_ADMIN_URL`; the `Makefile` points it at the local
-container. That account must be able to create roles and databases. Every browser tab gets its own
-database, owned by the low-privilege role `sheet_student`, so students cannot read server files or
-create roles. Pages reach the database only through `static/pg-engine.js`, which calls `/api/db`.
+container. That account must be able to create roles and databases. Every room gets one database,
+owned by the low-privilege role `sheet_student`, so students cannot read server files or create
+roles. Pages reach the database only through `static/pg-engine.js`, which calls `/api/db`.
 A query stops after 20 seconds. Results are checked against `course_results.json`.
 
 ## Structure
@@ -99,10 +99,23 @@ pointers are shared.
 3. The address bar gets a `?room=…` part. Click **Copy invite link** and send it.
    Everyone with the same link is in the same room.
 
-The server keeps a log of every shared action and sends actions to everyone in
-the same order. Each participant's page replays them on its own database, so all
-the databases end up identical; someone who joins later replays the log. Rooms are kept in the server's memory and disappear
-when the last person leaves or the server restarts.
+A room has one database, and each participant has their own connection to it. A
+query runs once, on the connection of whoever pressed **Run**; everyone sees its
+result and the new tables. An open transaction belongs to the person who began it:
+others do not see its changes and wait on its locks, as in real PostgreSQL.
+
+- Joining or reloading keeps the room's data. Closing a tab ends that person's
+  connection and rolls back their open transaction; the database stays.
+- Opening another lesson, **Reset** and switching the language put the seed data
+  back for the whole room and end everyone's open transactions.
+- Each student's progress and typed queries are kept in their own browser, so
+  replacing the room's data loses nothing. A solved task counts for everyone in the room.
+- A database with nobody connected is removed after 24 hours, or sooner when there
+  are more than 30.
+
+The room's live state (editor text, cursors, the log of shared actions) is kept in
+the server's memory and disappears when the last person leaves or the server
+restarts. The database stays on PostgreSQL.
 
 ## Deploy to Render
 
@@ -132,7 +145,7 @@ Notes:
   instances would split people into different rooms.
 - On the **free plan** the service sleeps after 15 minutes without traffic and
   the next visit takes about a minute to wake it. A restart clears all rooms and the page
-  reconnects by itself. A tab's database stays on PostgreSQL, but an open transaction is lost.
+  reconnects by itself. A room's database stays on PostgreSQL, but open transactions are lost.
 - Render's free PostgreSQL expires after 30 days, so it does not suit this service.
 
 ---
@@ -155,8 +168,8 @@ make run
 ```
 
 Открой http://127.0.0.1:8001/. Адрес PostgreSQL задаёт `DATABASE_ADMIN_URL`; `Makefile` указывает
-на локальный контейнер. Этой учётной записи нужны права создавать роли и базы. У каждой вкладки
-своя база, ею владеет роль с минимальными правами `sheet_student`. Запрос останавливается через 20 секунд.
+на локальный контейнер. Этой учётной записи нужны права создавать роли и базы. У каждой комнаты
+одна база, ею владеет роль с минимальными правами `sheet_student`. Запрос останавливается через 20 секунд.
 
 ### Совместная работа
 
@@ -178,10 +191,21 @@ make run
 3. В адресе появится `?room=…`. Нажми **Скопировать ссылку** и отправь её.
    Все, кто открыл одну ссылку, работают в одной комнате.
 
-Сервер ведёт журнал общих действий и раздаёт их всем в одном порядке. Страница каждого
-участника применяет их к своей базе, поэтому базы у всех одинаковые; кто подключился позже, проигрывает журнал.
-Комнаты хранятся в памяти сервера и пропадают, когда все вышли или сервер
-перезапустился.
+У комнаты одна база, и у каждого участника своё соединение с ней. Запрос выполняется
+один раз, в соединении того, кто нажал **Выполнить**; все видят его результат и новые таблицы.
+Открытая транзакция принадлежит тому, кто её начал: другие не видят её изменений и ждут
+её блокировок, как в настоящем PostgreSQL.
+
+- Вход и перезагрузка страницы сохраняют данные комнаты. Закрытие вкладки завершает
+  соединение этого человека и откатывает его открытую транзакцию; база остаётся.
+- Переход на другой урок, **сброс** и смена языка возвращают исходные данные всей комнате
+  и завершают открытые транзакции всех участников.
+- Прогресс и набранные запросы каждого ученика хранятся в его браузере, поэтому замена
+  данных комнаты ничего не стирает. Решённая задача засчитывается всем в комнате.
+- База, к которой никто не подключён, удаляется через 24 часа, а если баз больше 30, то раньше.
+
+Текущее состояние комнаты (текст редактора, курсоры, журнал общих действий) хранится в памяти
+сервера и пропадает, когда все вышли или сервер перезапустился. База остаётся в PostgreSQL.
 
 ### Развёртывание на Render
 
@@ -194,7 +218,7 @@ make run
 
 Держи **один экземпляр** сервиса: комнаты хранятся в памяти. На бесплатном плане
 сервис засыпает через 15 минут без посетителей и просыпается примерно за минуту;
-при перезапуске комнаты очищаются. База вкладки остаётся в PostgreSQL, но открытая транзакция теряется.
+при перезапуске комнаты очищаются. База комнаты остаётся в PostgreSQL, но открытые транзакции теряются.
 Бесплатная база Render истекает через 30 дней, поэтому здесь она не подходит.
 
 ### Уроки

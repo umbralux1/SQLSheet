@@ -2,14 +2,16 @@
 
 SQL trainer. Students' queries run on a real PostgreSQL server. Commands: `make`. Overview: `README.md`.
 
-## Architecture: one PostgreSQL server, one database per tab
+## Architecture: one PostgreSQL server, one database per room
 
 Moved from PGlite to a server on 2026-11-05: the course is for two people, and it needs real PostgreSQL with several connections for concurrency lessons. Results on Postgres 18.6 matched PGlite's value for value.
 
-- **Engine seam.** Pages reach the database only through `static/pg-engine.js` (`run`, `reset`, `tables`), which calls `/api/db/<session>`.
+- **Engine seam.** Pages reach the database only through `static/pg-engine.js` (`open`, `reset`, `run`, `tables`), which calls `/api/db` with the room and the page's `client` id.
 - **Shared result format.** `pg_engine.py` serves both `main.py` and `scripts/build_results.py`, so a student's rows and the expected rows always match in format. Change value conversion only there, then run `make results`.
-- **Isolation.** `DATABASE_ADMIN_URL` only creates roles and databases. Each tab's database belongs to `sheet_student`, which has no special rights. Databases are named `sheet_<hash>_<created>`, survive server restarts, and are dropped when the tab closes or by the sweep (older than 24 h, more than 30).
-- **Rooms.** Each participant keeps a separate database; the room's action log keeps them identical. Concurrency lessons will need participants to share one database.
+- **Isolation.** `DATABASE_ADMIN_URL` only creates roles and databases and ends connections on a reseed. Each room's database belongs to `sheet_student`, which has no special rights. Databases are named `sheet_<hash>_<created>`, survive server restarts, and are dropped only by the sweep (nobody connected, and older than 24 h or more than 30 databases).
+- **Rooms.** One database per room, one connection per student (browser tab), so transactions, locks and settings are each student's own. Progress lives only in the browser (`localStorage`), so the database is disposable: this is a requirement from the user.
+- **A write runs once.** `userRun()` runs the query on the student's connection, then `announceRun` sends the outcome as a `run` event; the others pass it to `run(src, {...outcome, remote: true})`, which runs nothing, and re-read tables on their own connections. Queries the page generates by itself (`revealResult`, `truthExpected`, "Explain") only read, so each browser runs its own.
+- **Reseeding.** `open` keeps data if the database's comment names the same lesson (`key`), otherwise it reseeds; `reset` always does. A reseed ends all the room's connections, because an open transaction would block it, then the server sends `db-reset` to every page of the room. The WebSocket room is still `room~page`, for editor text and task state. Newcomers replay the log without `run` and `why`, and read the data from the database.
 - **Checking.** `/api/check` compares against `course_results.json`. Students never receive answers; the file is read on the server, and only `previews` and `examples` go to `/course.js`.
 - **Lessons page** draws tables and examples from those results and runs no queries.
 
@@ -36,12 +38,12 @@ Moved from PGlite to a server on 2026-11-05: the course is for two people, and i
 
 ## Verifying a change
 
-The repo has no automated tests. `make db` starts PostgreSQL. `make check` checks structure and that results are fresh; `make results` runs all SQL. To exercise the real path, run each task's answer in the browser through `db.run` and POST it to `/api/check`, with answers from `/api/answers/<id>` after a teacher login. All 285 tasks passed this way on the server engine on 2026-11-05. Clear `sqlt-*` keys from `localStorage` afterwards.
+The repo has no automated tests. `make db` starts PostgreSQL. `make check` checks structure and that results are fresh; `make results` runs all SQL. To exercise the real path, run each task's answer in the browser through `db.run` and POST it to `/api/check`, with answers from `/api/answers/<id>` after a teacher login. All 285 tasks passed this way with one database per room on 2026-11-05. Reset between tasks with `db.reset`: answers can change data. For room behaviour, open two tabs on the same `?room=`. Clear `sqlt-*` keys from `localStorage` afterwards.
 
 ## Open as of 2026-11-05
 
-- Production is not set up. Plan: Render free for the app, Neon free for the database (`DATABASE_ADMIN_URL`). Neither has been tried with this code; measure Neon's wake-up time and `CREATE DATABASE` time.
-- The site has no login for students: anyone with its address can run SQL as `sheet_student`.
-- After a server restart, a room's participants can end up with different databases: the first to reconnect logs `init`, and the others rebuild from that log.
-- Concurrency lessons (locks, isolation levels) are not built yet.
+- Production is not set up. Plan: Render free for the app, Neon free for the database (`DATABASE_ADMIN_URL`; Render's free PostgreSQL expires after 30 days, so it was rejected). Neither has been tried with this code; measure Neon's wake-up time and `CREATE DATABASE` time. A reseed uses `pg_terminate_backend` through the admin account, also untried on Neon, and each student holds one connection.
+- The site has no login for students: anyone with its address can run SQL as `sheet_student`. A shared password was suggested and not decided. All rooms use that one role, so a student can also end other rooms' connections with `pg_terminate_backend`.
+- Concurrency lessons (locks, isolation levels) are not built yet. The page shows nothing while a query waits on another student's lock (up to 20 s), and `tables()` on the waiting side can wait too.
+- The branch `feat/server-postgres` is local only; `main` is untouched.
 - Branch `feat/pglite` is merged and can be deleted.
