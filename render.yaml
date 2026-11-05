@@ -11,6 +11,9 @@ services:
     # Collaboration rooms are kept in memory, so keep exactly one instance.
     numInstances: 1
     envVars:
+      # A PostgreSQL account that can create roles and databases (Neon: the project's direct connection URL).
+      - key: DATABASE_ADMIN_URL
+        sync: false
       # Teacher password for /lessons. Render asks for the value when the Blueprint is created.
       - key: TEACHER_PASSWORD
         sync: false

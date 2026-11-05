@@ -2,7 +2,7 @@
 
 **English** · [Русский](#русский)
 
-An SQL trainer that runs real PostgreSQL in the browser ([PGlite](https://pglite.dev), PostgreSQL compiled to WebAssembly) and shows
+An SQL trainer that runs students' queries on a real PostgreSQL server and shows
 query results as a spreadsheet: column letters, row numbers, a formula bar,
 sum/average/count for the selection, and highlighting of inserted and updated rows.
 
@@ -17,11 +17,12 @@ Everything is in the `Makefile`; run `make` to see the list.
 | Command | What it does |
 |---|---|
 | `make install` | Create `venv/` and install the dependencies |
+| `make db` | Start PostgreSQL locally in Docker (needed by `make run` and `make results`) |
 | `make run` | Start locally with auto-reload on http://127.0.0.1:8001 (`PORT=8002 make run` for another port) |
 | `make run-lan` | Start for other computers on your network and print the address to share |
 | `make start` | Start like Render does, without reload |
 | `make open` | Open the trainer and the lessons page in the browser |
-| `make results` | After changing a lesson: run all its SQL on PostgreSQL and save the expected results to `course_results.json` (needs Node); commit that file |
+| `make results` | After changing a lesson: run all its SQL on PostgreSQL and save the expected results to `course_results.json`; commit that file |
 | `make check` | Check the code and the lessons, that `course_results.json` is up to date, and that answers stay hidden |
 | `make deploy` | Run the checks, refuse if something is not committed, then push to GitHub; Render deploys from there |
 | `make deploy-hook` | Ask Render to redeploy right away (`RENDER_DEPLOY_HOOK=<url> make deploy-hook`) |
@@ -31,18 +32,15 @@ Everything is in the `Makefile`; run `make` to see the list.
 ## Run
 
 ```bash
-source venv/bin/activate
-uvicorn main:app --reload            # http://127.0.0.1:8000/
-uvicorn main:app --reload --port 8001  # if port 8000 is taken
+make db     # PostgreSQL 18 in Docker
+make run    # http://127.0.0.1:8001/
 ```
 
-An internet connection is required: the PostgreSQL engine and fonts load from a CDN.
-
-The deployed app needs only Python. Node is used only by `make results`: the server has no
-database and checks a student's result against `course_results.json`, worked out on the same
-PGlite version as the browser uses (`package.json` and `static/pg-worker.js` must name the same one).
-Pages reach the database only through `static/pg-engine.js`, so a lesson that needs several real
-connections can get a server-backed engine with the same methods.
+The app finds PostgreSQL through `DATABASE_ADMIN_URL`; the `Makefile` points it at the local
+container. That account must be able to create roles and databases. Every browser tab gets its own
+database, owned by the low-privilege role `sheet_student`, so students cannot read server files or
+create roles. Pages reach the database only through `static/pg-engine.js`, which calls `/api/db`.
+A query stops after 20 seconds. Results are checked against `course_results.json`.
 
 ## Structure
 
@@ -102,8 +100,8 @@ pointers are shared.
    Everyone with the same link is in the same room.
 
 The server keeps a log of every shared action and sends actions to everyone in
-the same order, so all participants end up with identical databases; someone who
-joins later replays the log. Rooms are kept in the server's memory and disappear
+the same order. Each participant's page replays them on its own database, so all
+the databases end up identical; someone who joins later replays the log. Rooms are kept in the server's memory and disappear
 when the last person leaves or the server restarts.
 
 ## Deploy to Render
@@ -113,9 +111,11 @@ the service, `requirements.txt` lists the dependencies and `.python-version`
 pins Python 3.11.
 
 1. Push the project to GitHub (or GitLab / Bitbucket).
-2. In the Render dashboard choose **New → Blueprint** and pick the repository.
-   Render reads `render.yaml` and creates the `sql-sheet` web service.
-3. Wait for the first deploy, then open `https://<name>.onrender.com`.
+2. Create a PostgreSQL 18 database, for example a free [Neon](https://neon.com) project, and copy
+   its direct connection URL. Its role must be able to create roles and databases.
+3. In the Render dashboard choose **New → Blueprint** and pick the repository.
+   Render reads `render.yaml`, creates the `sql-sheet` web service and asks for `DATABASE_ADMIN_URL`.
+4. Wait for the first deploy, then open `https://<name>.onrender.com`.
 
 Without the Blueprint, create a **Web Service** by hand with:
 
@@ -125,19 +125,21 @@ Without the Blueprint, create a **Web Service** by hand with:
 | Build Command | `pip install -r requirements.txt` |
 | Start Command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
 | Health Check Path | `/healthz` |
+| Environment | `DATABASE_ADMIN_URL`, `TEACHER_PASSWORD`, `SECRET_KEY` |
 
 Notes:
 - Keep **one instance**. Collaboration rooms live in the server's memory, so two
   instances would split people into different rooms.
 - On the **free plan** the service sleeps after 15 minutes without traffic and
-  the next visit takes a few seconds to wake it. A restart clears all rooms;
-  the database in each browser is unaffected and the page reconnects by itself.
+  the next visit takes about a minute to wake it. A restart clears all rooms and the page
+  reconnects by itself. A tab's database stays on PostgreSQL, but an open transaction is lost.
+- Render's free PostgreSQL expires after 30 days, so it does not suit this service.
 
 ---
 
 ## Русский
 
-Тренажёр SQL: запросы выполняются в настоящем PostgreSQL прямо в браузере ([PGlite](https://pglite.dev), PostgreSQL в WebAssembly),
+Тренажёр SQL: запросы выполняются на настоящем сервере PostgreSQL,
 а результат показывается как лист Excel — буквы столбцов, номера строк, строка формул,
 сумма/среднее по выделению, подсветка добавленных и изменённых строк.
 
@@ -148,13 +150,13 @@ Notes:
 ### Запуск
 
 ```bash
-source venv/bin/activate
-uvicorn main:app --reload --port 8001
+make db     # PostgreSQL 18 в Docker
+make run
 ```
 
-Открой http://127.0.0.1:8001/. Нужен интернет: движок PostgreSQL и шрифты загружаются с CDN.
-
-Развёрнутому приложению нужен только Python. Node нужен только для `make results`.
+Открой http://127.0.0.1:8001/. Адрес PostgreSQL задаёт `DATABASE_ADMIN_URL`; `Makefile` указывает
+на локальный контейнер. Этой учётной записи нужны права создавать роли и базы. У каждой вкладки
+своя база, ею владеет роль с минимальными правами `sheet_student`. Запрос останавливается через 20 секунд.
 
 ### Совместная работа
 
@@ -176,21 +178,24 @@ uvicorn main:app --reload --port 8001
 3. В адресе появится `?room=…`. Нажми **Скопировать ссылку** и отправь её.
    Все, кто открыл одну ссылку, работают в одной комнате.
 
-Сервер ведёт журнал общих действий и раздаёт их всем в одном порядке, поэтому
-базы у всех участников одинаковые; кто подключился позже, проигрывает журнал.
+Сервер ведёт журнал общих действий и раздаёт их всем в одном порядке. Страница каждого
+участника применяет их к своей базе, поэтому базы у всех одинаковые; кто подключился позже, проигрывает журнал.
 Комнаты хранятся в памяти сервера и пропадают, когда все вышли или сервер
 перезапустился.
 
 ### Развёртывание на Render
 
 1. Залей проект на GitHub.
-2. В Render: **New → Blueprint**, выбери репозиторий. Render прочитает `render.yaml`
-   и сам создаст сервис.
-3. После первого деплоя открой `https://<имя>.onrender.com`.
+2. Создай базу PostgreSQL 18, например бесплатный проект [Neon](https://neon.com), и скопируй
+   прямой адрес подключения. Его роль должна уметь создавать роли и базы.
+3. В Render: **New → Blueprint**, выбери репозиторий. Render прочитает `render.yaml`,
+   создаст сервис и спросит `DATABASE_ADMIN_URL`.
+4. После первого деплоя открой `https://<имя>.onrender.com`.
 
 Держи **один экземпляр** сервиса: комнаты хранятся в памяти. На бесплатном плане
-сервис засыпает через 15 минут без посетителей и просыпается за несколько секунд;
-при перезапуске комнаты очищаются.
+сервис засыпает через 15 минут без посетителей и просыпается примерно за минуту;
+при перезапуске комнаты очищаются. База вкладки остаётся в PostgreSQL, но открытая транзакция теряется.
+Бесплатная база Render истекает через 30 дней, поэтому здесь она не подходит.
 
 ### Уроки
 
@@ -222,5 +227,5 @@ uvicorn main:app --reload --port 8001
 
 Все команды в `Makefile`, список — `make`. Основные: `make install` (окружение и зависимости),
 `make run` (запуск на порту 8001), `make run-lan` (запуск для других компьютеров в сети),
-`make results` (после изменения урока: прогнать его SQL на PostgreSQL и сохранить эталоны в `course_results.json`, нужен Node), `make check` (проверка кода, уроков и актуальности эталонов), `make deploy` (проверка, затем push
+`make db` (PostgreSQL в Docker), `make results` (после изменения урока: прогнать его SQL на PostgreSQL и сохранить эталоны в `course_results.json`), `make check` (проверка кода, уроков и актуальности эталонов), `make deploy` (проверка, затем push
 на GitHub, откуда Render развернёт новую версию).

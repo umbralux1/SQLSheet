@@ -3,7 +3,7 @@
 * main.py and course.py are valid Python;
 * every task has a unique id (progress is saved by task id), its texts and explanations;
 * course_results.json is up to date: `make results` ran every query of the current course
-  on PostgreSQL (PGlite) and stopped on any that failed;
+  on PostgreSQL and stopped on any that failed;
 * the course sent to browsers (/course.js) contains no answers or teacher tips.
 
 Usage: python scripts/check.py   (or: make check)

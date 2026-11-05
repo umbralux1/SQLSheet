@@ -1,15 +1,14 @@
-"""Works out the course's expected results on PostgreSQL (PGlite) and saves them to course_results.json.
+"""Works out the course's expected results on PostgreSQL and saves them to course_results.json.
 
-The server has no database: it checks students' results against this file. Run this after every
-change to a lesson's data, answers, examples or conditions, and commit the file. `make check`
-fails when the file is out of date. A failing query here means a lesson is broken.
+The server checks students' results against this file. Run this after every change to a lesson's
+data, answers, examples or conditions, and commit the file. `make check` fails when the file is
+out of date. A failing query here means a lesson is broken.
 
-Needs Node: run `npm install` once.   Usage: python scripts/build_results.py   (or: make results)
+Needs DATABASE_ADMIN_URL.   Usage: python scripts/build_results.py   (or: make results)
 """
 import hashlib
 import json
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -35,25 +34,31 @@ class PgError(Exception):
 
 
 class Pg:
+    SESSION = "build-results"
+
     def __init__(self) -> None:
-        self.process = subprocess.Popen(["node", str(ROOT / "scripts" / "pg_bridge.mjs")], cwd=ROOT, text=True,
-                                        stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        import pg_engine                # not at the top: scripts/check.py imports this file with no packages installed
+        self.engine = pg_engine
 
     def call(self, op: str, **args):
-        self.process.stdin.write(json.dumps({"op": op, **args}) + "\n")
-        self.process.stdin.flush()
-        reply = json.loads(self.process.stdout.readline())
-        if "error" in reply:
-            raise PgError(reply["error"]["message"])
-        return reply["result"]
+        try:
+            if op == "version":
+                self.engine.reset(self.SESSION, "")
+                return self.engine.run(self.SESSION, "SELECT version()")[0]["rows"][0][0]
+            if op == "run":
+                return self.engine.run(self.SESSION, args["sql"])
+            if op == "reset":
+                return self.engine.reset(self.SESSION, args["seed"])
+            return self.engine.tables(self.SESSION)
+        except self.engine.EngineError as e:
+            raise PgError(str(e)) from e
 
     def query(self, sql: str) -> dict:
         """The result of the last statement: {columns, rows, ...}."""
         return self.call("run", sql=sql)[-1]
 
     def close(self) -> None:
-        self.process.stdin.close()
-        self.process.wait()
+        self.engine.close(self.SESSION)
 
 
 def normalize(value):

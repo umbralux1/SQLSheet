@@ -1,56 +1,30 @@
-/* The page's one way to the database. Lessons call only these methods and never PGlite itself,
-   so a lesson that needs a real server (several connections at once) can get another engine
-   with the same methods:
+/* The page's one way to the database. Every tab has its own database on the server (pg_engine.py):
 
      run(sql)    -> [{columns, rows, returnsRows, affected}, ...], one per statement
-     reset(seed) -> back to a database with only the seed's data
+     reset(seed) -> back to a database with only the seed's data; the first call creates it
      tables()    -> [{name, columns: [{name, type, pk}], count, rows}, ...]
 
-   PGlite cannot enforce statement_timeout, so a query that runs too long is stopped by
-   throwing the whole thread away. The data goes with it: the error has timedOut = true,
-   and the caller reseeds. */
+   A failed call rejects with PostgreSQL's message, hint, code and position. When the server no
+   longer has this tab's database, the error has lost = true, and the caller reseeds. */
 class PgEngine {
-  constructor({ timeoutMs = 20000 } = {}) {
-    this.timeoutMs = timeoutMs;
-    this.nextId = 1;
-    this.waiting = new Map();
-    this.startWorker();
+  constructor() {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));   // randomUUID needs https; make run-lan is http
+    this.session = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    addEventListener('pagehide', () => navigator.sendBeacon(`/api/db/${this.session}/close`));
   }
 
-  startWorker() {
-    this.worker = new Worker('static/pg-worker.js', { type: 'module' });
-    this.worker.onmessage = ({ data }) => {
-      const call = this.waiting.get(data.id);
-      if (!call) return;
-      this.waiting.delete(data.id);
-      clearTimeout(call.timer);
-      if (data.error) call.reject(Object.assign(new Error(data.error.message), data.error));
-      else call.resolve(data.result);
-    };
-    this.worker.onerror = e => this.failAll(new Error(e.message || 'the engine did not load'));
-  }
-
-  failAll(error) {
-    this.waiting.forEach(call => { clearTimeout(call.timer); call.reject(error) });
-    this.waiting.clear();
-  }
-
-  restart() {
-    this.worker.terminate();
-    this.failAll(Object.assign(new Error('The query ran too long and was stopped.'), { timedOut: true }));
-    this.startWorker();
-  }
-
-  call(op, args, limited) {
-    return new Promise((resolve, reject) => {
-      const id = this.nextId++;
-      const timer = limited ? setTimeout(() => this.restart(), this.timeoutMs) : null;
-      this.waiting.set(id, { resolve, reject, timer });
-      this.worker.postMessage({ id, op, ...args });
+  async call(body) {
+    const response = await fetch(`/api/db/${this.session}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     });
+    const data = await response.json();
+    if (data.error) throw Object.assign(new Error(data.error.message), data.error);
+    return data.result;
   }
 
-  run(sql) { return this.call('run', { sql }, true) }
-  reset(seed) { return this.call('reset', { seed }, false) }   // the first call also waits for the engine to start
-  tables() { return this.call('tables', {}, true) }
+  run(sql) { return this.call({ op: 'run', sql }) }
+  reset(seed) { return this.call({ op: 'reset', sql: seed }) }
+  tables() { return this.call({ op: 'tables' }) }
 }

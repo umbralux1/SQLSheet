@@ -8,9 +8,12 @@ import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
+import psycopg
+
+import pg_engine
 from course import COURSE
 from fastapi.staticfiles import StaticFiles
 
@@ -40,10 +43,10 @@ async def lessons():
 # Course data and the teacher account
 #
 # The browser gets the course from /course.js WITHOUT the answers. Students'
-# queries run on PostgreSQL in the browser (static/pg-engine.js); their results
-# are checked here (/api/check) against course_results.json, which
-# scripts/build_results.py works out on the same PostgreSQL. Only the logged-in
-# teacher can read the answers (/api/answers/<lesson id>).
+# queries run on the PostgreSQL server (pg_engine.py); their results are checked
+# here (/api/check) against course_results.json, which scripts/build_results.py
+# works out with the same code. Only the logged-in teacher can read the answers
+# (/api/answers/<lesson id>).
 #
 # Teacher login: user "teacher", password from the TEACHER_PASSWORD environment
 # variable (default "sql2026" - change it on Render).
@@ -300,6 +303,47 @@ async def check(data: CheckData):
     return {"ok": True}
 
 
+# ---------------------------------------------------------------------------
+# Students' queries: each browser tab has its own database on PostgreSQL (pg_engine.py).
+# Plain `def`: these block on the database, so FastAPI runs them in a thread.
+# ---------------------------------------------------------------------------
+SESSION_ID = re.compile(r"[0-9a-f]{32}")
+
+
+class DbCall(BaseModel):
+    op: str
+    sql: str = ""
+
+
+@app.post("/api/db/{session_id}")
+def database(session_id: str, call: DbCall):
+    if not SESSION_ID.fullmatch(session_id):
+        raise HTTPException(status_code=404, detail="Unknown session")
+    try:
+        if call.op == "run":
+            return {"result": pg_engine.run(session_id, call.sql)}
+        if call.op == "reset":
+            pg_engine.reset(session_id, call.sql)
+            return {"result": None}
+        if call.op == "tables":
+            return {"result": pg_engine.tables(session_id)}
+    except pg_engine.SessionLost:
+        return JSONResponse({"error": {"message": "The database of this page is gone.", "lost": True}}, status_code=409)
+    except pg_engine.EngineError as e:
+        return JSONResponse({"error": e.info}, status_code=400)
+    raise HTTPException(status_code=404, detail="Unknown operation")
+
+
+@app.post("/api/db/{session_id}/close")
+def close_database(session_id: str):
+    if SESSION_ID.fullmatch(session_id):
+        try:
+            pg_engine.close(session_id)
+        except (psycopg.Error, pg_engine.EngineError):
+            pass                               # the sweep drops it later
+    return Response(status_code=204)
+
+
 @app.get("/healthz", include_in_schema=False)
 async def healthz():
     """Used by Render to check that the service is up."""
@@ -314,7 +358,8 @@ async def say_hello(name: str):
 # ---------------------------------------------------------------------------
 # Real-time collaboration
 #
-# Each room is relayed by the server; the real work happens in the browsers.
+# Each room is relayed by the server. Every browser replays the room's actions on
+# its own database, so the participants' databases stay identical.
 #   * binary frames are Yjs updates for the shared editor text: stored, so late
 #     joiners get the current text, and forwarded to everyone else;
 #   * {"type": "presence"} - a user's name, colour, editor cursor and selected
