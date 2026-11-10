@@ -2596,9 +2596,380 @@ INSERT INTO employees VALUES
         },
         {
             "id": 5,
-            "available": False,
+            "available": True,
             "title": {"en": "GROUP BY & HAVING", "ru": "GROUP BY и HAVING"},
             "topics": {"en": "Grouping data, filtering groups", "ru": "Группировка данных, фильтрация групп"},
+            # As in lesson 4: aggregates get names like "count", so only the values are checked.
+            "check": "values",
+            "theory": {
+                "en": """<p>The last lesson folded the <b>whole table</b> into one number. <code>GROUP BY</code> does the same <b>for each group separately</b>: it splits the rows into groups by the value of a column and counts the aggregate inside every group. One group is one row of the result.</p>
+<pre class="code">SELECT department, COUNT(*)
+FROM employees
+GROUP BY department;   -- one row per department</pre>
+<p>This is a pivot table in Excel: “the number of employees by department”, “the revenue by region”.</p>
+<h4>The iron rule of SELECT</h4>
+<p>With <code>GROUP BY</code>, <code>SELECT</code> may contain only:</p>
+<ul>
+  <li>the columns listed in <code>GROUP BY</code>;</li>
+  <li>aggregates (<code>COUNT</code>, <code>SUM</code>, <code>AVG</code>, <code>MIN</code>, <code>MAX</code>).</li>
+</ul>
+<p><code>SELECT department, first_name, COUNT(*) … GROUP BY department</code> fails: a department has several employees, and one row of the result has room for one name only. PostgreSQL answers <i>column "employees.first_name" must appear in the GROUP BY clause or be used in an aggregate function</i>.</p>
+<h4>The order of work is the key to the lesson</h4>
+<pre class="code">FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT</pre>
+<ul>
+  <li><code>WHERE</code> works <b>before</b> grouping: it filters <b>rows</b>.</li>
+  <li><code>HAVING</code> works <b>after</b> grouping: it filters <b>groups</b>.</li>
+</ul>
+<h4>WHERE or HAVING</h4>
+<table class="ops">
+  <tr><th></th><th><code>WHERE</code></th><th><code>HAVING</code></th></tr>
+  <tr><td>When</td><td>before <code>GROUP BY</code></td><td>after <code>GROUP BY</code></td></tr>
+  <tr><td>Filters</td><td>rows</td><td>groups</td></tr>
+  <tr><td>Aggregates inside</td><td>not allowed</td><td>allowed</td></tr>
+  <tr><td>Example</td><td><code>WHERE status = 'completed'</code></td><td><code>HAVING COUNT(*) &gt; 5</code></td></tr>
+</table>
+<p>WHERE looks at raw rows, HAVING at finished groups. A condition on an ordinary column (<code>city = 'London'</code>) goes into <code>WHERE</code>; a condition on an aggregate goes into <code>HAVING</code>.</p>
+<pre class="code">SELECT department, COUNT(*)
+FROM employees
+WHERE salary &gt; 50000        -- 1. keep the rows
+GROUP BY department         -- 2. split them into groups
+HAVING COUNT(*) &gt;= 2;       -- 3. keep the groups</pre>
+<h4>Several columns</h4>
+<p><code>GROUP BY a, b</code> makes a group for every <b>combination</b> of <code>a</code> and <code>b</code> that occurs in the table, not “groups by a” plus “groups by b”. <code>GROUP BY department, city</code> gives “IT in London”, “IT in Paris” and so on.</p>
+<h4>NULL is a group too</h4>
+<p><code>GROUP BY</code> puts all rows with <code>NULL</code> into one group of their own. If a column has 2 values and some empty cells, the result has 3 rows. <code>COUNT(DISTINCT col)</code> skips <code>NULL</code> and says 2.</p>
+<h4>ORDER BY</h4>
+<p><code>GROUP BY</code> does not sort. If the order matters, write <code>ORDER BY</code> at the end; you can sort by an aggregate or its name: <code>ORDER BY COUNT(*) DESC</code> or <code>ORDER BY cnt DESC</code>.</p>
+<h4>PostgreSQL details</h4>
+<ul>
+  <li>A name from <code>SELECT … AS cnt</code> works in <code>ORDER BY</code>, but <b>not in <code>HAVING</code></b>: <code>HAVING cnt &gt; 3</code> fails, because <code>HAVING</code> works before <code>SELECT</code>. Repeat the aggregate: <code>HAVING COUNT(*) &gt; 3</code>.</li>
+  <li>When sorting <code>DESC</code>, <code>NULL</code> comes <b>first</b> (PostgreSQL treats it as larger than any value). <code>DESC NULLS LAST</code> moves it to the end.</li>
+  <li>If you group by the primary key (<code>GROUP BY emp_id</code>), PostgreSQL lets you show the other columns of that table: one key means one row anyway.</li>
+</ul>
+<h4>Three typical mistakes</h4>
+<ol>
+  <li>An aggregate in <code>WHERE</code> instead of <code>HAVING</code>: <code>WHERE COUNT(*) &gt; 5</code> fails.</li>
+  <li>A column in <code>SELECT</code> that is not in <code>GROUP BY</code> and not inside an aggregate.</li>
+  <li><code>COUNT(col)</code> instead of <code>COUNT(*)</code> when every row is needed: rows with <code>NULL</code> are lost.</li>
+</ol>""",
+                "ru": """<p>Прошлый урок сворачивал <b>всю таблицу</b> в одно число. <code>GROUP BY</code> делает то же самое <b>для каждой группы отдельно</b>: делит строки на группы по значению столбца и считает агрегат внутри каждой группы. Одна группа — одна строка результата.</p>
+<pre class="code">SELECT department, COUNT(*)
+FROM employees
+GROUP BY department;   -- одна строка на отдел</pre>
+<p>Это сводная таблица Excel: «число сотрудников по отделам», «выручка по регионам».</p>
+<h4>Железное правило SELECT</h4>
+<p>При <code>GROUP BY</code> в <code>SELECT</code> можно писать только:</p>
+<ul>
+  <li>столбцы, перечисленные в <code>GROUP BY</code>;</li>
+  <li>агрегаты (<code>COUNT</code>, <code>SUM</code>, <code>AVG</code>, <code>MIN</code>, <code>MAX</code>).</li>
+</ul>
+<p><code>SELECT department, first_name, COUNT(*) … GROUP BY department</code> — ошибка: в отделе несколько сотрудников, а в одной строке результата есть место только для одного имени. PostgreSQL отвечает <i>column "employees.first_name" must appear in the GROUP BY clause or be used in an aggregate function</i>.</p>
+<h4>Порядок работы — ключ ко всему уроку</h4>
+<pre class="code">FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT</pre>
+<ul>
+  <li><code>WHERE</code> работает <b>до</b> группировки: фильтрует <b>строки</b>.</li>
+  <li><code>HAVING</code> работает <b>после</b> группировки: фильтрует <b>группы</b>.</li>
+</ul>
+<h4>WHERE или HAVING</h4>
+<table class="ops">
+  <tr><th></th><th><code>WHERE</code></th><th><code>HAVING</code></th></tr>
+  <tr><td>Когда</td><td>до <code>GROUP BY</code></td><td>после <code>GROUP BY</code></td></tr>
+  <tr><td>Что фильтрует</td><td>строки</td><td>группы</td></tr>
+  <tr><td>Агрегаты внутри</td><td>нельзя</td><td>можно</td></tr>
+  <tr><td>Пример</td><td><code>WHERE status = 'completed'</code></td><td><code>HAVING COUNT(*) &gt; 5</code></td></tr>
+</table>
+<p>WHERE смотрит на сырые строки, HAVING — на готовые группы. Условие на обычный столбец (<code>city = 'London'</code>) пишется в <code>WHERE</code>, условие на агрегат — в <code>HAVING</code>.</p>
+<pre class="code">SELECT department, COUNT(*)
+FROM employees
+WHERE salary &gt; 50000        -- 1. оставляем строки
+GROUP BY department         -- 2. делим их на группы
+HAVING COUNT(*) &gt;= 2;       -- 3. оставляем группы</pre>
+<h4>Несколько столбцов</h4>
+<p><code>GROUP BY a, b</code> даёт группу на каждую <b>комбинацию</b> <code>a</code> и <code>b</code>, которая встречается в таблице, а не «группы по a» плюс «группы по b». <code>GROUP BY department, city</code> — это «IT в Лондоне», «IT в Париже» и так далее.</p>
+<h4>NULL — тоже группа</h4>
+<p><code>GROUP BY</code> собирает все строки с <code>NULL</code> в одну отдельную группу. Если в столбце 2 значения и есть пустые клетки, в результате 3 строки. <code>COUNT(DISTINCT col)</code> пропускает <code>NULL</code> и скажет 2.</p>
+<h4>ORDER BY</h4>
+<p><code>GROUP BY</code> не сортирует. Если порядок важен, пиши <code>ORDER BY</code> в конце; сортировать можно по агрегату или по его имени: <code>ORDER BY COUNT(*) DESC</code> или <code>ORDER BY cnt DESC</code>.</p>
+<h4>Особенности PostgreSQL</h4>
+<ul>
+  <li>Имя из <code>SELECT … AS cnt</code> работает в <code>ORDER BY</code>, но <b>не в <code>HAVING</code></b>: <code>HAVING cnt &gt; 3</code> — ошибка, потому что <code>HAVING</code> работает раньше <code>SELECT</code>. Повтори агрегат: <code>HAVING COUNT(*) &gt; 3</code>.</li>
+  <li>При сортировке <code>DESC</code> <code>NULL</code> идёт <b>первым</b> (PostgreSQL считает его больше любого значения). <code>DESC NULLS LAST</code> переносит его в конец.</li>
+  <li>Если группировать по первичному ключу (<code>GROUP BY emp_id</code>), PostgreSQL разрешает выводить остальные столбцы этой таблицы: один ключ — это и так одна строка.</li>
+</ul>
+<h4>Три типичные ошибки</h4>
+<ol>
+  <li>Агрегат в <code>WHERE</code> вместо <code>HAVING</code>: <code>WHERE COUNT(*) &gt; 5</code> — ошибка.</li>
+  <li>Столбец в <code>SELECT</code>, которого нет в <code>GROUP BY</code> и который не внутри агрегата.</li>
+  <li><code>COUNT(col)</code> вместо <code>COUNT(*)</code>, когда нужны все строки: строки с <code>NULL</code> теряются.</li>
+</ol>""",
+            },
+            "tips": {
+                "en": [
+                    "<b>Keep the order of work in sight.</b> Write <code>FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT</code> once and come back to it in sections E and H. It removes most of the WHERE/HAVING confusion.",
+                    "<b>Predict the number of groups.</b> Before running each task of sections A–C ask: “how many rows will come back?” A wrong guess teaches more than an explanation.",
+                    "<b>Let the student hit the error.</b> Before section D ask for “departments with more than 3 employees” and let them try <code>WHERE COUNT(*) &gt; 3</code> first.",
+                    "<b>The NULL group is a surprise.</b> In section F the student probably expects 2 categories and gets 3 rows. Let them be surprised, then explain. In task 27 <code>COUNT(category)</code> is 0 in that group: the column is empty there by definition.",
+                    "<b>An empty result is a result.</b> Task 19 returns no rows: no department has more than 3 employees with a bonus. Ask whether the query is wrong or the answer is “none”.",
+                    "<b>Read the result aloud</b> (no query needed). <code>IT 4, HR 3, Sales 3</code>: “IT is the largest department, the other two are equal”.",
+                    "<b>Why is the sum NULL?</b> By status: <code>completed 22 1760</code>, <code>pending 1 NULL</code>, <code>cancelled 1 NULL</code>. These two orders have no amount: not paid yet or cancelled. The revenue of 1760 is the completed orders only; <code>SUM</code> skips <code>NULL</code> anyway, so the total is 1760 with or without a status filter.",
+                    "<b>Holes in the data.</b> By category in <code>sales</code>: <code>Electronics 6 5150</code>, <code>Furniture 5 1850</code>, <code>NULL 2 950</code>. Two sales have no category. An analyst reports this to the data owner and shows the NULL group separately instead of hiding it.",
+                    "<b>“More expensive” is not “worse”.</b> IT costs 293000 a year in salaries, Sales 162000, HR 141000. IT is the biggest cost, but a hiring decision needs the result per department as well, not only <code>SUM(salary)</code>.",
+                    "<b>Review, not only write.</b> In section H ask not just to fix the query, but to say in one sentence what was wrong.",
+                    "<b>Checkpoint before the next lesson.</b> The student can (a) say the order of work from memory, (b) choose between WHERE and HAVING and explain why, (c) say why a column in <code>SELECT</code> must be in <code>GROUP BY</code>, (d) predict the number of rows of <code>GROUP BY a, b</code>.",
+                ],
+                "ru": [
+                    "<b>Держи порядок работы на виду.</b> Напиши <code>FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT</code> один раз и возвращайся к нему в разделах E и H. Это снимает бóльшую часть путаницы WHERE/HAVING.",
+                    "<b>Предскажи число групп.</b> Перед запуском каждого задания разделов A–C спрашивай: «сколько строк вернётся?» Неверный прогноз учит лучше объяснения.",
+                    "<b>Дай ученику наткнуться на ошибку.</b> Перед разделом D попроси «отделы, где больше 3 сотрудников» и дай сначала попробовать <code>WHERE COUNT(*) &gt; 3</code>.",
+                    "<b>NULL-группа — сюрприз.</b> В разделе F ученик, скорее всего, ждёт 2 категории, а получит 3 строки. Дай удивиться, потом объясни. В задании 27 <code>COUNT(category)</code> в этой группе равен 0: столбец там пустой по определению.",
+                    "<b>Пустой результат — тоже результат.</b> Задание 19 не возвращает строк: ни в одном отделе нет больше 3 сотрудников с бонусом. Спроси: запрос неверный или ответ «таких нет»?",
+                    "<b>Прочитай результат вслух</b> (запрос не нужен). <code>IT 4, HR 3, Sales 3</code>: «IT — самый большой отдел, остальные два равны».",
+                    "<b>Почему сумма NULL?</b> По статусам: <code>completed 22 1760</code>, <code>pending 1 NULL</code>, <code>cancelled 1 NULL</code>. У этих двух заказов нет суммы: ещё не оплачен или отменён. Выручка 1760 — это только завершённые заказы; <code>SUM</code> и так пропускает <code>NULL</code>, поэтому итог 1760 с фильтром по статусу и без него.",
+                    "<b>Дыры в данных.</b> По категориям в <code>sales</code>: <code>Electronics 6 5150</code>, <code>Furniture 5 1850</code>, <code>NULL 2 950</code>. У двух продаж нет категории. Аналитик сообщает об этом владельцу данных и показывает NULL-группу отдельно, а не прячет её.",
+                    "<b>«Дороже» не значит «хуже».</b> IT стоит 293000 в год на зарплаты, Sales — 162000, HR — 141000. IT — самая большая статья, но для решения о найме нужен ещё результат отдела, а не только <code>SUM(salary)</code>.",
+                    "<b>Проверять, а не только писать.</b> В разделе H проси не только исправить запрос, но и сказать одним предложением, что было не так.",
+                    "<b>Чекпоинт перед следующим уроком.</b> Ученик может (a) назвать порядок работы по памяти, (b) выбрать между WHERE и HAVING и объяснить почему, (c) сказать, почему столбец в <code>SELECT</code> должен быть в <code>GROUP BY</code>, (d) предсказать число строк у <code>GROUP BY a, b</code>.",
+                ],
+            },
+            "tables": ["employees", "orders", "sales"],
+            "seed": """CREATE TABLE employees (
+    emp_id      INTEGER PRIMARY KEY,
+    first_name  VARCHAR(50),
+    last_name   VARCHAR(50),
+    department  VARCHAR(30),
+    salary      INTEGER,
+    hire_year   INTEGER,
+    city        VARCHAR(50),
+    bonus       INTEGER
+);
+INSERT INTO employees VALUES
+(1,  'Alice',   'Brown',   'IT',      60000, 2018, 'London',  5000),
+(2,  'Bob',     'Smith',   'HR',      45000, 2019, 'Paris',   NULL),
+(3,  'Charlie', 'Johnson', 'IT',      75000, 2015, 'London',  8000),
+(4,  'Diana',   'Miller',  'Sales',   52000, 2020, 'Berlin',  3000),
+(5,  'Ethan',   'Davis',   'IT',      68000, 2017, 'Paris',   NULL),
+(6,  'Fiona',   'Wilson',  'Sales',   48000, 2021, 'Madrid',  2000),
+(7,  'George',  'Moore',   'HR',      55000, 2016, 'Berlin',  4000),
+(8,  'Hannah',  'Taylor',  'Sales',   62000, 2018, 'London',  6000),
+(9,  'Ivan',    'Petrov',  'IT',      90000, 2014, 'Madrid',  10000),
+(10, 'Julia',   'Adams',   'HR',      41000, 2022, 'Paris',   NULL);
+
+CREATE TABLE orders (
+    order_id    INTEGER PRIMARY KEY,
+    user_id     INTEGER,
+    order_date  DATE,
+    amount      DECIMAL(10,2),
+    status      VARCHAR(20)
+);
+INSERT INTO orders VALUES
+(1,  1,  '2024-01-05', 10.00,  'completed'),
+(2,  2,  '2024-01-06', 15.00,  'completed'),
+(3,  3,  '2024-01-07', 20.00,  'completed'),
+(4,  1,  '2024-01-08', 20.00,  'completed'),
+(5,  4,  '2024-01-09', 25.00,  'completed'),
+(6,  5,  '2024-01-10', 30.00,  'completed'),
+(7,  2,  '2024-01-11', 30.00,  'completed'),
+(8,  6,  '2024-01-12', 30.00,  'completed'),
+(9,  7,  '2024-01-13', 35.00,  'completed'),
+(10, 3,  '2024-01-14', 40.00,  'completed'),
+(11, 8,  '2024-01-15', 40.00,  'completed'),
+(12, 1,  '2024-01-16', 45.00,  'completed'),
+(13, 9,  '2024-01-17', 50.00,  'completed'),
+(14, 10, '2024-01-18', 50.00,  'completed'),
+(15, 4,  '2024-01-19', 60.00,  'completed'),
+(16, 11, '2024-01-20', 60.00,  'completed'),
+(17, 2,  '2024-01-21', 70.00,  'completed'),
+(18, 12, '2024-01-22', 80.00,  'completed'),
+(19, 5,  '2024-01-23', 100.00, 'completed'),
+(20, 1,  '2024-01-24', 150.00, 'completed'),
+(21, 6,  '2024-01-25', 300.00, 'completed'),
+(22, 3,  '2024-01-26', 500.00, 'completed'),
+(23, 13, '2024-01-27', NULL,   'pending'),
+(24, 8,  '2024-01-28', NULL,   'cancelled');
+
+CREATE TABLE sales (
+    sale_id     INTEGER PRIMARY KEY,
+    region      VARCHAR(30),
+    category    VARCHAR(30),
+    amount      DECIMAL(10,2),
+    salesperson VARCHAR(50)
+);
+INSERT INTO sales VALUES
+(1,  'North', 'Electronics', 1000.00, 'Anna'),
+(2,  'North', 'Electronics',  800.00, 'Anna'),
+(3,  'North', 'Furniture',    300.00, 'Ben'),
+(4,  'North', 'Furniture',    200.00, 'Ben'),
+(5,  'South', 'Electronics',  500.00, 'Cara'),
+(6,  'South', 'Furniture',    400.00, 'Cara'),
+(7,  'South', 'Furniture',    600.00, 'Dan'),
+(8,  'South', NULL,           250.00, 'Dan'),
+(9,  'East',  'Electronics', 1500.00, 'Ella'),
+(10, 'East',  NULL,           700.00, 'Ella'),
+(11, 'West',  'Furniture',    350.00, 'Finn'),
+(12, 'West',  'Electronics',  900.00, 'Finn'),
+(13, 'West',  'Electronics',  450.00, 'Finn');""",
+            "tasks": [
+                # Section A
+                {"id": "5.1",
+                 "section": {"en": "A · GROUP BY on one column", "ru": "A · GROUP BY по одному столбцу"},
+                 "intro": {"en": "<p><code>GROUP BY column</code> splits the rows into groups with the same value of the column; the aggregate counts inside every group. In <code>SELECT</code> write the column you group by, then the aggregate.</p>\n<p><b>Example:</b> how many employees were hired in each year.</p>",
+                           "ru": "<p><code>GROUP BY column</code> делит строки на группы с одинаковым значением столбца; агрегат считает внутри каждой группы. В <code>SELECT</code> пиши столбец, по которому группируешь, потом агрегат.</p>\n<p><b>Пример:</b> сколько сотрудников нанято в каждом году.</p>"},
+                 "example": "SELECT hire_year, COUNT(*)\nFROM employees\nGROUP BY hire_year;",
+                 "text": {"en": "How many employees are there in each department? Columns: <code>department</code>, the number.", "ru": "Сколько сотрудников в каждом отделе? Столбцы: <code>department</code>, число."},
+                 "answer": "SELECT department, COUNT(*) FROM employees GROUP BY department;"},
+                {"id": "5.2",
+                 "text": {"en": "How many orders are there with each <code>status</code>?", "ru": "Сколько заказов с каждым статусом (<code>status</code>)?"},
+                 "answer": "SELECT status, COUNT(*) FROM orders GROUP BY status;"},
+                {"id": "5.3",
+                 "text": {"en": "How many orders did each customer make? Columns: <code>user_id</code>, the number of orders.", "ru": "Сколько заказов сделал каждый покупатель? Столбцы: <code>user_id</code>, число заказов."},
+                 "answer": "SELECT user_id, COUNT(*) FROM orders GROUP BY user_id;"},
+                {"id": "5.4",
+                 "text": {"en": "The sum of <code>amount</code> for each <code>status</code> in <code>orders</code>.", "ru": "Сумма <code>amount</code> по каждому статусу в <code>orders</code>."},
+                 "answer": "SELECT status, SUM(amount) FROM orders GROUP BY status;"},
+                {"id": "5.5",
+                 "text": {"en": "The average <code>salary</code> in each department, rounded to a whole number.", "ru": "Средняя <code>salary</code> в каждом отделе, округлённая до целого."},
+                 "answer": "SELECT department, ROUND(AVG(salary), 0) FROM employees GROUP BY department;"},
+                {"id": "5.6",
+                 "text": {"en": "How many sales are there in each <code>region</code> of <code>sales</code>?", "ru": "Сколько продаж в каждом регионе (<code>region</code>) таблицы <code>sales</code>?"},
+                 "answer": "SELECT region, COUNT(*) FROM sales GROUP BY region;"},
+
+                # Section B
+                {"id": "5.7",
+                 "section": {"en": "B · Several aggregates per group", "ru": "B · Несколько агрегатов в группе"},
+                 "intro": {"en": "<p>As in the last lesson, aggregates go together in one <code>SELECT</code>. With <code>GROUP BY</code> every group gets the whole summary.</p>\n<p><b>Example:</b> the lowest and the highest salary in each city.</p>",
+                           "ru": "<p>Как в прошлом уроке, агрегаты пишутся вместе в одном <code>SELECT</code>. С <code>GROUP BY</code> целую сводку получает каждая группа.</p>\n<p><b>Пример:</b> наименьшая и наибольшая зарплата в каждом городе.</p>"},
+                 "example": "SELECT city, MIN(salary), MAX(salary)\nFROM employees\nGROUP BY city;",
+                 "text": {"en": "A summary for each department, columns in this order: <code>department</code>, the number of employees, the sum of <code>salary</code>, the average <code>salary</code> rounded to a whole number, the smallest and the largest <code>salary</code>.", "ru": "Сводка по каждому отделу, столбцы в таком порядке: <code>department</code>, число сотрудников, сумма <code>salary</code>, средняя <code>salary</code> с округлением до целого, наименьшая и наибольшая <code>salary</code>."},
+                 "answer": "SELECT department, COUNT(*), SUM(salary), ROUND(AVG(salary), 0), MIN(salary), MAX(salary)\nFROM employees\nGROUP BY department;"},
+                {"id": "5.8",
+                 "text": {"en": "For each <code>region</code> of <code>sales</code>: the number of sales, the sum of <code>amount</code>, the average <code>amount</code> rounded to 2 digits.", "ru": "По каждому региону в <code>sales</code>: число продаж, сумма <code>amount</code>, средний <code>amount</code> с округлением до 2 знаков."},
+                 "answer": "SELECT region, COUNT(*), SUM(amount), ROUND(AVG(amount), 2)\nFROM sales\nGROUP BY region;"},
+                {"id": "5.9",
+                 "text": {"en": "For each customer (<code>user_id</code>): the number of orders and the sum of <code>amount</code>.", "ru": "По каждому покупателю (<code>user_id</code>): число заказов и сумма <code>amount</code>."},
+                 "answer": "SELECT user_id, COUNT(*), SUM(amount)\nFROM orders\nGROUP BY user_id;"},
+                {"id": "5.10",
+                 "text": {"en": "For each department: the number of employees, how many of them have a <code>bonus</code>, the average <code>bonus</code> rounded to a whole number.", "ru": "По каждому отделу: число сотрудников, у скольких из них есть <code>bonus</code>, средний <code>bonus</code> с округлением до целого."},
+                 "answer": "SELECT department, COUNT(*), COUNT(bonus), ROUND(AVG(bonus), 0)\nFROM employees\nGROUP BY department;"},
+
+                # Section C
+                {"id": "5.11",
+                 "section": {"en": "C · GROUP BY on several columns", "ru": "C · GROUP BY по нескольким столбцам"},
+                 "intro": {"en": "<p><code>GROUP BY a, b</code> makes a group for every combination of <code>a</code> and <code>b</code> that occurs in the table. Both columns go into <code>SELECT</code>.</p>\n<p><b>Example:</b> how many sales each salesperson made in each category.</p>",
+                           "ru": "<p><code>GROUP BY a, b</code> даёт группу на каждую комбинацию <code>a</code> и <code>b</code>, которая есть в таблице. Оба столбца пишутся в <code>SELECT</code>.</p>\n<p><b>Пример:</b> сколько продаж сделал каждый продавец в каждой категории.</p>"},
+                 "example": "SELECT salesperson, category, COUNT(*)\nFROM sales\nGROUP BY salesperson, category;",
+                 "text": {"en": "How many employees are there in each combination of department and city? Columns: <code>department</code>, <code>city</code>, the number.", "ru": "Сколько сотрудников в каждой комбинации «отдел + город»? Столбцы: <code>department</code>, <code>city</code>, число."},
+                 "answer": "SELECT department, city, COUNT(*) FROM employees GROUP BY department, city;"},
+                {"id": "5.12",
+                 "text": {"en": "The sum of <code>amount</code> for each combination of <code>region</code> and <code>category</code> in <code>sales</code>.", "ru": "Сумма <code>amount</code> по каждой комбинации «регион + категория» в <code>sales</code>."},
+                 "answer": "SELECT region, category, SUM(amount) FROM sales GROUP BY region, category;"},
+                {"id": "5.13",
+                 "text": {"en": "How many sales did each salesperson make in each region? Columns: <code>region</code>, <code>salesperson</code>, the number.", "ru": "Сколько продаж сделал каждый продавец в каждом регионе? Столбцы: <code>region</code>, <code>salesperson</code>, число."},
+                 "answer": "SELECT region, salesperson, COUNT(*) FROM sales GROUP BY region, salesperson;"},
+                {"id": "5.14",
+                 "text": {"en": "How many orders does each customer have with each status? Columns: <code>user_id</code>, <code>status</code>, the number.", "ru": "Сколько заказов у каждого покупателя в каждом статусе? Столбцы: <code>user_id</code>, <code>status</code>, число."},
+                 "answer": "SELECT user_id, status, COUNT(*) FROM orders GROUP BY user_id, status;"},
+
+                # Section D
+                {"id": "5.15",
+                 "section": {"en": "D · HAVING", "ru": "D · HAVING"},
+                 "intro": {"en": "<p><code>HAVING</code> keeps only the groups that pass a condition. It works after <code>GROUP BY</code>, so it may contain aggregates; <code>WHERE</code> may not.</p>\n<p><b>Example:</b> cities with exactly 3 employees.</p>",
+                           "ru": "<p><code>HAVING</code> оставляет только группы, которые проходят условие. Он работает после <code>GROUP BY</code>, поэтому в нём можно писать агрегаты, а в <code>WHERE</code> нельзя.</p>\n<p><b>Пример:</b> города, где ровно 3 сотрудника.</p>"},
+                 "example": "SELECT city, COUNT(*)\nFROM employees\nGROUP BY city\nHAVING COUNT(*) = 3;",
+                 "text": {"en": "Departments with more than 3 employees. Columns: <code>department</code>, the number.", "ru": "Отделы, в которых больше 3 сотрудников. Столбцы: <code>department</code>, число."},
+                 "answer": "SELECT department, COUNT(*) FROM employees GROUP BY department HAVING COUNT(*) > 3;"},
+                {"id": "5.16",
+                 "text": {"en": "Customers who made at least 3 orders. Columns: <code>user_id</code>, the number of orders.", "ru": "Покупатели, которые сделали не меньше 3 заказов. Столбцы: <code>user_id</code>, число заказов."},
+                 "answer": "SELECT user_id, COUNT(*) FROM orders GROUP BY user_id HAVING COUNT(*) >= 3;"},
+                {"id": "5.17",
+                 "text": {"en": "Regions of <code>sales</code> where the sum of <code>amount</code> is more than 2000. Columns: <code>region</code>, the sum.", "ru": "Регионы в <code>sales</code>, где сумма <code>amount</code> больше 2000. Столбцы: <code>region</code>, сумма."},
+                 "answer": "SELECT region, SUM(amount) FROM sales GROUP BY region HAVING SUM(amount) > 2000;"},
+                {"id": "5.18",
+                 "text": {"en": "Categories of <code>sales</code> where the average <code>amount</code> is more than 500. Columns: <code>category</code>, the average rounded to 2 digits.", "ru": "Категории в <code>sales</code>, где средний <code>amount</code> больше 500. Столбцы: <code>category</code>, среднее с округлением до 2 знаков."},
+                 "answer": "SELECT category, ROUND(AVG(amount), 2) FROM sales GROUP BY category HAVING AVG(amount) > 500;"},
+                {"id": "5.19",
+                 "text": {"en": "Departments where more than 3 employees have a bonus. Columns: <code>department</code>, the number with a bonus. What does the result mean?", "ru": "Отделы, где бонус есть больше чем у 3 сотрудников. Столбцы: <code>department</code>, число с бонусом. Что значит результат?"},
+                 "answer": "SELECT department, COUNT(bonus) FROM employees GROUP BY department HAVING COUNT(bonus) > 3;"},
+                {"id": "5.20",
+                 "text": {"en": "Cities where the largest <code>salary</code> is more than 70000. Columns: <code>city</code>, the largest salary.", "ru": "Города, где наибольшая <code>salary</code> больше 70000. Столбцы: <code>city</code>, наибольшая зарплата."},
+                 "answer": "SELECT city, MAX(salary) FROM employees GROUP BY city HAVING MAX(salary) > 70000;"},
+
+                # Section E
+                {"id": "5.21",
+                 "section": {"en": "E · WHERE, GROUP BY and HAVING together", "ru": "E · WHERE, GROUP BY и HAVING вместе"},
+                 "intro": {"en": "<p>The order of work: <code>WHERE</code> keeps the rows → <code>GROUP BY</code> splits them into groups → <code>HAVING</code> keeps the groups. A condition on a column goes into <code>WHERE</code>, a condition on an aggregate into <code>HAVING</code>.</p>\n<p><b>Example:</b> among employees hired in 2018 or later, the departments with at least 2 of them.</p>",
+                           "ru": "<p>Порядок работы: <code>WHERE</code> оставляет строки → <code>GROUP BY</code> делит их на группы → <code>HAVING</code> оставляет группы. Условие на столбец — в <code>WHERE</code>, условие на агрегат — в <code>HAVING</code>.</p>\n<p><b>Пример:</b> среди сотрудников, нанятых в 2018 году или позже, — отделы, где таких не меньше 2.</p>"},
+                 "example": "SELECT department, COUNT(*)\nFROM employees\nWHERE hire_year >= 2018\nGROUP BY department\nHAVING COUNT(*) >= 2;",
+                 "text": {"en": "Among employees with a <code>salary</code> above 50000: how many are there in each department?", "ru": "Среди сотрудников с <code>salary</code> больше 50000: сколько их в каждом отделе?"},
+                 "answer": "SELECT department, COUNT(*) FROM employees WHERE salary > 50000 GROUP BY department;"},
+                {"id": "5.22",
+                 "text": {"en": "The sum of <code>amount</code> for the regions <code>'North'</code> and <code>'South'</code> only. Columns: <code>region</code>, the sum.", "ru": "Сумма <code>amount</code> только по регионам <code>'North'</code> и <code>'South'</code>. Столбцы: <code>region</code>, сумма."},
+                 "answer": "SELECT region, SUM(amount) FROM sales WHERE region IN ('North', 'South') GROUP BY region;"},
+                {"id": "5.23",
+                 "text": {"en": "Among employees who have a bonus: the number of them and the average <code>bonus</code> (rounded to a whole number) in each department, only for departments with at least 2 such employees.", "ru": "Среди сотрудников с бонусом: их число и средний <code>bonus</code> (с округлением до целого) в каждом отделе, только для отделов, где таких не меньше 2."},
+                 "answer": "SELECT department, COUNT(*), ROUND(AVG(bonus), 0)\nFROM employees\nWHERE bonus IS NOT NULL\nGROUP BY department\nHAVING COUNT(*) >= 2;"},
+                {"id": "5.24",
+                 "text": {"en": "Counting only <code>'completed'</code> orders: the customers who spent more than 200 in total. Columns: <code>user_id</code>, the number of completed orders, their sum.", "ru": "Считая только заказы <code>'completed'</code>: покупатели, которые потратили в сумме больше 200. Столбцы: <code>user_id</code>, число завершённых заказов, их сумма."},
+                 "answer": "SELECT user_id, COUNT(*), SUM(amount)\nFROM orders\nWHERE status = 'completed'\nGROUP BY user_id\nHAVING SUM(amount) > 200;"},
+                {"id": "5.25",
+                 "text": {"en": "Counting only sales that have a <code>category</code>: the regions with at least 3 such sales. Columns: <code>region</code>, the number.", "ru": "Считая только продажи с указанной категорией (<code>category</code>): регионы, где таких продаж не меньше 3. Столбцы: <code>region</code>, число."},
+                 "answer": "SELECT region, COUNT(*)\nFROM sales\nWHERE category IS NOT NULL\nGROUP BY region\nHAVING COUNT(*) >= 3;"},
+
+                # Section F
+                {"id": "5.26",
+                 "section": {"en": "F · NULL in GROUP BY", "ru": "F · NULL в GROUP BY"},
+                 "intro": {"en": "<p><code>GROUP BY</code> does not drop <code>NULL</code>: all rows with an empty value form one group of their own. <code>COUNT(DISTINCT column)</code> skips <code>NULL</code>, so it can be one less than the number of groups.</p>\n<p><b>Example:</b> the categories of the South region. One sale there has no category.</p>",
+                           "ru": "<p><code>GROUP BY</code> не отбрасывает <code>NULL</code>: все строки с пустым значением образуют одну отдельную группу. <code>COUNT(DISTINCT column)</code> пропускает <code>NULL</code>, поэтому может быть на один меньше числа групп.</p>\n<p><b>Пример:</b> категории региона South. У одной продажи там нет категории.</p>"},
+                 "example": "SELECT category, COUNT(*)\nFROM sales\nWHERE region = 'South'\nGROUP BY category;",
+                 "text": {"en": "For each <code>category</code> of <code>sales</code>: the number of sales and the sum of <code>amount</code>. How many rows came back, and how many different categories are there?", "ru": "По каждой категории (<code>category</code>) в <code>sales</code>: число продаж и сумма <code>amount</code>. Сколько строк вернулось и сколько разных категорий?"},
+                 "answer": "SELECT category, COUNT(*), SUM(amount) FROM sales GROUP BY category;"},
+                {"id": "5.27",
+                 "text": {"en": "For each <code>category</code> of <code>sales</code>: <code>COUNT(*)</code> and <code>COUNT(category)</code>. Why is the second number 0 in one row?", "ru": "По каждой категории в <code>sales</code>: <code>COUNT(*)</code> и <code>COUNT(category)</code>. Почему в одной строке второе число равно 0?"},
+                 "answer": "SELECT category, COUNT(*), COUNT(category) FROM sales GROUP BY category;"},
+                {"id": "5.28",
+                 "text": {"en": "Categories of <code>sales</code> with at least 2 sales. Columns: <code>category</code>, the number. Does the group without a category pass?", "ru": "Категории в <code>sales</code>, где не меньше 2 продаж. Столбцы: <code>category</code>, число. Проходит ли группа без категории?"},
+                 "answer": "SELECT category, COUNT(*) FROM sales GROUP BY category HAVING COUNT(*) >= 2;"},
+
+                # Section G
+                {"id": "5.29",
+                 "section": {"en": "G · ORDER BY after GROUP BY", "ru": "G · ORDER BY после GROUP BY"},
+                 "intro": {"en": "<p><code>GROUP BY</code> does not sort the groups. For a fixed order write <code>ORDER BY</code> at the end: by a column, by an aggregate, or by the name given with <code>AS</code>. When values are equal, add a second column to sort by.</p>\n<p><b>Example:</b> cities from the most employees to the fewest; equal cities in alphabetical order.</p>",
+                           "ru": "<p><code>GROUP BY</code> не сортирует группы. Для нужного порядка пиши <code>ORDER BY</code> в конце: по столбцу, по агрегату или по имени из <code>AS</code>. При равных значениях добавь второй столбец сортировки.</p>\n<p><b>Пример:</b> города от самого большого числа сотрудников к самому маленькому; равные — по алфавиту.</p>"},
+                 "example": "SELECT city, COUNT(*) AS cnt\nFROM employees\nGROUP BY city\nORDER BY cnt DESC, city;",
+                 "text": {"en": "Departments from the largest sum of <code>salary</code> to the smallest. Columns: <code>department</code>, the sum.", "ru": "Отделы от самой большой суммы <code>salary</code> к самой маленькой. Столбцы: <code>department</code>, сумма."},
+                 "answer": "SELECT department, SUM(salary) AS total FROM employees GROUP BY department ORDER BY total DESC;"},
+                {"id": "5.30",
+                 "text": {"en": "Regions of <code>sales</code> from the fewest sales to the most; regions with the same number in alphabetical order.", "ru": "Регионы в <code>sales</code> от самого маленького числа продаж к самому большому; регионы с одинаковым числом — по алфавиту."},
+                 "answer": "SELECT region, COUNT(*) AS cnt FROM sales GROUP BY region ORDER BY cnt, region;"},
+                {"id": "5.31",
+                 "text": {"en": "Statuses of <code>orders</code> from the largest sum of <code>amount</code> to the smallest, statuses without a sum at the end, those in alphabetical order. Where would <code>NULL</code> go without <code>NULLS LAST</code>?", "ru": "Статусы в <code>orders</code> от самой большой суммы <code>amount</code> к самой маленькой, статусы без суммы — в конце, между собой по алфавиту. Куда попал бы <code>NULL</code> без <code>NULLS LAST</code>?"},
+                 "answer": "SELECT status, SUM(amount) AS total FROM orders GROUP BY status ORDER BY total DESC NULLS LAST, status;"},
+                {"id": "5.32",
+                 "text": {"en": "The top 2 departments by average <code>salary</code> (rounded to a whole number), highest first.", "ru": "Топ-2 отдела по средней <code>salary</code> (с округлением до целого), начиная с самой высокой."},
+                 "answer": "SELECT department, ROUND(AVG(salary), 0) AS avg_salary FROM employees GROUP BY department ORDER BY avg_salary DESC LIMIT 2;"},
+
+                # Section H
+                {"id": "5.33",
+                 "section": {"en": "H · Find the mistake", "ru": "H · Найди ошибку"},
+                 "intro": {"en": "<p>A colleague (or an AI) wrote a query. Some of them fail, some run but answer a different question. Read what the manager asked, find the mistake and write the correct query.</p>",
+                           "ru": "<p>Коллега (или ИИ) написал запрос. Одни такие запросы падают с ошибкой, другие выполняются, но отвечают на другой вопрос. Прочитай, что спросил менеджер, найди ошибку и напиши правильный запрос.</p>"},
+                 "text": {"en": "The manager asked “how many employees are there in each department?”. A colleague wrote <code>SELECT department, first_name, COUNT(*) FROM employees GROUP BY department;</code>, and it fails. Write the correct query.", "ru": "Менеджер спросил: «Сколько сотрудников в каждом отделе?». Коллега написал <code>SELECT department, first_name, COUNT(*) FROM employees GROUP BY department;</code>, и запрос падает с ошибкой. Напиши правильный запрос."},
+                 "answer": "SELECT department, COUNT(*) FROM employees GROUP BY department;"},
+                {"id": "5.34",
+                 "text": {"en": "The manager asked “which departments have more than 3 employees?”. A colleague wrote <code>SELECT department, COUNT(*) FROM employees WHERE COUNT(*) &gt; 3 GROUP BY department;</code>, and it fails. Write the correct query.", "ru": "Менеджер спросил: «В каких отделах больше 3 сотрудников?». Коллега написал <code>SELECT department, COUNT(*) FROM employees WHERE COUNT(*) &gt; 3 GROUP BY department;</code>, и запрос падает с ошибкой. Напиши правильный запрос."},
+                 "answer": "SELECT department, COUNT(*) FROM employees GROUP BY department HAVING COUNT(*) > 3;"},
+                {"id": "5.35",
+                 "text": {"en": "The manager asked “how many employees in London does each department have?”. A colleague wrote <code>SELECT department, COUNT(*) FROM employees GROUP BY department HAVING city = 'London';</code>, and it fails. Write the correct query.", "ru": "Менеджер спросил: «Сколько сотрудников в Лондоне в каждом отделе?». Коллега написал <code>SELECT department, COUNT(*) FROM employees GROUP BY department HAVING city = 'London';</code>, и запрос падает с ошибкой. Напиши правильный запрос."},
+                 "answer": "SELECT department, COUNT(*) FROM employees WHERE city = 'London' GROUP BY department;"},
+                {"id": "5.36",
+                 "text": {"en": "The manager asked “how many orders are there with each status?”. A colleague wrote <code>SELECT status, COUNT(amount) FROM orders GROUP BY status;</code>. It runs, but two numbers are wrong. Write the correct query.", "ru": "Менеджер спросил: «Сколько заказов в каждом статусе?». Коллега написал <code>SELECT status, COUNT(amount) FROM orders GROUP BY status;</code>. Запрос выполняется, но два числа неверны. Напиши правильный запрос."},
+                 "answer": "SELECT status, COUNT(*) FROM orders GROUP BY status;"},
+                {"id": "5.37",
+                 "text": {"en": "The manager asked “which customers made at least 3 orders?”. A colleague wrote <code>SELECT user_id, COUNT(*) AS cnt FROM orders GROUP BY user_id HAVING cnt &gt;= 3;</code>, and it fails. Write the correct query.", "ru": "Менеджер спросил: «Какие покупатели сделали не меньше 3 заказов?». Коллега написал <code>SELECT user_id, COUNT(*) AS cnt FROM orders GROUP BY user_id HAVING cnt &gt;= 3;</code>, и запрос падает с ошибкой. Напиши правильный запрос."},
+                 "answer": "SELECT user_id, COUNT(*) AS cnt FROM orders GROUP BY user_id HAVING COUNT(*) >= 3;"},
+                {"id": "5.38",
+                 "text": {"en": "The manager asked “the sum of sales for each region and category”. A colleague wrote <code>SELECT region, category, SUM(amount) FROM sales GROUP BY region;</code>, and it fails. Write the correct query.", "ru": "Менеджер попросил «сумму продаж по каждому региону и категории». Коллега написал <code>SELECT region, category, SUM(amount) FROM sales GROUP BY region;</code>, и запрос падает с ошибкой. Напиши правильный запрос."},
+                 "answer": "SELECT region, category, SUM(amount) FROM sales GROUP BY region, category;"},
+            ],
         },
         {
             "id": 6,
