@@ -1,6 +1,6 @@
 # SQL Sheet
 
-SQL trainer. Students' queries run on real PostgreSQL in the browser (PGlite, WebAssembly). Commands: `make`. Overview: `README.md`.
+SQL trainer. Students' queries run on real PostgreSQL in the browser (PGlite, WebAssembly). Commands: `make`. Overview: `README.md`. Course plan (done, next, open questions): `COURSE_PLAN.md`; update it when lessons or their order change.
 
 ## Architecture: PostgreSQL only in the browser
 

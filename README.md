@@ -52,10 +52,13 @@ connections can get a server-backed engine with the same methods.
 
 ## Lessons
 
-`/lessons` is the course page: a roadmap of 13 topics, and for each ready lesson
+`/lessons` is the course page: two courses, SQL Foundations (14 lessons) and SQL for
+Analytics (10 lessons), and for each ready lesson
 the theory, its tables, tasks and answers for teachers. **Solve** opens the trainer
 with that lesson's database (`/?lesson=1&task=3`); after **Run** the result is
 checked against the reference answer. Progress is saved in the browser.
+
+What is ready and what comes next: `COURSE_PLAN.md` (in Russian).
 
 All course content lives in `course.py`. To add a lesson, fill in its
 `theory`, `seed`, `tables` and `tasks` (each task needs an `answer` query) and set
@@ -194,11 +197,14 @@ uvicorn main:app --reload --port 8001
 
 ### Уроки
 
-`/lessons` — страница курса: план из 13 тем, а для готовых уроков теория, таблицы,
+`/lessons` — страница курса: два курса, «Основы SQL» (14 уроков) и «SQL для аналитиков»
+(10 уроков), а для готовых уроков теория, таблицы,
 задания и ответы для преподавателя. Кнопка **Решить** открывает тренажёр с базой урока
 (`/?lesson=1&task=3`), и после **Выполнить** результат сверяется с эталонным ответом.
 Весь контент курса — в `course.py`: чтобы добавить урок, заполни `theory`,
 `seed`, `tables`, `tasks` (у каждого задания нужен `answer`) и поставь `available: true`.
+
+Что готово и что дальше — в `COURSE_PLAN.md`.
 
 **После любого изменения данных, ответов, примеров или условий урока:**
 
