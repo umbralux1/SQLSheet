@@ -33,7 +33,7 @@ Moved from SQLite (sql.js) to PGlite on 2026-11-05 (commit `90bfb90`), because t
 
 ## Verifying a change
 
-The repo has no automated tests. `make check` checks structure and that results are fresh; `make results` runs all SQL. To exercise the real path, run each task's answer in the browser through `db.run` and POST it to `/api/check`, with answers from `/api/answers/<id>` after a teacher login. All 285 tasks passed this way on 2026-11-05. Clear `sqlt-*` keys from `localStorage` afterwards.
+The repo has no automated tests. `make check` checks structure and that results are fresh; `make results` runs all SQL. To exercise the real path, run each task's answer in the browser through `db.run` and POST it to `/api/check`, with answers from `/api/answers/<id>` after a teacher login. All 285 tasks passed this way on 2026-11-05, and lesson 4 (aggregates, 30 tasks) on 2026-11-11. Clear `sqlt-*` keys from `localStorage` afterwards.
 
 ## Open as of 2026-11-05
 

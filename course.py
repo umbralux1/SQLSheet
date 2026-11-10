@@ -2282,9 +2282,317 @@ INSERT INTO orders VALUES
         },
         {
             "id": 4,
-            "available": False,
+            "available": True,
             "title": {"en": "Aggregate Functions", "ru": "Агрегатные функции"},
             "topics": {"en": "COUNT, SUM, AVG, MIN, MAX", "ru": "COUNT, SUM, AVG, MIN, MAX"},
+            # The answer is checked by its values: aggregates get names like "count" and "round",
+            # and a student may add their own with AS.
+            "check": "values",
+            "theory": {
+                "en": """<p>An <b>aggregate function</b> takes many rows and returns <b>one value</b>, like the sum and average at the bottom of an Excel sheet. Without <code>GROUP BY</code> (next lesson) the whole table becomes one row.</p>
+<pre class="code">SELECT COUNT(*) FROM orders;   -- one number: how many rows</pre>
+<h4>Five aggregates</h4>
+<table class="ops">
+  <tr><th>Function</th><th>What it counts</th><th>Skips NULL?</th></tr>
+  <tr><td><code>COUNT(*)</code></td><td>the number of <b>rows</b></td><td>no — counts every row</td></tr>
+  <tr><td><code>COUNT(column)</code></td><td>the number of <b>non-NULL values</b> in the column</td><td>yes</td></tr>
+  <tr><td><code>COUNT(DISTINCT column)</code></td><td>the number of <b>different</b> non-NULL values</td><td>yes</td></tr>
+  <tr><td><code>SUM(column)</code></td><td>the sum</td><td>yes</td></tr>
+  <tr><td><code>AVG(column)</code></td><td>the average</td><td>yes</td></tr>
+  <tr><td><code>MIN(column)</code> / <code>MAX(column)</code></td><td>the smallest / the largest value</td><td>yes</td></tr>
+</table>
+<h4>Three different questions</h4>
+<ul>
+  <li><code>COUNT(*)</code> — “how many rows?”</li>
+  <li><code>COUNT(col)</code> — “in how many rows is this field filled in?”</li>
+  <li><code>COUNT(DISTINCT col)</code> — “how many different values?” <code>COUNT(DISTINCT user_id)</code> is the number of customers, not the number of orders.</li>
+</ul>
+<h4>The main trap: NULL</h4>
+<p>Every aggregate except <code>COUNT(*)</code> skips <code>NULL</code>. So <code>AVG(amount)</code> is the sum divided by the number of <b>filled-in</b> values, not by the number of rows. <code>NULL</code> means “unknown”, not “zero”: if it counted as 0, the average would be smaller.</p>
+<p>That is also why <code>WHERE amount IS NOT NULL</code> before <code>AVG(amount)</code> changes nothing: the aggregate already skips <code>NULL</code>.</p>
+<h4>MIN and MAX on text and dates</h4>
+<p>They work on any values that can be sorted: <code>MIN(order_date)</code> is the earliest date, <code>MIN(last_name)</code> the first name in alphabetical order.</p>
+<h4>Several aggregates in one query</h4>
+<pre class="code">SELECT COUNT(*), SUM(amount), AVG(amount), MIN(amount), MAX(amount)
+FROM orders;</pre>
+<p>One query, five numbers: this is what a summary looks like at work. <code>AVG</code> returns many digits after the point, so in reports write <code>ROUND(AVG(x), 2)</code>.</p>
+<h4>WHERE works before aggregates</h4>
+<p>The order of work: <code>FROM</code> → <code>WHERE</code> → aggregates → <code>SELECT</code>. <code>WHERE</code> picks the rows, then the aggregate counts only them:</p>
+<pre class="code">SELECT COUNT(*) FROM employees WHERE city = 'Paris';</pre>
+<p>So an aggregate <b>cannot</b> go inside <code>WHERE</code>: <code>WHERE COUNT(*) &gt; 5</code> fails, because at that moment nothing is counted yet. Filtering by an aggregate is <code>HAVING</code>, the next lesson.</p>
+<p>An aggregate and an ordinary column together (<code>SELECT city, COUNT(*) FROM employees</code>) fail too: one row of the result has room for one number, not for ten cities. This also needs <code>GROUP BY</code>.</p>
+<h4>PostgreSQL details</h4>
+<ul>
+  <li><code>AVG</code> of whole numbers returns a fraction.</li>
+  <li>A whole number divided by a whole number drops the fraction: <code>7 / 2</code> = <code>3</code>. <code>SUM(x) / COUNT(*)</code> on whole numbers does the same. Multiply by <code>1.0</code> to keep it: <code>SUM(x) * 1.0 / COUNT(*)</code>.</li>
+  <li>The trainer shows <code>80.00</code> as <code>80</code>: trailing zeros are dropped.</li>
+</ul>
+<h4>Three typical mistakes</h4>
+<ol>
+  <li><code>COUNT(column)</code> instead of <code>COUNT(*)</code>: rows with <code>NULL</code> are lost, the total is wrong.</li>
+  <li>Expecting <code>AVG</code> to count <code>NULL</code> as 0: it does not.</li>
+  <li>An aggregate inside <code>WHERE</code>: an error.</li>
+</ol>""",
+                "ru": """<p><b>Агрегатная функция</b> берёт много строк и возвращает <b>одно значение</b>, как сумма и среднее внизу листа Excel. Без <code>GROUP BY</code> (следующий урок) вся таблица превращается в одну строку.</p>
+<pre class="code">SELECT COUNT(*) FROM orders;   -- одно число: сколько всего строк</pre>
+<h4>Пять агрегатов</h4>
+<table class="ops">
+  <tr><th>Функция</th><th>Что считает</th><th>Пропускает NULL?</th></tr>
+  <tr><td><code>COUNT(*)</code></td><td>число <b>строк</b></td><td>нет — считает все строки</td></tr>
+  <tr><td><code>COUNT(column)</code></td><td>число <b>заполненных</b> (не <code>NULL</code>) значений в столбце</td><td>да</td></tr>
+  <tr><td><code>COUNT(DISTINCT column)</code></td><td>число <b>разных</b> заполненных значений</td><td>да</td></tr>
+  <tr><td><code>SUM(column)</code></td><td>сумма</td><td>да</td></tr>
+  <tr><td><code>AVG(column)</code></td><td>среднее</td><td>да</td></tr>
+  <tr><td><code>MIN(column)</code> / <code>MAX(column)</code></td><td>наименьшее / наибольшее значение</td><td>да</td></tr>
+</table>
+<h4>Три разных вопроса</h4>
+<ul>
+  <li><code>COUNT(*)</code> — «сколько строк?»</li>
+  <li><code>COUNT(col)</code> — «в скольких строках это поле заполнено?»</li>
+  <li><code>COUNT(DISTINCT col)</code> — «сколько разных значений?» <code>COUNT(DISTINCT user_id)</code> — это число покупателей, а не число заказов.</li>
+</ul>
+<h4>Главная ловушка — NULL</h4>
+<p>Все агрегаты, кроме <code>COUNT(*)</code>, пропускают <code>NULL</code>. Поэтому <code>AVG(amount)</code> — это сумма, делённая на число <b>заполненных</b> значений, а не на число строк. <code>NULL</code> значит «неизвестно», а не «ноль»: если бы он считался нулём, среднее было бы меньше.</p>
+<p>По той же причине <code>WHERE amount IS NOT NULL</code> перед <code>AVG(amount)</code> ничего не меняет: агрегат и так пропускает <code>NULL</code>.</p>
+<h4>MIN и MAX на тексте и датах</h4>
+<p>Они работают на любых значениях, которые можно отсортировать: <code>MIN(order_date)</code> — самая ранняя дата, <code>MIN(last_name)</code> — первая фамилия по алфавиту.</p>
+<h4>Несколько агрегатов в одном запросе</h4>
+<pre class="code">SELECT COUNT(*), SUM(amount), AVG(amount), MIN(amount), MAX(amount)
+FROM orders;</pre>
+<p>Один запрос — пять чисел: так на работе выглядит сводка. <code>AVG</code> возвращает много знаков после запятой, поэтому в отчётах пиши <code>ROUND(AVG(x), 2)</code>.</p>
+<h4>WHERE работает до агрегатов</h4>
+<p>Порядок работы: <code>FROM</code> → <code>WHERE</code> → агрегаты → <code>SELECT</code>. <code>WHERE</code> отбирает строки, потом агрегат считает только их:</p>
+<pre class="code">SELECT COUNT(*) FROM employees WHERE city = 'Paris';</pre>
+<p>Поэтому агрегат <b>нельзя</b> положить в <code>WHERE</code>: <code>WHERE COUNT(*) &gt; 5</code> — ошибка, на этом шаге ещё ничего не посчитано. Фильтр по агрегату — это <code>HAVING</code>, следующий урок.</p>
+<p>Агрегат вместе с обычным столбцом (<code>SELECT city, COUNT(*) FROM employees</code>) — тоже ошибка: в одной строке результата есть место для одного числа, а не для десяти городов. Для этого тоже нужен <code>GROUP BY</code>.</p>
+<h4>Особенности PostgreSQL</h4>
+<ul>
+  <li><code>AVG</code> от целых чисел возвращает дробь.</li>
+  <li>Целое, делённое на целое, теряет дробную часть: <code>7 / 2</code> = <code>3</code>. <code>SUM(x) / COUNT(*)</code> на целых числах делает так же. Умножь на <code>1.0</code>, чтобы её сохранить: <code>SUM(x) * 1.0 / COUNT(*)</code>.</li>
+  <li>Тренажёр показывает <code>80.00</code> как <code>80</code>: нули в конце отбрасываются.</li>
+</ul>
+<h4>Три типичные ошибки</h4>
+<ol>
+  <li><code>COUNT(column)</code> вместо <code>COUNT(*)</code>: строки с <code>NULL</code> теряются, итог неверный.</li>
+  <li>Ожидание, что <code>AVG</code> считает <code>NULL</code> нулём: не считает.</li>
+  <li>Агрегат внутри <code>WHERE</code>: ошибка.</li>
+</ol>""",
+            },
+            "tips": {
+                "en": [
+                    "<b>Count by hand first.</b> Before section A, ask to count <code>COUNT(*)</code>, <code>COUNT(amount)</code> and <code>SUM(amount)</code> of <code>orders</code> by looking at the table. Then run the queries: the numbers match, and “an aggregate folds rows” sticks.",
+                    "<b>NULL is the hero of the lesson.</b> After every <code>AVG</code> ask: “what did it divide by, 22 or 24?” The lesson is not done until the student checks <code>COUNT(*)</code> against <code>COUNT(col)</code> without being asked.",
+                    "<b>Two right answers.</b> In tasks 18 and 29 “the average bonus” means two things: per employee (38000 / 10 = 3800) or among those who get one (38000 / 7 ≈ 5429). Both are correct; an analyst asks which question was meant instead of choosing silently.",
+                    "<b>Whole-number division.</b> In task 29 <code>ROUND(SUM(bonus) / COUNT(bonus))</code> gives 5428, not 5429: <code>bigint / bigint</code> drops the fraction before <code>ROUND</code>. A good moment to show <code>* 1.0</code>.",
+                    "<b>No GROUP BY yet.</b> If the student asks “and per department?”, answer: “next lesson; for now we fold the whole table into one number”.",
+                    "<b>ROUND from day one.</b> Ask to wrap every <code>AVG</code> in a report in <code>ROUND(..., 2)</code>.",
+                    "<b>Read the result aloud</b> (no query needed). <code>COUNT(*) = 24</code>, <code>COUNT(amount) = 22</code>: “24 orders, 2 of them without an amount — probably not paid yet or cancelled”.",
+                    "<b>Typical order.</b> <code>AVG(amount) = 80</code>, but the median (half of the orders are cheaper) is 42.50. What is a “typical order”? About 42.50: a few big orders (300, 500) pull the average up.",
+                    "<b>Check the manager.</b> “<code>SUM(amount) = 1760</code>, 24 orders, so the average check is 73.33.” Not quite: 2 orders have no amount, the average over known amounts is 1760 / 22 = 80.",
+                    "<b>Completeness.</b> <code>MIN(order_date) = 2024-01-05</code>, <code>MAX = 2024-01-28</code>, 24 orders: one a day, and January 1–4 and 29–31 are missing. Ask whether the export was cut.",
+                    "<b>Checkpoint before the next lesson.</b> The student can (a) explain <code>COUNT(*)</code> vs <code>COUNT(col)</code>, (b) say what <code>AVG</code> divides by when there are <code>NULL</code>s, (c) refuse to write <code>WHERE COUNT(*) &gt; 5</code> and say why, (d) explain a result to a manager in one sentence.",
+                ],
+                "ru": [
+                    "<b>Сначала руками.</b> Перед разделом A попроси посчитать по таблице <code>orders</code> вручную <code>COUNT(*)</code>, <code>COUNT(amount)</code> и <code>SUM(amount)</code>. Потом запусти запросы: числа совпадут, и «агрегат сворачивает строки» запомнится.",
+                    "<b>NULL — главный герой урока.</b> После каждого <code>AVG</code> спрашивай: «на что делили — на 22 или на 24?» Урок не пройден, пока ученик сам не сверяет <code>COUNT(*)</code> и <code>COUNT(col)</code>.",
+                    "<b>Два верных ответа.</b> В заданиях 18 и 29 «средний бонус» значит две разные вещи: на сотрудника (38000 / 10 = 3800) или среди получивших (38000 / 7 ≈ 5429). Оба числа верны; аналитик уточняет вопрос, а не выбирает молча.",
+                    "<b>Целочисленное деление.</b> В задании 29 <code>ROUND(SUM(bonus) / COUNT(bonus))</code> даёт 5428, а не 5429: <code>bigint / bigint</code> отбрасывает дробь ещё до <code>ROUND</code>. Хороший момент показать <code>* 1.0</code>.",
+                    "<b>GROUP BY пока не даём.</b> Если ученик спросит «а по отделам?», ответь: «в следующем уроке, пока сворачиваем всю таблицу в одно число».",
+                    "<b>ROUND с первого дня.</b> Проси оборачивать каждый <code>AVG</code> в отчёте в <code>ROUND(..., 2)</code>.",
+                    "<b>Прочитай результат вслух</b> (запрос не нужен). <code>COUNT(*) = 24</code>, <code>COUNT(amount) = 22</code>: «24 заказа, у 2 нет суммы — наверное, ещё не оплачены или отменены».",
+                    "<b>Типичный заказ.</b> <code>AVG(amount) = 80</code>, а медиана (половина заказов дешевле) — 42.50. Какой заказ «типичный»? Около 42.50: несколько крупных заказов (300, 500) тянут среднее вверх.",
+                    "<b>Проверь менеджера.</b> «<code>SUM(amount) = 1760</code>, заказов 24, значит, средний чек 73.33». Не совсем: у 2 заказов нет суммы, среднее по известным суммам — 1760 / 22 = 80.",
+                    "<b>Полнота данных.</b> <code>MIN(order_date) = 2024-01-05</code>, <code>MAX = 2024-01-28</code>, 24 заказа: по одному в день, а 1–4 и 29–31 января нет. Спроси, не обрезана ли выгрузка.",
+                    "<b>Чекпоинт перед следующим уроком.</b> Ученик может (a) объяснить разницу <code>COUNT(*)</code> и <code>COUNT(col)</code>, (b) сказать, на что делит <code>AVG</code>, если есть <code>NULL</code>, (c) отказаться писать <code>WHERE COUNT(*) &gt; 5</code> и объяснить почему, (d) объяснить результат менеджеру одним предложением.",
+                ],
+            },
+            "tables": ["orders", "employees"],
+            "seed": """CREATE TABLE orders (
+    order_id    INTEGER PRIMARY KEY,
+    user_id     INTEGER,
+    order_date  DATE,
+    amount      DECIMAL(10,2),
+    status      VARCHAR(20)
+);
+INSERT INTO orders VALUES
+(1,  1,  '2024-01-05', 10.00,  'completed'),
+(2,  2,  '2024-01-06', 15.00,  'completed'),
+(3,  3,  '2024-01-07', 20.00,  'completed'),
+(4,  1,  '2024-01-08', 20.00,  'completed'),
+(5,  4,  '2024-01-09', 25.00,  'completed'),
+(6,  5,  '2024-01-10', 30.00,  'completed'),
+(7,  2,  '2024-01-11', 30.00,  'completed'),
+(8,  6,  '2024-01-12', 30.00,  'completed'),
+(9,  7,  '2024-01-13', 35.00,  'completed'),
+(10, 3,  '2024-01-14', 40.00,  'completed'),
+(11, 8,  '2024-01-15', 40.00,  'completed'),
+(12, 1,  '2024-01-16', 45.00,  'completed'),
+(13, 9,  '2024-01-17', 50.00,  'completed'),
+(14, 10, '2024-01-18', 50.00,  'completed'),
+(15, 4,  '2024-01-19', 60.00,  'completed'),
+(16, 11, '2024-01-20', 60.00,  'completed'),
+(17, 2,  '2024-01-21', 70.00,  'completed'),
+(18, 12, '2024-01-22', 80.00,  'completed'),
+(19, 5,  '2024-01-23', 100.00, 'completed'),
+(20, 1,  '2024-01-24', 150.00, 'completed'),
+(21, 6,  '2024-01-25', 300.00, 'completed'),
+(22, 3,  '2024-01-26', 500.00, 'completed'),
+(23, 13, '2024-01-27', NULL,   'pending'),
+(24, 8,  '2024-01-28', NULL,   'cancelled');
+
+CREATE TABLE employees (
+    emp_id      INTEGER PRIMARY KEY,
+    first_name  VARCHAR(50),
+    last_name   VARCHAR(50),
+    department  VARCHAR(30),
+    salary      INTEGER,
+    hire_year   INTEGER,
+    city        VARCHAR(50),
+    bonus       INTEGER
+);
+INSERT INTO employees VALUES
+(1,  'Alice',   'Brown',   'IT',      60000, 2018, 'London',  5000),
+(2,  'Bob',     'Smith',   'HR',      45000, 2019, 'Paris',   NULL),
+(3,  'Charlie', 'Johnson', 'IT',      75000, 2015, 'London',  8000),
+(4,  'Diana',   'Miller',  'Sales',   52000, 2020, 'Berlin',  3000),
+(5,  'Ethan',   'Davis',   'IT',      68000, 2017, 'Paris',   NULL),
+(6,  'Fiona',   'Wilson',  'Sales',   48000, 2021, 'Madrid',  2000),
+(7,  'George',  'Moore',   'HR',      55000, 2016, 'Berlin',  4000),
+(8,  'Hannah',  'Taylor',  'Sales',   62000, 2018, 'London',  6000),
+(9,  'Ivan',    'Petrov',  'IT',      90000, 2014, 'Madrid',  10000),
+(10, 'Julia',   'Adams',   'HR',      41000, 2022, 'Paris',   NULL);""",
+            "tasks": [
+                # Section A
+                {"id": "4.1",
+                 "section": {"en": "A · COUNT", "ru": "A · COUNT"},
+                 "intro": {"en": "<p><code>COUNT(*)</code> counts rows. <code>COUNT(column)</code> counts only the rows where the column is filled in (not <code>NULL</code>). <code>COUNT(DISTINCT column)</code> counts different values.</p>\n<p><code>WHERE</code> works first, so the aggregate counts only the rows it kept.</p>\n<p><b>Example:</b> how many employees work in Paris.</p>",
+                           "ru": "<p><code>COUNT(*)</code> считает строки. <code>COUNT(column)</code> — только строки, где столбец заполнен (не <code>NULL</code>). <code>COUNT(DISTINCT column)</code> — разные значения.</p>\n<p><code>WHERE</code> работает раньше, поэтому агрегат считает только оставленные им строки.</p>\n<p><b>Пример:</b> сколько сотрудников работает в Париже.</p>"},
+                 "example": "SELECT COUNT(*)\nFROM employees\nWHERE city = 'Paris';",
+                 "text": {"en": "How many rows are there in <code>orders</code>?", "ru": "Сколько всего строк в таблице <code>orders</code>?"},
+                 "answer": "SELECT COUNT(*) FROM orders;"},
+                {"id": "4.2",
+                 "text": {"en": "How many rows of <code>orders</code> have an <code>amount</code> (it is not <code>NULL</code>)?", "ru": "Сколько строк в <code>orders</code> имеют сумму <code>amount</code> (она не <code>NULL</code>)?"},
+                 "answer": "SELECT COUNT(amount) FROM orders;"},
+                {"id": "4.3",
+                 "text": {"en": "How many different <code>user_id</code> are there in <code>orders</code>, that is, how many customers made orders?", "ru": "Сколько разных <code>user_id</code> в <code>orders</code>, то есть сколько покупателей делали заказы?"},
+                 "answer": "SELECT COUNT(DISTINCT user_id) FROM orders;"},
+                {"id": "4.4",
+                 "text": {"en": "How many different <code>status</code> values are there in <code>orders</code>?", "ru": "Сколько разных значений <code>status</code> в <code>orders</code>?"},
+                 "answer": "SELECT COUNT(DISTINCT status) FROM orders;"},
+                {"id": "4.5",
+                 "text": {"en": "In one query: how many employees there are in <code>employees</code>, and how many of them have a <code>bonus</code>. Two columns in this order.", "ru": "В одном запросе: сколько всего сотрудников в <code>employees</code> и у скольких из них есть <code>bonus</code>. Два столбца в таком порядке."},
+                 "answer": "SELECT COUNT(*), COUNT(bonus) FROM employees;"},
+
+                # Section B
+                {"id": "4.6",
+                 "section": {"en": "B · SUM and AVG", "ru": "B · SUM и AVG"},
+                 "intro": {"en": "<p><code>SUM</code> adds the values of a column, <code>AVG</code> finds their average. Both skip <code>NULL</code>.</p>\n<p><code>AVG</code> returns many digits after the point. <code>ROUND(value, n)</code> keeps <code>n</code> of them: <code>ROUND(AVG(salary), 2)</code>. <code>ROUND(value, 0)</code> rounds to a whole number.</p>\n<p><b>Example:</b> the total and the average salary in IT.</p>",
+                           "ru": "<p><code>SUM</code> складывает значения столбца, <code>AVG</code> находит их среднее. Оба пропускают <code>NULL</code>.</p>\n<p><code>AVG</code> возвращает много знаков после запятой. <code>ROUND(value, n)</code> оставляет <code>n</code> знаков: <code>ROUND(AVG(salary), 2)</code>. <code>ROUND(value, 0)</code> округляет до целого.</p>\n<p><b>Пример:</b> сумма и средняя зарплата в IT.</p>"},
+                 "example": "SELECT SUM(salary), ROUND(AVG(salary), 2)\nFROM employees\nWHERE department = 'IT';",
+                 "text": {"en": "The sum of all <code>amount</code> in <code>orders</code>.", "ru": "Сумма всех <code>amount</code> в <code>orders</code>."},
+                 "answer": "SELECT SUM(amount) FROM orders;"},
+                {"id": "4.7",
+                 "text": {"en": "The average <code>amount</code> in <code>orders</code>, rounded to 2 digits.", "ru": "Средний <code>amount</code> в <code>orders</code>, округлённый до 2 знаков."},
+                 "answer": "SELECT ROUND(AVG(amount), 2) FROM orders;"},
+                {"id": "4.8",
+                 "text": {"en": "The sum of all <code>salary</code> in <code>employees</code>.", "ru": "Сумма всех <code>salary</code> в <code>employees</code>."},
+                 "answer": "SELECT SUM(salary) FROM employees;"},
+                {"id": "4.9",
+                 "text": {"en": "The average <code>salary</code> in <code>employees</code>, rounded to a whole number.", "ru": "Средняя <code>salary</code> в <code>employees</code>, округлённая до целого."},
+                 "answer": "SELECT ROUND(AVG(salary), 0) FROM employees;"},
+                {"id": "4.10",
+                 "text": {"en": "The sum of all <code>bonus</code> in <code>employees</code>.", "ru": "Сумма всех <code>bonus</code> в <code>employees</code>."},
+                 "answer": "SELECT SUM(bonus) FROM employees;"},
+
+                # Section C
+                {"id": "4.11",
+                 "section": {"en": "C · MIN and MAX", "ru": "C · MIN и MAX"},
+                 "intro": {"en": "<p><code>MIN</code> and <code>MAX</code> find the smallest and the largest value. They work not only on numbers: on dates <code>MIN</code> is the earliest, on text it is the first in alphabetical order.</p>\n<p><b>Example:</b> the first and the last first name in alphabetical order.</p>",
+                           "ru": "<p><code>MIN</code> и <code>MAX</code> находят наименьшее и наибольшее значение. Они работают не только на числах: на датах <code>MIN</code> — самая ранняя, на тексте — первое по алфавиту.</p>\n<p><b>Пример:</b> первое и последнее имя по алфавиту.</p>"},
+                 "example": "SELECT MIN(first_name), MAX(first_name)\nFROM employees;",
+                 "text": {"en": "The smallest and the largest <code>amount</code> in <code>orders</code> (two columns: smallest first).", "ru": "Наименьший и наибольший <code>amount</code> в <code>orders</code> (два столбца: сначала наименьший)."},
+                 "answer": "SELECT MIN(amount), MAX(amount) FROM orders;"},
+                {"id": "4.12",
+                 "text": {"en": "The earliest and the latest <code>order_date</code> in <code>orders</code>.", "ru": "Самая ранняя и самая поздняя <code>order_date</code> в <code>orders</code>."},
+                 "answer": "SELECT MIN(order_date), MAX(order_date) FROM orders;"},
+                {"id": "4.13",
+                 "text": {"en": "The smallest and the largest <code>salary</code> in <code>employees</code>.", "ru": "Наименьшая и наибольшая <code>salary</code> в <code>employees</code>."},
+                 "answer": "SELECT MIN(salary), MAX(salary) FROM employees;"},
+                {"id": "4.14",
+                 "text": {"en": "The first and the last <code>last_name</code> in alphabetical order in <code>employees</code>.", "ru": "Первая и последняя по алфавиту фамилия (<code>last_name</code>) в <code>employees</code>."},
+                 "answer": "SELECT MIN(last_name), MAX(last_name) FROM employees;"},
+                {"id": "4.15",
+                 "text": {"en": "The earliest and the latest <code>hire_year</code> in <code>employees</code>.", "ru": "Самый ранний и самый поздний <code>hire_year</code> в <code>employees</code>."},
+                 "answer": "SELECT MIN(hire_year), MAX(hire_year) FROM employees;"},
+
+                # Section D
+                {"id": "4.16",
+                 "section": {"en": "D · The NULL traps", "ru": "D · Ловушки NULL"},
+                 "intro": {"en": "<p>Every aggregate except <code>COUNT(*)</code> skips <code>NULL</code>. So <code>AVG</code> divides by the number of <b>filled-in</b> values, not by the number of rows.</p>\n<p><b>Example:</b> in HR there are 3 employees, but only one has a bonus, so the average bonus is that one bonus.</p>",
+                           "ru": "<p>Все агрегаты, кроме <code>COUNT(*)</code>, пропускают <code>NULL</code>. Поэтому <code>AVG</code> делит на число <b>заполненных</b> значений, а не на число строк.</p>\n<p><b>Пример:</b> в HR 3 сотрудника, но бонус только у одного, поэтому средний бонус — это его бонус.</p>"},
+                 "example": "SELECT COUNT(*), COUNT(bonus), AVG(bonus)\nFROM employees\nWHERE department = 'HR';",
+                 "text": {"en": "In one query: <code>COUNT(*)</code> and <code>COUNT(amount)</code> of <code>orders</code>. What does the difference mean?", "ru": "В одном запросе: <code>COUNT(*)</code> и <code>COUNT(amount)</code> по <code>orders</code>. Что значит разница?"},
+                 "answer": "SELECT COUNT(*), COUNT(amount) FROM orders;"},
+                {"id": "4.17",
+                 "text": {"en": "Find the average <code>amount</code> in two ways, both rounded to 2 digits: <code>AVG(amount)</code> and <code>SUM(amount) / COUNT(*)</code>. Why do they differ?", "ru": "Посчитай средний <code>amount</code> двумя способами, оба с округлением до 2 знаков: <code>AVG(amount)</code> и <code>SUM(amount) / COUNT(*)</code>. Почему результаты разные?"},
+                 "answer": "SELECT ROUND(AVG(amount), 2), ROUND(SUM(amount) / COUNT(*), 2) FROM orders;"},
+                {"id": "4.18",
+                 "text": {"en": "The same for <code>bonus</code> in <code>employees</code>: <code>AVG(bonus)</code> and <code>SUM(bonus) * 1.0 / COUNT(*)</code>, both rounded to 2 digits. Which number answers “the average bonus of those who get one”?", "ru": "То же для <code>bonus</code> в <code>employees</code>: <code>AVG(bonus)</code> и <code>SUM(bonus) * 1.0 / COUNT(*)</code>, оба с округлением до 2 знаков. Какое число отвечает на вопрос «средний бонус среди тех, кто его получает»?"},
+                 "answer": "SELECT ROUND(AVG(bonus), 2), ROUND(SUM(bonus) * 1.0 / COUNT(*), 2) FROM employees;"},
+                {"id": "4.19",
+                 "text": {"en": "How many employees have <b>no</b> bonus? One number.", "ru": "Сколько сотрудников <b>не имеют</b> бонуса? Одно число."},
+                 "answer": "SELECT COUNT(*) - COUNT(bonus) FROM employees;"},
+
+                # Section E
+                {"id": "4.20",
+                 "section": {"en": "E · COUNT and COUNT(DISTINCT)", "ru": "E · COUNT и COUNT(DISTINCT)"},
+                 "intro": {"en": "<p><code>COUNT(column)</code> counts filled-in values, repeats included. <code>COUNT(DISTINCT column)</code> counts each value once. The number of orders and the number of customers are different questions.</p>\n<p><b>Example:</b> 10 employees have a department, but there are only 3 different departments.</p>",
+                           "ru": "<p><code>COUNT(column)</code> считает заполненные значения вместе с повторами. <code>COUNT(DISTINCT column)</code> считает каждое значение один раз. Число заказов и число покупателей — разные вопросы.</p>\n<p><b>Пример:</b> отдел указан у 10 сотрудников, а разных отделов всего 3.</p>"},
+                 "example": "SELECT COUNT(department), COUNT(DISTINCT department)\nFROM employees;",
+                 "text": {"en": "In one query: how many orders there are, and how many different customers (<code>user_id</code>) made them.", "ru": "В одном запросе: сколько всего заказов и сколько разных покупателей (<code>user_id</code>) их сделали."},
+                 "answer": "SELECT COUNT(*), COUNT(DISTINCT user_id) FROM orders;"},
+                {"id": "4.21",
+                 "text": {"en": "How many different cities (<code>city</code>) are there in <code>employees</code>?", "ru": "Сколько разных городов (<code>city</code>) встречается в <code>employees</code>?"},
+                 "answer": "SELECT COUNT(DISTINCT city) FROM employees;"},
+                {"id": "4.22",
+                 "text": {"en": "In one query: <code>COUNT(amount)</code> and the number of different <code>amount</code> values in <code>orders</code>. Why is the second number smaller?", "ru": "В одном запросе: <code>COUNT(amount)</code> и число разных значений <code>amount</code> в <code>orders</code>. Почему второе число меньше?"},
+                 "answer": "SELECT COUNT(amount), COUNT(DISTINCT amount) FROM orders;"},
+                {"id": "4.23",
+                 "text": {"en": "How many different customers have at least one order with the status <code>'completed'</code>?", "ru": "Сколько разных покупателей сделали хотя бы один заказ со статусом <code>'completed'</code>?"},
+                 "answer": "SELECT COUNT(DISTINCT user_id) FROM orders WHERE status = 'completed';"},
+
+                # Section F
+                {"id": "4.24",
+                 "section": {"en": "F · A summary in one query", "ru": "F · Сводка одним запросом"},
+                 "intro": {"en": "<p>Aggregates can go together in one <code>SELECT</code>, separated by commas. One query gives a whole summary: count, sum, average, minimum, maximum.</p>\n<p><b>Example:</b> a summary of the Sales department.</p>",
+                           "ru": "<p>Агрегаты можно писать вместе в одном <code>SELECT</code> через запятую. Один запрос даёт целую сводку: количество, сумму, среднее, минимум, максимум.</p>\n<p><b>Пример:</b> сводка по отделу Sales.</p>"},
+                 "example": "SELECT COUNT(*), SUM(salary), MAX(salary)\nFROM employees\nWHERE department = 'Sales';",
+                 "text": {"en": "A summary of <code>orders</code> in one query, columns in this order: number of orders, sum of <code>amount</code>, average <code>amount</code> rounded to 2 digits, the smallest and the largest <code>amount</code>.", "ru": "Сводка по <code>orders</code> одним запросом, столбцы в таком порядке: число заказов, сумма <code>amount</code>, средний <code>amount</code> с округлением до 2 знаков, наименьший и наибольший <code>amount</code>."},
+                 "answer": "SELECT COUNT(*), SUM(amount), ROUND(AVG(amount), 2), MIN(amount), MAX(amount)\nFROM orders;"},
+                {"id": "4.25",
+                 "text": {"en": "A summary of <code>employees</code>: number of employees, sum of <code>salary</code>, average <code>salary</code> rounded to a whole number, the smallest and the largest <code>salary</code>.", "ru": "Сводка по <code>employees</code>: число сотрудников, сумма <code>salary</code>, средняя <code>salary</code> с округлением до целого, наименьшая и наибольшая <code>salary</code>."},
+                 "answer": "SELECT COUNT(*), SUM(salary), ROUND(AVG(salary), 0), MIN(salary), MAX(salary)\nFROM employees;"},
+                {"id": "4.26",
+                 "text": {"en": "A bonus summary: number of employees, how many have a bonus, the sum of <code>bonus</code>, the average <code>bonus</code> rounded to a whole number.", "ru": "Сводка по бонусам: число сотрудников, у скольких есть бонус, сумма <code>bonus</code>, средний <code>bonus</code> с округлением до целого."},
+                 "answer": "SELECT COUNT(*), COUNT(bonus), SUM(bonus), ROUND(AVG(bonus), 0)\nFROM employees;"},
+                {"id": "4.27",
+                 "text": {"en": "The period and the size of the data: the first <code>order_date</code>, the last <code>order_date</code>, the number of orders.", "ru": "Период и объём данных: первая <code>order_date</code>, последняя <code>order_date</code>, число заказов."},
+                 "answer": "SELECT MIN(order_date), MAX(order_date), COUNT(*) FROM orders;"},
+
+                # Section G
+                {"id": "4.28",
+                 "section": {"en": "G · Find the mistake", "ru": "G · Найди ошибку"},
+                 "intro": {"en": "<p>A colleague (or an AI) wrote a query, and it runs without errors. That does not mean it answers the question. Read what the manager asked, find the mistake and write the correct query.</p>",
+                           "ru": "<p>Коллега (или ИИ) написал запрос, и он выполняется без ошибок. Это ещё не значит, что он отвечает на вопрос. Прочитай, что спросил менеджер, найди ошибку и напиши правильный запрос.</p>"},
+                 "text": {"en": "The manager asked “how many orders are there in total?”. A colleague wrote <code>SELECT COUNT(amount) FROM orders;</code>. Write the correct query.", "ru": "Менеджер спросил: «Сколько всего заказов?». Коллега написал <code>SELECT COUNT(amount) FROM orders;</code>. Напиши правильный запрос."},
+                 "answer": "SELECT COUNT(*) FROM orders;"},
+                {"id": "4.29",
+                 "text": {"en": "The manager asked “what is the average bonus of the employees who get a bonus?”. A colleague wrote <code>SELECT SUM(bonus) / COUNT(*) FROM employees;</code>. Write the correct query, rounded to a whole number.", "ru": "Менеджер спросил: «Какой средний бонус у сотрудников, которые его получают?». Коллега написал <code>SELECT SUM(bonus) / COUNT(*) FROM employees;</code>. Напиши правильный запрос, округли до целого."},
+                 "answer": "SELECT ROUND(AVG(bonus), 0) FROM employees;"},
+                {"id": "4.30",
+                 "text": {"en": "The manager asked “how many orders are bigger than 100?”. A colleague wrote <code>SELECT COUNT(*) FROM orders WHERE SUM(amount) &gt; 100;</code>, and it fails. Write the correct query.", "ru": "Менеджер спросил: «Сколько заказов дороже 100?». Коллега написал <code>SELECT COUNT(*) FROM orders WHERE SUM(amount) &gt; 100;</code>, и запрос падает с ошибкой. Напиши правильный запрос."},
+                 "answer": "SELECT COUNT(*) FROM orders WHERE amount > 100;"},
+            ],
         },
         {
             "id": 5,
