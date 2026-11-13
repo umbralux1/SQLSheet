@@ -2592,6 +2592,15 @@ INSERT INTO employees VALUES
                 {"id": "4.30",
                  "text": {"en": "The manager asked “how many orders are bigger than 100?”. A colleague wrote <code>SELECT COUNT(*) FROM orders WHERE SUM(amount) &gt; 100;</code>, and it fails. Write the correct query.", "ru": "Менеджер спросил: «Сколько заказов дороже 100?». Коллега написал <code>SELECT COUNT(*) FROM orders WHERE SUM(amount) &gt; 100;</code>, и запрос падает с ошибкой. Напиши правильный запрос."},
                  "answer": "SELECT COUNT(*) FROM orders WHERE amount > 100;"},
+
+                # Section H
+                {"id": "4.31",
+                 "section": {"en": "H · Arithmetic on aggregates", "ru": "H · Арифметика над агрегатами"},
+                 "intro": {"en": "<p>Aggregates are ordinary numbers, so you can add, subtract and divide them in <code>SELECT</code>.</p>\n<p>The <b>range</b> shows how spread out the values are: the largest value minus the smallest.</p>\n<pre class=\"code\">range = MAX(x) - MIN(x)</pre>\n<p><b>Example:</b> how many years passed between the first and the last hire.</p>",
+                           "ru": "<p>Агрегаты — обычные числа, их можно складывать, вычитать и делить прямо в <code>SELECT</code>.</p>\n<p><b>Размах</b> показывает, насколько разбросаны значения: наибольшее значение минус наименьшее.</p>\n<pre class=\"code\">размах = MAX(x) - MIN(x)</pre>\n<p><b>Пример:</b> сколько лет прошло между первым и последним наймом.</p>"},
+                 "example": "SELECT MAX(hire_year) - MIN(hire_year)\nFROM employees;",
+                 "text": {"en": "The salary range in <code>employees</code>: how much the highest <code>salary</code> is above the lowest. One number.", "ru": "Размах зарплат в <code>employees</code>: на сколько наибольшая <code>salary</code> больше наименьшей. Одно число."},
+                 "answer": "SELECT MAX(salary) - MIN(salary) FROM employees;"},
             ],
         },
         {
